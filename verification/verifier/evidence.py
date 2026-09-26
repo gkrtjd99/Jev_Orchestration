@@ -8,12 +8,32 @@ from .common import parse_jsonl, read_json, Inconclusive
 def terminal_result(runtime: str, events: list[dict]) -> dict:
     if runtime=='claude':
         results=[e for e in events if e.get('type')=='result']
-        last=results[-1] if results else {}
-        ok=bool(last) and last.get('is_error') is False and last.get('subtype') in ('success',None)
-        dollars=last.get('total_cost_usd')
-        if not isinstance(dollars,(int,float)) or not math.isfinite(dollars) or dollars<0:dollars=None
-        return {'completed':ok,'cli_reported_cost_usd':dollars,'cost_kind':'CLI_REPORTED_NOT_INVOICE',
-                'usage':last.get('usage'),'cost_scope':'native_session_reported','terminal_events':len(results)}
+        complete=bool(results) and all(e.get('is_error') is False and e.get('subtype') in ('success',None) for e in results)
+        same_session=len({e.get('session_id') for e in results})==1 and bool(results[0].get('session_id')) if results else False
+        costs=[e.get('total_cost_usd') for e in results]
+        valid_costs=all(isinstance(c,(int,float)) and not isinstance(c,bool) and math.isfinite(c) and c>=0 for c in costs)
+        monotone=valid_costs and all(a<=b for a,b in zip(costs,costs[1:]))
+        dollars=costs[-1] if costs and (len(results)==1 and valid_costs or same_session and monotone) else None
+        usage=results[-1].get('usage') if len(results)==1 else None
+        if len(results)>1 and same_session:
+            segments=[e.get('usage') for e in results]
+            fields=('input_tokens','cache_creation_input_tokens','cache_read_input_tokens','output_tokens')
+            if all(isinstance(s,dict) and all(isinstance(s.get(k),int) and not isinstance(s[k],bool) and s[k]>=0
+                                                  for k in fields) for s in segments):
+                usage={k:sum(s[k] for s in segments) for k in fields}
+                details=('output_tokens_details','cache_creation')
+                for name in details:
+                    if all(isinstance(s.get(name),dict) for s in segments):
+                        keys=set().union(*(s[name] for s in segments))
+                        if all(isinstance(s[name].get(k,0),int) and not isinstance(s[name].get(k,0),bool) and
+                               s[name].get(k,0)>=0 for s in segments for k in keys):
+                            usage[name]={k:sum(s[name].get(k,0) for s in segments) for k in keys}
+        return {'completed':complete,'cli_reported_cost_usd':dollars,'cost_kind':'CLI_REPORTED_NOT_INVOICE',
+                'usage':usage,'cost_scope':'single_result_reported' if len(results)==1 else
+                'same_session_monotone_last_reported_inferred_cumulative' if dollars is not None else 'unknown_multi_result',
+                'usage_scope':'single_result' if len(results)==1 else
+                'same_session_segment_sum_assuming_disjoint_turns' if usage is not None else 'unknown_multi_result',
+                'terminal_events':len(results)}
     turns=[e for e in events if e.get('type')=='turn.completed']
     errors=[e for e in events if e.get('type') in ('turn.failed','error')]
     usage={}; missing=False
@@ -88,12 +108,13 @@ def delegation_observations(hooks: list[dict]) -> dict:
                     outcome.get('tool_name') not in (None,event.get('tool_name')) or
                     (event.get('session_id') and outcome.get('session_id')!=event['session_id']) or
                     outcome.get('hook_event_name')!='PostToolUse' or not isinstance(body,dict) or
-                    body.get('is_error') is True or body.get('success') is False):continue
+                    body.get('is_error') is True or body.get('success') is False or
+                    body.get('status') not in (None,'async_launched','completed','success')):continue
             aid=body.get('agent_id') or body.get('agentId')
             if not isinstance(aid,str) or not aid:continue
             began=[i for i,started in starts if position<i and started['event'].get('agent_id')==aid]
-            ended=[i for i,stopped in stops if began and began[0]<i and stopped['event'].get('agent_id')==aid]
-            if len(began)==1 and len(ended)==1:matches.append((aid,began[0],ended[0]))
+            ended=[i for i,stopped in stops if began and began[-1]<i and stopped['event'].get('agent_id')==aid]
+            if began and ended:matches.append((aid,began[-1],ended[-1]))
         links[tid]=matches if tid and tid not in links else []
     return {'attempts':attempts,'starts':starts,'links':links}
 
@@ -127,6 +148,9 @@ def assess_routing(hooks: list[dict], runtime: str, target, root: Path, aliases:
             'correlation_ambiguous':ambiguous,'observed_models':sorted(models),'observed_efforts':sorted(efforts),
             'model_status':model_status,'effort_status':effort_status,
             'application_status':'PASS' if not ambiguous else 'INCONCLUSIVE_UNLINKED_WORKER'})
-    return {'observer_seen':bool(hooks),'native_delegations_seen':len(observations['starts']),
+    worker_ids={row['event'].get('agent_id') for _,row in observations['starts']}
+    worker_ids.discard(None)
+    return {'observer_seen':bool(hooks),'native_delegations_seen':len(worker_ids),
+            'native_start_events':len(observations['starts']),
             'delegation_attempts':len(observations['attempts']),'routes':routes,
             'warning':'Runtime metadata confirms runtime settings only, not hidden provider compute. Missing effort is not inferred from model names or profile files.'}

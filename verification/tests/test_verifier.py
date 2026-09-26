@@ -95,6 +95,26 @@ class EvidenceTests(unittest.TestCase):
             write_json(f.with_suffix('.meta.json'),{'agent_id':'agent-8'})
             self.assertEqual(child_metadata(root,[]),{})
     def test_claude_error(self):self.assertFalse(terminal_result('claude',[{'type':'result','is_error':True}])['completed'])
+    def test_claude_multiple_results_use_segment_tokens_and_last_monotone_cost(self):
+        events=[{'type':'result','session_id':'same','is_error':False,'subtype':'success',
+                 'total_cost_usd':1.4,'usage':{'input_tokens':54,'cache_creation_input_tokens':0,
+                                               'cache_read_input_tokens':210,'output_tokens':7}},
+                {'type':'result','session_id':'same','is_error':False,'subtype':'success',
+                 'total_cost_usd':1.5,'usage':{'input_tokens':2,'cache_creation_input_tokens':0,
+                                               'cache_read_input_tokens':8,'output_tokens':1}}]
+        result=terminal_result('claude',events)
+        self.assertTrue(result['completed']);self.assertEqual(result['terminal_events'],2)
+        self.assertEqual(result['usage']['input_tokens'],56)
+        self.assertEqual(result['usage']['cache_read_input_tokens'],218)
+        self.assertEqual(result['usage']['output_tokens'],8)
+        self.assertEqual(result['cli_reported_cost_usd'],1.5)
+        self.assertIn('assuming_disjoint_turns',result['usage_scope'])
+        other=terminal_result('claude',events[:1]+[events[1]|{'session_id':'other'}])
+        self.assertIsNone(other['usage']);self.assertIsNone(other['cli_reported_cost_usd'])
+        decreasing=terminal_result('claude',events[:1]+[events[1]|{'total_cost_usd':1.2}])
+        self.assertIsNone(decreasing['cli_reported_cost_usd'])
+        failed=terminal_result('claude',[events[0]|{'is_error':True},events[1]])
+        self.assertFalse(failed['completed'])
     def test_codex_aggregate(self):
         r=terminal_result('codex',[{'type':'turn.completed','usage':{'input_tokens':3}},{'type':'turn.completed','usage':{'input_tokens':4}}]);self.assertEqual(r['usage']['input_tokens'],7);self.assertIsNone(r['cli_reported_cost_usd'])
     def test_codex_no_terminal(self):self.assertFalse(terminal_result('codex',[{'type':'item.completed'}])['completed'])
@@ -139,6 +159,19 @@ class EvidenceTests(unittest.TestCase):
             another={'event':{'hook_event_name':'SubagentStart','agent_type':name,'agent_id':'b'}}
             self.assertEqual(assess_routing([route,start,another,stop,response],
                                             'claude',FakeTarget(),root,{})['routes'][0]['matched_child_ids'],['a'])
+            launched=response|{'event':response['event']|{'tool_response':{'agentId':'a','status':'async_launched','isAsync':True}}}
+            resumed=[route,launched,start,stop,start,stop]
+            repeated=assess_routing(resumed,'claude',FakeTarget(),root,{})
+            self.assertEqual(repeated['native_delegations_seen'],1)
+            self.assertEqual(repeated['native_start_events'],2)
+            self.assertEqual(repeated['routes'][0]['application_status'],'PASS')
+            self.assertEqual(repeated['routes'][0]['observed_efforts'],['high'])
+            # An async acknowledgement and a previous stop do not complete a subsequent resume.
+            self.assertNotEqual(assess_routing(resumed[:-1],'claude',FakeTarget(),root,{})
+                                ['routes'][0]['application_status'],'PASS')
+            refused=response|{'event':response['event']|{'tool_response':{'agentId':'a','status':'error'}}}
+            self.assertNotEqual(assess_routing([route,start,stop,refused],
+                                            'claude',FakeTarget(),root,{})['routes'][0]['application_status'],'PASS')
 
     def test_failed_callback_never_applied(self):
         hooks=[{'event':{'hook_event_name':'PreToolUse'},'sut_invoked':True,'sut_returncode':1,'output':{'hookSpecificOutput':{'updatedInput':{'subagent_type':'jev4_bad'}}}}]
