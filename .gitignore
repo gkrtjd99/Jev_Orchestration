@@ -1,0 +1,25 @@
+**/.jev/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.local.json
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/.venv/
+**/benchmarks/results/
+verification/results/
+reports-local/
+# Raw model transcripts, prompts, local paths, screenshots, and verifier artifacts stay local.
+/reports/*
+!/reports/VERIFICATION.md
+!/reports/PLAN_ROUTING_COMPARISON_20260925.md
+!/reports/DECISION_AUDIT_20260925.md
+!/reports/dashboard-benchmark-20260925/
+/reports/dashboard-benchmark-20260925/*
+!/reports/dashboard-benchmark-20260925/README.md
+!/reports/dashboard-benchmark-20260925/PROTOCOL.md
+!/reports/controller-offline-20260926-final/
+/reports/controller-offline-20260926-final/*
+!/reports/controller-offline-20260926-final/report.ko.md
+.DS_Store

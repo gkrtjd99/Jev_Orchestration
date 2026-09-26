@@ -1,0 +1,8 @@
+[
+  {
+    "id": "interval-union",
+    "spec": "Implement export function mergeIntervals(items) in src/main.mjs. Each item is [start,end] with finite numbers and start<=end. Return sorted disjoint intervals. Merge touching intervals. Never mutate inputs. Empty input gives []. Throw TypeError for malformed input, NaN, Infinity, reversed bounds, or a non-array.",
+    "initial": "export function mergeIntervals(items) { return items; }\n",
+    "tests": "import {mergeIntervals as f} from './solution/src/main.mjs';\nassert.deepEqual(f([]),[]);assert.deepEqual(f([[5,7],[1,3],[3,6],[9,9]]),[[1,7],[9,9]]);\nconst x=[[3,4],[1,2]];const copy=JSON.stringify(x);f(x);assert.equal(JSON.stringify(x),copy);\nfor(const v of [null,{},[[3,2]],[[0,Infinity]],[[NaN,2]],[[1]],[[1,2,3]],['x']])assert.throws(()=>f(v),TypeError);\nfor(let n=1;n<40;n++){const a=Array.from({length:n},(_,i)=>[i*2,i*2+2]);assert.deepEqual(f(a.reverse()),[[0,n*2]]);}\n"
+  }
+]

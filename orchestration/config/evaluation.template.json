@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "kind": "TEMPLATE_NOT_LIVE_EVIDENCE",
+  "taskId": "UNIQUE_VALIDATED_TASK_ID",
+  "taskClass": "COPY_FROM_ROUTE_RECEIPT",
+  "context": "CLI_PROVIDER_TOOLS_VALIDATOR_VERSION_SET",
+  "projectHash": "COPY_FROM_ROUTE_RECEIPT",
+  "profileId": "COPY_FROM_ROUTE_RECEIPT",
+  "profileFingerprint": "COPY_FROM_ROUTE_RECEIPT",
+  "runtime": "claude",
+  "createdAt": 0,
+  "effective": {
+    "confirmed": false,
+    "model": "ACTUAL_BACKEND_FROM_NATIVE_TRACE",
+    "effort": "ACTUAL_EFFORT_OR_NULL",
+    "source": "native-transcript"
+  },
+  "verification": {
+    "source": "independent-validator",
+    "passed": false,
+    "artifactSha256": "SHA256_OF_INDEPENDENT_REPORT",
+    "validatorVersion": "PINNED_VALIDATOR_VERSION"
+  },
+  "durationMs": 0,
+  "costUsd": null,
+  "attempts": 1,
+  "accounting": "all-attempts-including-failures-and-router"
+}

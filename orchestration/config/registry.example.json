@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "revision": "quality-first-policy-2026-09-25",
+  "models": [
+    {
+      "id": "claude-micro",
+      "runtime": "claude",
+      "slot": "micro",
+      "model": "haiku",
+      "backend": "haiku",
+      "enabled": false,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        null
+      ],
+      "effortByIntent": {
+        "brief": null
+      },
+      "roles": [
+        "research"
+      ],
+      "contextTokens": null,
+      "price": null
+    },
+    {
+      "id": "claude-light",
+      "runtime": "claude",
+      "slot": "light",
+      "model": "claude-sonnet-5",
+      "backend": "claude-sonnet-5",
+      "enabled": true,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "effortByIntent": {
+        "brief": "high",
+        "balanced": "xhigh",
+        "deep": "xhigh",
+        "exhaustive": "max"
+      },
+      "roles": [
+        "research",
+        "documentation",
+        "implement"
+      ],
+      "contextTokens": null,
+      "price": null
+    },
+    {
+      "id": "claude-standard",
+      "runtime": "claude",
+      "slot": "standard",
+      "model": "claude-opus-5-5",
+      "backend": "claude-opus-5-5",
+      "enabled": true,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "effortByIntent": {
+        "brief": "high",
+        "balanced": "high",
+        "deep": "xhigh",
+        "exhaustive": "max"
+      },
+      "roles": [
+        "research",
+        "documentation",
+        "implement",
+        "review"
+      ],
+      "contextTokens": null,
+      "price": null
+    },
+    {
+      "id": "claude-strategic",
+      "runtime": "claude",
+      "slot": "strategic",
+      "model": "claude-fable-5-1",
+      "backend": "claude-fable-5-1",
+      "enabled": true,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        "high",
+        "xhigh"
+      ],
+      "effortByIntent": {
+        "brief": "high",
+        "balanced": "high",
+        "deep": "xhigh",
+        "exhaustive": "xhigh"
+      },
+      "roles": [
+        "plan",
+        "implement",
+        "review"
+      ],
+      "contextTokens": null,
+      "price": null
+    },
+    {
+      "id": "codex-light",
+      "runtime": "codex",
+      "slot": "light",
+      "model": "gpt-6-luna",
+      "backend": "gpt-6-luna",
+      "enabled": true,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "effortByIntent": {
+        "brief": "high",
+        "balanced": "xhigh",
+        "deep": "xhigh",
+        "exhaustive": "max"
+      },
+      "roles": [
+        "research",
+        "documentation",
+        "implement"
+      ],
+      "contextTokens": null,
+      "price": null
+    },
+    {
+      "id": "codex-standard",
+      "runtime": "codex",
+      "slot": "standard",
+      "model": "gpt-6-sol",
+      "backend": "gpt-6-sol",
+      "enabled": true,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        "high",
+        "xhigh",
+        "max"
+      ],
+      "effortByIntent": {
+        "brief": "high",
+        "balanced": "high",
+        "deep": "xhigh",
+        "exhaustive": "max"
+      },
+      "roles": [
+        "research",
+        "documentation",
+        "implement",
+        "review"
+      ],
+      "contextTokens": null,
+      "price": null
+    },
+    {
+      "id": "codex-strategic",
+      "runtime": "codex",
+      "slot": "strategic",
+      "model": "gpt-6-astra",
+      "backend": "gpt-6-astra",
+      "enabled": true,
+      "availability": "declared",
+      "capabilitySource": "quality-first-policy-2026-09-25",
+      "supportedEfforts": [
+        "high",
+        "xhigh"
+      ],
+      "effortByIntent": {
+        "brief": "high",
+        "balanced": "high",
+        "deep": "xhigh",
+        "exhaustive": "xhigh"
+      },
+      "roles": [
+        "plan",
+        "implement",
+        "review"
+      ],
+      "contextTokens": null,
+      "price": null
+    }
+  ]
+}

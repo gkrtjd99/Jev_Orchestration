@@ -1,0 +1,102 @@
+[
+  {
+    "id": "ko-lookup",
+    "runtime": "claude",
+    "prompt": "README.md에서 프로젝트 실행 명령이 적힌 위치만 찾아 주세요. 문서를 수정하지 마세요.",
+    "roles": [
+      "research"
+    ],
+    "slots": [
+      "micro",
+      "light",
+      "standard"
+    ],
+    "efforts": [
+      null,
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "id": "en-lookup",
+    "runtime": "codex",
+    "prompt": "Locate the run command in README.md. Read-only bounded lookup; report the section without changing files.",
+    "roles": [
+      "research"
+    ],
+    "slots": [
+      "light",
+      "standard"
+    ],
+    "efforts": [
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "id": "ko-plan",
+    "runtime": "claude",
+    "prompt": "기존 알림 서비스의 재시도 아키텍처 설계안을 작성하세요. 멱등성, 지수 백오프, 실패 큐의 계약과 완료 기준을 정하는 기획 작업이며, 코드를 구현하지 마세요.",
+    "roles": [
+      "plan"
+    ],
+    "slots": [
+      "strategic"
+    ],
+    "efforts": [
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "id": "en-plan",
+    "runtime": "codex",
+    "prompt": "Design the requirements and architecture for idempotent notification delivery. Decide retry and dead-letter semantics, list tradeoffs and acceptance criteria. Produce a plan, not application changes.",
+    "roles": [
+      "plan"
+    ],
+    "slots": [
+      "strategic"
+    ],
+    "efforts": [
+      "high",
+      "xhigh"
+    ]
+  },
+  {
+    "id": "ko-sensitive-review",
+    "runtime": "claude",
+    "prompt": "독립 검토: 제공된 인증 만료 검사 변경은 expiresAt <= now여야 하는 경계 조건을 expiresAt < now로 바꿨습니다. 정확한 만료 시각에서 발생하는 보안 오류를 설명하고 테스트 기준을 검토하세요. 수정은 하지 마세요.",
+    "roles": [
+      "review"
+    ],
+    "slots": [
+      "standard",
+      "strategic"
+    ],
+    "efforts": [
+      "high",
+      "xhigh",
+      "max"
+    ]
+  },
+  {
+    "id": "en-docs",
+    "runtime": "codex",
+    "prompt": "Edit README.md only: replace the documented command `npm start` with `npm run dev`. The desired wording is fully specified. Do not change application code.",
+    "roles": [
+      "documentation"
+    ],
+    "slots": [
+      "light",
+      "standard"
+    ],
+    "efforts": [
+      "high",
+      "xhigh",
+      "max"
+    ]
+  }
+]

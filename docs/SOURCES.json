@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-09-25",
+  "sources": [
+    {
+      "id": "S1",
+      "url": "https://code.claude.com/docs/en/hooks",
+      "scope": "Native hook outputs; updatedInput does not require allow on Claude."
+    },
+    {
+      "id": "S2",
+      "url": "https://developers.openai.com/codex/hooks",
+      "scope": "Codex updatedInput/allow pairing and explicit hook trust."
+    },
+    {
+      "id": "S3",
+      "url": "https://code.claude.com/docs/en/sub-agents",
+      "scope": "Native agent effort frontmatter, model precedence."
+    },
+    {
+      "id": "S4",
+      "url": "https://developers.openai.com/codex/agent-configuration/subagents",
+      "scope": "Native spawn model/effort and custom-agent settings."
+    },
+    {
+      "id": "S5",
+      "url": "https://github.com/typesafe-ai/typesafe-sdk-python",
+      "scope": "TYPESAFE_API_KEY and /v1/systemone API contract."
+    },
+    {
+      "id": "S6",
+      "url": "https://nodejs.org/download/release/v22.17.0/docs/api/permissions.html",
+      "scope": "Resource permissions are not a malicious-code security guarantee."
+    }
+  ],
+  "not_claimed": [
+    "Model quality/effort optimum not measured",
+    "Native provider entitlement not verified",
+    "No independent third-party certification"
+  ]
+}

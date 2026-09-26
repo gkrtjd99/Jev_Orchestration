@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-09-25",
+  "inputs": [
+    {
+      "filename": "Jev_Orchestration-optimized-router-0.4.0-router.1(1).zip",
+      "role": "execution base",
+      "sha256": "3edc7ab9cfde0dcb13cd88225e56d6d0b92e6de60823dbdece4cff74388ab5a2",
+      "bytes": 120030
+    },
+    {
+      "filename": "Jev_Verifier-independent-1.0.0(1).zip",
+      "role": "independent verification base",
+      "sha256": "f766d82d1166c9741ab4e39a7eb8650adb306763ef067a6d690dae6e06be878c",
+      "bytes": 83963
+    },
+    {
+      "filename": "jev-native-orchestration-v2.3.zip",
+      "role": "compared previous implementation",
+      "sha256": "17685ebd5f6324219d7d0c673309dc2fab58c80efbab598cbb959375235b42b1",
+      "bytes": 167275
+    }
+  ],
+  "notes": "User-provided source archives. No input archive is installed as a second router."
+}

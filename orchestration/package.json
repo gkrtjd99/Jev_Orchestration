@@ -1,0 +1,23 @@
+{
+  "name": "jev-native-hooks",
+  "version": "3.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Quality-first Jev native hooks with explicit consent and independent verification.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "bench": "node scripts/benchmark.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "install:hooks": "node scripts/install.mjs",
+    "uninstall:hooks": "node scripts/uninstall.mjs",
+    "eval:router": "node scripts/evaluate-router.mjs",
+    "catalog": "node scripts/catalog.mjs",
+    "feedback": "node scripts/feedback.mjs",
+    "test:coverage": "node --test --experimental-test-coverage test/*.test.mjs"
+  }
+}
