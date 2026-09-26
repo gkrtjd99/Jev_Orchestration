@@ -1,6 +1,6 @@
 """Fixed maintenance tasks seeded from the real repository; grader sources stay outside worker projects."""
 from __future__ import annotations
-import io, os, subprocess, sys, tarfile, tempfile
+import io, os, re, subprocess, sys, tarfile, tempfile
 from pathlib import Path
 from .common import Blocked, clean_env, run_process, sha, tree_manifest, write_private
 
@@ -48,6 +48,7 @@ def snapshot(root:Path,project:Path):
             if not member.isfile() or member.size>1_000_000:raise Blocked('UNSAFE_ARCHIVE_ENTRY')
             data=tar.extractfile(member).read()
             write_private(destination,data)
+            if member.mode&0o111:destination.chmod(0o700)
     commit=subprocess.run(['git','-C',str(root),'rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
     return commit
 
@@ -82,7 +83,10 @@ def grade(root:Path,project:Path,task:dict,node:str,artifacts:Path):
             cmd=[sys.executable,'-m','unittest','discover','-s','tests','-p','test_verifier.py','-v'];cwd=judge/'verification'
         result=run_process([str(x) for x in cmd],cwd=cwd,env=env,timeout=90,
                            log_prefix=artifacts/'grade',max_output=1_000_000)
-        return {'passed':result.returncode==0 and not result.timed_out,'returncode':result.returncode,
-                'timeout':result.timed_out,'duration_ms':result.duration_ms,
+        tests_ran=(re.search(r'(?m)^Ran ([1-9][0-9]*) tests? in ',result.stderr)
+                   if task['runtime']=='python' else re.search(r'(?m)^[#ℹ] tests ([1-9][0-9]*)$',result.stdout))
+        return {'passed':result.returncode==0 and not result.timed_out and bool(tests_ran),
+                'reported_test_count':int(tests_ran.group(1)) if tests_ran else 0,
+                'returncode':result.returncode,'timeout':result.timed_out,'duration_ms':result.duration_ms,
                 'test_sha256':sha((root/task['test']).read_bytes()),'source':'TRUSTED_REPOSITORY_TESTS_OUTSIDE_WORKER_PROJECT',
                 'not_a_malicious_code_sandbox':True}

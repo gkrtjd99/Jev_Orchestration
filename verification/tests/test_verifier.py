@@ -106,10 +106,40 @@ class EvidenceTests(unittest.TestCase):
         hooks=[{'event':{'hook_event_name':'SubagentStart','agent_type':'jev4_implement_light_medium_x','agent_id':'a'}},
                {'event':{'hook_event_name':'SubagentStart','agent_type':'jev4_implement_light_medium_x','agent_id':'b'}}]
         for ident in ('call1','call2'):
-            hooks.append({'event':{'hook_event_name':'PreToolUse','tool_use_id':ident},'sut_invoked':True,'sut_returncode':0,'output':{'hookSpecificOutput':{'updatedInput':{'subagent_type':'jev4_implement_light_medium_x'}}}})
+            hooks.append({'event':{'hook_event_name':'PreToolUse','tool_name':'Agent','tool_use_id':ident},'sut_invoked':True,'sut_returncode':0,'output':{'hookSpecificOutput':{'updatedInput':{'subagent_type':'jev4_implement_light_medium_x'}}}})
         with tempfile.TemporaryDirectory() as t:
             result=assess_routing(hooks,'claude',FakeTarget(),Path(t),{})
-        self.assertTrue(all(r['application_status']=='INCONCLUSIVE_AMBIGUOUS_CORRELATION' and not r['matched_child_ids'] for r in result['routes']))
+        self.assertTrue(all(r['application_status']=='INCONCLUSIVE_UNLINKED_WORKER' and not r['matched_child_ids'] for r in result['routes']))
+    def test_typed_child_without_linked_successful_response_cannot_pass(self):
+        name='jev4_implement_standard_high_x'
+        class FakeTarget:
+            def selected_profile(self,output,runtime):
+                return {'profile':name,'requested_model':'gpt-6-sol','requested_effort':'high','input':{}}
+        route={'event':{'hook_event_name':'PreToolUse','tool_name':'Agent','tool_use_id':'t1'},
+               'sut_invoked':True,'sut_returncode':0,
+               'output':{'hookSpecificOutput':{'updatedInput':{'subagent_type':name}}}}
+        start={'event':{'hook_event_name':'SubagentStart','agent_type':name,'agent_id':'a'}}
+        stop={'event':{'hook_event_name':'SubagentStop','agent_type':name,'agent_id':'a'}}
+        response={'event':{'hook_event_name':'PostToolUse','tool_name':'Agent','tool_use_id':'t1',
+                           'tool_response':{'agentId':'a'}}}
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);write_private(root/'transcripts/a.jsonl',json.dumps({
+                'type':'assistant','agentId':'a','effort':'high','message':{'model':'gpt-6-sol'}})+'\n')
+            for events in ([route,start,stop],[route,start,stop,
+                            {'event':response['event']|{'tool_response':{'agentId':'a','is_error':True}}}],
+                           [route,stop,response],[route,start,response]):
+                result=assess_routing(events,'claude',FakeTarget(),root,{})['routes'][0]
+                self.assertNotEqual(result['application_status'],'PASS')
+                self.assertEqual(result['model_status'],'INCONCLUSIVE')
+                self.assertEqual(result['effort_status'],'INCONCLUSIVE')
+            linked=assess_routing([route,start,stop,response],'claude',FakeTarget(),root,{})['routes'][0]
+            self.assertEqual((linked['application_status'],linked['model_status'],linked['effort_status']),
+                             ('PASS','PASS','PASS'))
+            # A second same-profile child is identified by the native response ID, not the shared profile name.
+            another={'event':{'hook_event_name':'SubagentStart','agent_type':name,'agent_id':'b'}}
+            self.assertEqual(assess_routing([route,start,another,stop,response],
+                                            'claude',FakeTarget(),root,{})['routes'][0]['matched_child_ids'],['a'])
+
     def test_failed_callback_never_applied(self):
         hooks=[{'event':{'hook_event_name':'PreToolUse'},'sut_invoked':True,'sut_returncode':1,'output':{'hookSpecificOutput':{'updatedInput':{'subagent_type':'jev4_bad'}}}}]
         with tempfile.TemporaryDirectory() as t:self.assertEqual(assess_routing(hooks,'claude',None,Path(t),{})['routes'],[])

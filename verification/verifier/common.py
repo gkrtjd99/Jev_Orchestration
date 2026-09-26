@@ -35,7 +35,7 @@ def write_json(file: Path, value: Any) -> None:
     write_private(file, json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False)+'\n')
 
 
-def load_env(file: Path | None) -> dict[str, str]:
+def load_env(file: Path | None, *, inherit: bool = True) -> dict[str, str]:
     values: dict[str, str] = {}
     if file:
         if file.is_symlink(): raise ValueError('An env file must not be a symlink.')
@@ -50,10 +50,11 @@ def load_env(file: Path | None) -> dict[str, str]:
                 value = value[1:-1]
             if '\x00' in value: raise ValueError('NUL in env value')
             if value: values[key] = value
-    # A supplied shell value wins. Arbitrary env contents are never forwarded wholesale.
-    for key, value in os.environ.items():
-        if value and (key.startswith(('JEV_', 'VERIFY_', 'ANTHROPIC_', 'CLAUDE_', 'CODEX_', 'TYPESAFE_'))):
-            if value: values[key] = value
+    # Most verifier commands retain shell overrides; paid repository trials freeze env-file inputs.
+    if inherit:
+        for key, value in os.environ.items():
+            if value and key.startswith(('JEV_', 'VERIFY_', 'ANTHROPIC_', 'CLAUDE_', 'CODEX_', 'TYPESAFE_')):
+                values[key] = value
     return values
 
 

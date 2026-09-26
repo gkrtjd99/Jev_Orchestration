@@ -40,6 +40,22 @@ class RepositoryTaskTests(unittest.TestCase):
                     candidate.write_text(candidate.read_text().replace(task['seed'],task['fixed']))
                     self.assertTrue(grade(self.repository,project,task,self.node,base/'reference'/task['id'])['passed'])
 
+    def test_worker_early_exit_is_not_a_passing_python_grade(self):
+        with tempfile.TemporaryDirectory(prefix='jev-repo-early-exit-test-') as td:
+            base=Path(td);project=base/'worker';project.mkdir()
+            task=TASKS[1];prepare(self.repository,project,task)
+            candidate=project/task['file']
+            candidate.write_text('import os\nos._exit(0)\n')
+            result=grade(self.repository,project,task,self.node,base/'logs')
+            self.assertFalse(result['passed'])
+            self.assertEqual(result['reported_test_count'],0)
+
+    def test_snapshot_keeps_committed_script_executable(self):
+        with tempfile.TemporaryDirectory(prefix='jev-repo-script-test-') as td:
+            project=Path(td)/'worker';project.mkdir()
+            prepare(self.repository,project,TASKS[0])
+            self.assertTrue((project/'scripts/test-all.sh').stat().st_mode&0o100)
+
     def test_candidate_symlink_is_rejected(self):
         with tempfile.TemporaryDirectory(prefix='jev-repo-symlink-test-') as td:
             base=Path(td);project=base/'worker';project.mkdir()
