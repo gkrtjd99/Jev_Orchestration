@@ -2,7 +2,7 @@
 
 ## 신뢰 경계
 
-이 확장은 사용자 홈의 신뢰된 설정을 읽고 허용된 프로젝트에만 개입합니다. 프로젝트 문서·위임 텍스트·로그는 판단 데이터이지 상위 지침이 아닙니다. API 키는 별도 owner-only env에 두며 코드 저장소/로그/판단 state에 넣지 않습니다. 간단한 secret pattern 검사는 완전한 DLP가 아니므로 민감한 내용을 전송하지 않을 책임과 조직 정책은 여전히 필요합니다.
+기존 native hook 확장은 사용자 홈의 신뢰된 설정을 읽고 허용된 프로젝트에만 개입합니다. 프로젝트 문서·위임 텍스트·로그는 판단 데이터이지 상위 지침이 아닙니다. API 키는 별도 owner-only env에 두며 코드 저장소/로그/판단 state에 넣지 않습니다. 간단한 secret pattern 검사는 완전한 DLP가 아니므로 민감한 내용을 전송하지 않을 책임과 조직 정책은 여전히 필요합니다.
 
 Jev는 권한을 부여하지 않습니다. Claude에서는 `allow` 없이 인자만 바꿉니다. Codex는 protocol 제약 때문에 `allow`가 필요한 경로를 별도 opt-in으로 분리했습니다. 활성화를 승인해도 기존 호스트/OS 제한을 넓힐 권한이 생기지는 않습니다. 알 수 없는 인자·custom agent·resume·명시 모델·강제 environment override·nested 위임은 보존합니다.
 
@@ -15,6 +15,14 @@ Jev는 권한을 부여하지 않습니다. Claude에서는 `allow` 없이 인�
 기본 로그는 원문 대신 hash·결정·관측 메타데이터입니다. 캐시는 계정/세션/프로젝트/질문/state가 다르면 재사용하지 않습니다. pending 결정은 코드·문서·목표의 변경을 확인하며, 판단 중 변화가 생겨도 적용하지 않습니다. bounded snapshot은 파일 시스템 트랜잭션이나 모든 바이너리 변경에 대한 증명이 아닙니다.
 
 요청 cap·deadline·회로 차단은 Jev 호출의 폭주를 줄이는 장치입니다. 전체 생성모델 달러 예산을 보장하지 않으며, 토큰/비용을 모르면 unknown입니다. 훅 runtime은 worker 실행·재시도 루프를 소유하지 않습니다. watchdog timeout은 native 호스트의 오류 처리에 따르므로 hook 자체를 절대적인 보안 강제선으로 사용하지 마세요. `JEV_WORKFLOW_POLICY=block`은 신뢰된 hook이 정상 실행되고 `active`인 Claude 세션의 `Workflow` 요청을 거부하는 운영 정책입니다. 미설치·비활성·미신뢰 hook 및 입력·설정 오류나 watchdog 종료는 거부를 보장하지 않습니다. native `Agent` 위임도 부적격·명시 모델·custom agent·Jev 장애 등에는 원래 호출 그대로 실행될 수 있으므로 완전한 worker 통제나 성공 증거가 아닙니다.
+
+## 훅 없는 ultracode 계획 보조의 경계
+
+[`jev-plan`](ULTRACODE.ko.md)은 명시한 private input/env/registry만 읽으며 native 로그인·HOME 설정을 탐색하지 않습니다. `JEV_ALLOW_EGRESS=true`와 `JEV_SHARE_PLAN_CONTEXT=true`를 지정한 env에 함께 두어야 계획 요약·task·경로·후보 판단 문맥을 TypeSafe에 보낼 수 있습니다. 동의 검사는 캐시 반환보다 먼저 수행합니다. ambient env나 기존 hook 활성화는 동의를 대신하지 않으며, dry-run은 전송·상태 생성을 하지 않습니다.
+
+이 CLI는 typed 권고만 반환하고 hook 설정·worker 실행·권한을 변경하지 않습니다. registry confirmed는 Workflow 지원 증거가 아니므로 planner가 현재 호출 측의 model/effort 지원을 별도로 확인해야 합니다. 요청 cap은 물리 프로젝트의 device/inode와 run-id·purpose에 묶인 private one-shot 예약이며, 키·초안·macOS firmlink 경로를 바꿔도 공유합니다. 실패도 cap을 소비합니다. 같은 작업의 run-id를 바꾸거나 상태를 지워 cap을 회피하지 마세요.
+
+입력·상태는 owner-only·symlink/hardlink를 검사하고, task 경로의 Unicode 별칭과 env/registry의 물리적 프로젝트 내부 배치를 거부합니다. 이 검사는 같은 UID의 악성 프로세스나 실행 중 파일 교체를 격리하는 sandbox가 아닙니다. 계획 경로는 worker의 OS 권한을 제한하지 않습니다. 안전한 상태 파일의 내용 오류·과대 크기는 원본을 보존한 fallback이며, 권한·링크 위반과는 구분합니다. CLI는 provider의 자유 형식 문구를 저장·지침으로 전달하지 않지만 계획 데이터 자체도 신뢰 경계를 유지해야 합니다. 실제 권고 수신과 적용·품질·효율은 별개입니다.
 
 ## Claude controller의 추가 경계
 

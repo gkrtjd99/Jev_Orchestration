@@ -1,10 +1,12 @@
-# Jev Orchestration 3.1.0 — native hook + 선택적 controller
+# Jev Orchestration — 얇은 ultracode 계획 보조 + 기존 native hook
 
-기존 **Claude Code / Codex Main**을 유지하는 native hook 확장입니다. 기본 `shadow`와 기존 `active`/`advisory` 모드는 Main이 **이미 요청한** 위임에 Jev 분류와 모델×effort 프로필 선택을 적용합니다. 새 **`controller` 모드(Claude 전용, 명시적 opt-in)**는 반대로 Astra 계획→Main의 native worker 배정→Main의 근거 확인을 중심에 두고, Jev를 선택적·비구속적 누락 검사자로 제한합니다. 독립 검증기 **1.1.0**은 별도 폴더에 있습니다.
+**ultracode용 새 경로는 훅 없이 작동합니다.** [얇은 지침](.claude/skills/jev-ultracode/SKILL.md)이 계획 작성 전에 제한된 Jev 자문을 요청하고, Astra가 판단을 검토해 원래 `Workflow`의 작업 분할·조사 범위·모델/effort에 반영합니다. 별도 controller·worker 실행 엔진·도구 가로채기로 전환하지 않습니다. 미동의·미지원·실패이면 기본 ultracode를 보존합니다. 정적 지침만 사용한 `GUIDANCE_ONLY`는 실제 Jev 판단을 쓴 상태가 아닙니다. **기본 ultracode 대비 품질·효율 우위는 아직 측정하지 않았습니다.** [사용 계약·입력·비교 방법](docs/ULTRACODE.ko.md)을 보세요.
 
-새 대화형 CLI, 독립 worker 실행 엔진, MCP 서버, 재귀 `claude -p`/`codex exec` 실행은 없습니다. 기존 Main이 hook의 계획 규약을 지키며 **native Agent/Task**에 직접 위임합니다. Reporivet과 AgentOTelStack의 코드를 복제하거나 설치하지 않습니다.
+기존 **Claude Code / Codex Main**을 유지하는 native hook 확장(3.1.0)도 보존합니다. 기본 `shadow`와 기존 `active`/`advisory` 모드는 Main이 **이미 요청한** 위임에 Jev 분류와 모델×effort 프로필 선택을 적용합니다. 새 **`controller` 모드(Claude 전용, 명시적 opt-in)**는 반대로 Astra 계획→Main의 native worker 배정→Main의 근거 확인을 중심에 두고, Jev를 선택적·비구속적 누락 검사자로 제한합니다. 독립 검증기 **1.1.0**은 별도 폴더에 있습니다.
 
-**상태:** 2026-09-26의 Node 243/243·검증기 자기 테스트 72/72·기존 라우팅의 독립 offline 검사는 통과했습니다. [두 유지보수 과제의 실모델 native/controller 비교](reports/REPOSITORY_PILOT_20260926.md)에서는 native 후보 두 건이 독립 채점 통과, controller 후보 두 건이 무수정·채점 실패였습니다. `active`는 별도 TypeSafe 전송 동의가 없어 미실행이므로 세 조건 우위·실제 청구 비용은 알 수 없습니다. 실제 AgentOTelStack 저장·조회도 검증하지 않았습니다. 제한적인 과거 실제 TypeSafe·native 위임 시험은 별도로 있습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
+새 대화형 CLI, 독립 worker 실행 엔진, MCP 서버, 재귀 `claude -p`/`codex exec` 실행은 없습니다. ultracode 경로의 작은 `jev-plan.mjs`는 자문 JSON만 반환하고 원래 Workflow가 실행을 맡습니다. 기존 hook 경로에서는 Main이 **native Agent/Task**에 직접 위임합니다. Reporivet과 AgentOTelStack의 코드를 복제하거나 설치하지 않습니다.
+
+**상태:** 2026-09-26의 Node 395/395·검증기 자기 테스트 72/72·구문 검사 46개 모듈·기존 라우팅의 독립 offline 검사는 통과했습니다. 새 자문 CLI의 dry-run·미동의 fallback·합성 loopback 응답/캐시/요청 cap도 검사했지만, 실제 TypeSafe 계획 자문과 ultracode 성능 비교는 **NOT_RUN**입니다. [두 유지보수 과제의 실모델 native/controller 비교](reports/REPOSITORY_PILOT_20260926.md)에서는 native 후보 두 건이 독립 채점 통과, controller 후보 두 건이 무수정·채점 실패였습니다. `active`는 별도 TypeSafe 전송 동의가 없어 미실행이므로 세 조건 우위·실제 청구 비용은 알 수 없습니다. 실제 AgentOTelStack 저장·조회도 검증하지 않았습니다. 제한적인 과거 실제 TypeSafe·native 위임 시험은 별도로 있습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
 
 ## 무엇을 통합했나
 
@@ -18,6 +20,18 @@
 비교·버그 재현·제외한 기능: [docs/COMPARISON.ko.md](docs/COMPARISON.ko.md).
 
 ## 실행 구조
+
+### ultracode 계획 보조 (훅 없음)
+
+```text
+원래 목표·수용 기준 + 최소한의 작업 초안
+  → 명시적인 전송 동의가 있을 때만 Jev에 한 번의 batch 자문
+  → 짧은 typed 권고; 정보 부족·낮은 확신은 보류
+  → Astra가 원래 Workflow 계획과 agent(model, effort) 옵션을 작성
+  → 의존 작업은 pipeline, 독립 작업만 parallel; 실제 산출물·검사로 종료
+```
+
+이 저장소의 `CLAUDE.md`는 해당 skill로만 연결하는 얇은 진입점입니다. 다른 저장소·사용자 HOME에 자동 설치하지 않습니다. 기본 ultracode 비교군은 이 지침을 제외해야 합니다. `controller`나 `JEV_WORKFLOW_POLICY=block`으로 Workflow가 거부되는 세션에서는 이 지침으로 우회하지 말고 기존 설정을 보존한 채 충돌을 보고하세요. 새 경로가 자동으로 훅을 해제하거나 권한을 넓히지는 않습니다.
 
 아래는 **기존 `active`/`advisory` 경로**입니다. 새 `controller`에서는 이 Jev 선택 경로를 호출하지 않습니다.
 
@@ -70,11 +84,15 @@ Reporivet에서 가져온 원칙은 [AGENTS.md](AGENTS.md)의 짧은 정본 포�
 
 Node **22.13+**, Python **3.11+**(검증기), Git, 기존 native 호스트가 필요합니다. 런타임 외부 패키지 의존성은 없습니다. macOS/Linux/WSL 대상이며 Windows native shell 설치는 검증하지 않았습니다.
 
+**ultracode 계획 보조만 사용한다면 아래 hook 설치를 하지 않습니다.** 이 저장소의 얇은 진입점과 [별도 준비·dry-run 절차](docs/ULTRACODE.ko.md#입력과-명시적-동의)를 사용하세요. `node orchestration/bin/jev-plan.mjs --help`로 자문 CLI 계약을 확인할 수 있습니다.
+
+다음은 로컬 검사와 **기존 native hook 설치** 예시입니다.
+
 ```bash
 # 먼저 로컬 검증: 유료 API/실제 native 모델을 호출하지 않습니다.
 bash scripts/test-all.sh
 
-# 설치 입력 예시. 키는 프로젝트 밖에서 관리합니다.
+# 기존 hook 설치 입력 예시. 키는 프로젝트 밖에서 관리합니다.
 cp orchestration/config/registry.example.json /tmp/jev-models.local.json
 mkdir -p "$HOME/.config"
 cp orchestration/.env.example "$HOME/.config/jev-setup.env"

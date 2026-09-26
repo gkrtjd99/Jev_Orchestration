@@ -2,7 +2,7 @@
 
 ## 세 단계는 다른 주장입니다
 
-1. **Unit/contract:** 2026-09-26 현재 오케스트레이션 Node 테스트 **243/243**, 검증기 자기 테스트 **72/72**와 `npm run check` 통과를 확인했습니다. 코드의 분기·구조·모의 서버 계약을 검사합니다. 모델 판단 정확도가 아닙니다.
+1. **Unit/contract:** 2026-09-26 현재 오케스트레이션 Node 테스트 **395/395**, 검증기 자기 테스트 **72/72**와 `npm run check`의 **46개 모듈** 통과를 확인했습니다. 코드의 분기·구조·모의 서버 계약을 검사합니다. 모델 판단 정확도가 아닙니다.
 2. **Independent offline black box:** verifier는 SUT 소스를 import하지 않고 공개 installer와 stdin hook을 호출합니다. 합성 TypeSafe 응답, 임시 HOME, 원본 source hash를 사용합니다. 별도 acceptance suite는 올바른 reference를 통과시키고 깨진 stub을 거부합니다.
 3. **Real native comparison:** 실제 TypeSafe·Claude 계정과 격리된 프로젝트에서 한 과제의 고정/자연 위임을 각 2쌍 비교했습니다. Codex 0.156.1에서는 새 협업 spawn 이름과 Jev 판단을 권고 모드로 관측했습니다. Claude의 개별 route→child 모델은 관측했습니다. 후속 유지보수 3쌍·웹 1쌍의 child `.jsonl` 최상위 assistant 이벤트에서는 **2/4쌍의 CLI typed effort `high→xhigh`**가 확인됐지만, 제공자 내부 연산량이나 그 변경의 인과적 품질 효과는 관측되지 않았습니다. 원래 채점 계약의 결함과 작은 표본 때문에 품질·비용 우위는 판정하지 않습니다. [실험·사후 재채점 상세](../reports/PLAN_ROUTING_COMPARISON_20260925.md).
 
@@ -21,6 +21,14 @@ python3 verification/verify.py --suite offline --sut ./orchestration --out /tmp/
 첫 명령은 별도의 빈 HOME과 제한된 env에서 실행해 사용자 키·모델 override를 테스트에 상속하지 않습니다. asdf Node shim은 격리 HOME에서 동작하지 않으므로 설치된 Node의 실제 실행 파일을 찾아 PATH에 앞세우고, Python 3.11+ interpreter를 선택합니다. macOS의 `/tmp`·`/private/tmp` 별칭은 물리 경로 `TMPDIR`로 통일합니다. 단계별 명령에는 같은 PATH·TMPDIR 조건을 적용해야 합니다. interpreter와 git가 없으면 실패 또는 BLOCKED이며 통과로 바꾸지 않습니다.
 
 검증기와 SUT는 형제 폴더여야 합니다. SUT 내부에 verifier를 넣어 자기 소스를 검사하는 구조는 허용하지 않습니다. 결과 폴더도 SUT 밖이어야 합니다. 오케스트레이션의 unit test·optimizer score·모의 PASS 문구는 black-box 판정에 사용하지 않습니다.
+
+## 훅 없는 ultracode 계획 보조의 별도 검사
+
+[`jev-plan`](ULTRACODE.ko.md)은 기존 hook/controller와 다른 경로입니다. `orchestration/test/ultracode-advisor.test.mjs`와 `ultracode-boundaries.test.mjs`의 **151개** 로컬 검사 및 실제 CLI `--help`·`--dry-run` 실행은 입력·동의·후보·typed 권고·fallback 경계를 검증합니다. 2026-09-26 macOS 실행에서 fail/skip/cancel은 모두 0이었으며, hardlink/Unicode/firmlink 별칭, 키 교체·동시 요청 cap, provider cache 팽창, 안전한 손상 상태의 원본 보존, HTTP 429의 끝나지 않는 body를 취소한 실제 CLI 종료도 검사했습니다. OS별 별칭을 제공하지 않는 환경에서는 해당 회귀가 명시적으로 skip되며 통과로 세지 않습니다. 오류 body 취소 한 줄만 제거한 저장소 밖 복사본에서는 같은 실제 CLI 종료 회귀가 예상대로 실패(exit 1)하는 것도 확인했습니다. 이는 회귀의 검출력 검사이며 실모델 성능 비교가 아닙니다.
+
+합성 HTTP 서버의 성공은 실제 Jev 판단의 정확도나 Workflow 적용·산출물 품질을 입증하지 않습니다. 얇은 지침의 크기·링크·frontmatter 검사도 호스트가 실제로 지침을 로드했다는 증거가 아닙니다.
+
+실모델 비교는 **NOT_RUN**입니다. 현재 headless CLI 2.1.283의 `--effort`에는 ultracode가 없으며, `repo_compare.py`는 Workflow를 금지합니다. 이를 새 통합의 실행·비교 수단으로 간주하지 마세요. 실제 Workflow를 사용할 수 있는 같은 환경에서 baseline/GUIDANCE_ONLY/ADVICE를 분리하고, 전체 계획 overhead·실패·재시도를 포함한 [대응 비교 프로토콜](ULTRACODE.ko.md#최소-비교-프로토콜)을 따라야 합니다. 별도 TypeSafe 전송 동의 없이 유료 native 모델 호출 동의를 확대 해석하지 않습니다.
 
 ## 새 Claude controller 경로의 별도 검사
 

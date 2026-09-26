@@ -1,5 +1,7 @@
 # 설치·환경·인증·이전
 
+**ultracode에서 훅 없이 계획부터 Jev를 사용하는 새 경로는 [ULTRACODE.ko.md](ULTRACODE.ko.md)를 따르세요.** 아래 설치기는 기존 native hook용이며, 새 지침을 쓰기 위해 실행할 필요가 없습니다. 저장소의 `CLAUDE.md`·project skill은 다른 프로젝트나 사용자 HOME에 자동 배포되지 않습니다. 지침을 읽는 것과 실제 TypeSafe 전송 동의는 별개입니다.
+
 ## 1. 세 종류의 확인은 별개입니다
 
 Claude/Codex의 기존 로그인은 native Main/worker 실행용입니다. **Jev는 TypeSafe API 키가 별도**입니다. API 키 존재, 모델 registry의 선언, 실제 native child 실행 확인도 서로 다릅니다. OAuth 토큰이나 `auth.json`을 오케스트레이션 env로 복사하지 마세요. production runtime은 native 인증 저장소를 읽거나 인증 자료를 수집하지 않습니다.
