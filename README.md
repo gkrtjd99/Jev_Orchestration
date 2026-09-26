@@ -4,7 +4,7 @@
 
 새 대화형 CLI, 독립 worker 실행 엔진, MCP 서버, 재귀 `claude -p`/`codex exec` 실행은 없습니다. 기존 Main이 hook의 계획 규약을 지키며 **native Agent/Task**에 직접 위임합니다. Reporivet과 AgentOTelStack의 코드를 복제하거나 설치하지 않습니다.
 
-**상태:** 2026-09-26의 Node 243/243·검증기 자기 테스트 71/71·기존 라우팅의 독립 offline 검사는 통과했고, 제한적인 과거 실제 TypeSafe·native 위임 시험이 있습니다. 새 controller의 실모델 작업 품질·비용 및 실제 AgentOTelStack 저장·조회는 아직 검증하지 않았습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
+**상태:** 2026-09-26의 Node 243/243·검증기 자기 테스트 72/72·기존 라우팅의 독립 offline 검사는 통과했습니다. [두 유지보수 과제의 실모델 native/controller 비교](reports/REPOSITORY_PILOT_20260926.md)에서는 native 후보 두 건이 독립 채점 통과, controller 후보 두 건이 무수정·채점 실패였습니다. `active`는 별도 TypeSafe 전송 동의가 없어 미실행이므로 세 조건 우위·실제 청구 비용은 알 수 없습니다. 실제 AgentOTelStack 저장·조회도 검증하지 않았습니다. 제한적인 과거 실제 TypeSafe·native 위임 시험은 별도로 있습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
 
 ## 무엇을 통합했나
 
@@ -98,10 +98,10 @@ python3 verification/verify.py --suite offline --sut ./orchestration \
   --out /tmp/jev-independent-offline
 ```
 
-실계정 테스트는 별도 opt-in입니다. 기존 작은 함수 과제는 `--suite native`/`benchmark`, `--accept-costs`, 확인한 registry와 모델/effort 관측이 필요합니다. 동일한 실제 저장소 유지보수 작업의 `native / active / controller` pilot은 별도 [`verification/repo_compare.py`](verification/repo_compare.py)로 준비했으며, 결함 주입·참조 복구의 오프라인 canary만 확인했습니다. 실모델 세 조건 비교·품질/시간/토큰/청구 비용 결과는 아직 없습니다. [범위·실행 조건](docs/VERIFICATION.ko.md#같은-저장소-유지보수-작업의-3조건-pilot)을 보세요. verifier는 SUT를 import하지 않고 설치·stdin hook·native transcript·외부 테스트를 검사합니다. **이는 코드 경로의 분리이지 외부 기관의 인증이나 악성 코드 격리 보증이 아닙니다.**
+실계정 테스트는 별도 opt-in입니다. 기존 작은 함수 과제는 `--suite native`/`benchmark`, `--accept-costs`, 확인한 registry와 모델/effort 관측이 필요합니다. 동일한 실제 저장소 유지보수 작업의 `native / active / controller` pilot은 별도 [`verification/repo_compare.py`](verification/repo_compare.py)로 준비했습니다. 오프라인 결함 주입·참조 복구 canary와 실제 `native / controller` 두 과제의 품질·시간·CLI 토큰·표시 비용을 [기록](reports/REPOSITORY_PILOT_20260926.md)했으나, `active` 미실행 및 실제 청구액 부재로 세 조건·총비용 우위는 판정할 수 없습니다. [범위·실행 조건](docs/VERIFICATION.ko.md#같은-저장소-유지보수-작업의-3조건-pilot)을 보세요. verifier는 SUT를 import하지 않고 설치·stdin hook·native transcript·외부 테스트를 검사합니다. **이는 코드 경로의 분리이지 외부 기관의 인증이나 악성 코드 격리 보증이 아닙니다.**
 
 [검증 방법](docs/VERIFICATION.ko.md) · [보안·한계](docs/SECURITY.ko.md) · [오프라인 결과](reports/VERIFICATION.md) · [실제 위임 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md) · [동일 데이터 웹 대시보드 1쌍·토큰/시간/브라우저 비교](reports/dashboard-benchmark-20260925/README.md) · [실제 판단 경계 감사](reports/DECISION_AUDIT_20260925.md) · [원본 출처](docs/source-inputs.json)
 
 ## 게시 상태
 
-프로젝트 루트의 단일 Git 저장소에 `origin=https://github.com/gkrtjd99/Jev_Orchestration.git`을 연결했습니다. `orchestration/`과 `verification/`은 별개의 디렉터리이지만 독립 Git 저장소는 아닙니다. 원본 transcript·로그·개인 경로가 포함된 보고서 artifact는 공개 대상에서 제외합니다. 이전 integration의 GitHub 쓰기는 403으로 차단됐으며, **로컬 연결이나 커밋만으로 원격 업로드가 완료된 것은 아닙니다**. controller의 실계정 비교도 남아 있습니다. [게시 범위와 현재 연결](docs/PUBLISH.ko.md)을 확인하세요.
+프로젝트 루트의 단일 Git 저장소에 `origin=https://github.com/gkrtjd99/Jev_Orchestration.git`을 연결했습니다. `orchestration/`과 `verification/`은 별개의 디렉터리이지만 독립 Git 저장소는 아닙니다. 원본 transcript·로그·개인 경로가 포함된 보고서 artifact는 공개 대상에서 제외합니다. 이전 integration의 GitHub 쓰기는 403으로 차단됐으며, **로컬 연결이나 커밋만으로 원격 업로드가 완료된 것은 아닙니다**. controller 실계정 pilot은 native와의 두 조건만 수행했고, 기존 `active`를 포함한 세 조건 비교는 남아 있습니다. [게시 범위와 현재 연결](docs/PUBLISH.ko.md)을 확인하세요.
