@@ -2,11 +2,11 @@
 
 ## 세 단계는 다른 주장입니다
 
-1. **Unit/contract:** 2026-09-26 현재 오케스트레이션 Node 테스트 **243/243**, 검증기 자기 테스트 **57/57**와 `npm run check` 통과를 확인했습니다. 코드의 분기·구조·모의 서버 계약을 검사합니다. 모델 판단 정확도가 아닙니다.
+1. **Unit/contract:** 2026-09-26 현재 오케스트레이션 Node 테스트 **243/243**, 검증기 자기 테스트 **59/59**와 `npm run check` 통과를 확인했습니다. 코드의 분기·구조·모의 서버 계약을 검사합니다. 모델 판단 정확도가 아닙니다.
 2. **Independent offline black box:** verifier는 SUT 소스를 import하지 않고 공개 installer와 stdin hook을 호출합니다. 합성 TypeSafe 응답, 임시 HOME, 원본 source hash를 사용합니다. 별도 acceptance suite는 올바른 reference를 통과시키고 깨진 stub을 거부합니다.
 3. **Real native comparison:** 실제 TypeSafe·Claude 계정과 격리된 프로젝트에서 한 과제의 고정/자연 위임을 각 2쌍 비교했습니다. Codex 0.156.1에서는 새 협업 spawn 이름과 Jev 판단을 권고 모드로 관측했습니다. Claude의 개별 route→child 모델은 관측했습니다. 후속 유지보수 3쌍·웹 1쌍의 child `.jsonl` 최상위 assistant 이벤트에서는 **2/4쌍의 CLI typed effort `high→xhigh`**가 확인됐지만, 제공자 내부 연산량이나 그 변경의 인과적 품질 효과는 관측되지 않았습니다. 원래 채점 계약의 결함과 작은 표본 때문에 품질·비용 우위는 판정하지 않습니다. [실험·사후 재채점 상세](../reports/PLAN_ROUTING_COMPARISON_20260925.md).
 
-`PASS`, `FAIL`, `BLOCKED`, `INCONCLUSIVE`, `NOT_RUN`을 구분합니다. [2026-09-26 독립 offline 공개 요약](../reports/controller-offline-20260926-final/report.ko.md)는 격리된 HOME의 공개 설치·두 runtime의 이전 라우팅 계약·고장 시 fallback·8개 손상 fixture 거부·SUT 원본 불변을 PASS로 기록합니다. `live_stages=NOT_RUN`이며 새 controller의 품질을 채점하지 않습니다. offline exit 0은 전체 제품 성능 인증이 아닙니다. 통계 코드의 합성 테스트는 라우터가 우수하다는 근거가 아닙니다.
+`PASS`, `FAIL`, `BLOCKED`, `INCONCLUSIVE`, `NOT_RUN`을 구분합니다. [2026-09-26 독립 offline 공개 요약](../reports/controller-offline-20260926-final/report.ko.md)는 격리된 HOME의 공개 설치·두 runtime의 이전 라우팅 계약·고장 시 fallback·8개 손상 fixture 거부·SUT 원본 불변을 PASS로 기록합니다. `live_stages=NOT_RUN`이며 새 controller의 품질을 채점하지 않습니다. 공개 요약은 마지막 controller 수용 순서·observer 수정 **이전의 보존 스냅샷**입니다. 이후 전체 offline suite를 임시 비공개 출력에 다시 실행해 exit 0을 확인했지만 원본 JSON을 소급 교체하지 않습니다. offline exit 0은 전체 제품 성능 인증이 아닙니다. 통계 코드의 합성 테스트는 라우터가 우수하다는 근거가 아닙니다.
 
 ## 재현
 
@@ -26,7 +26,7 @@ python3 verification/verify.py --suite offline --sut ./orchestration --out /tmp/
 
 `orchestration/test/controller.test.mjs`는 사설 계획 schema, 민감 경계·confirmed 프로필, Main 직접 작업/Workflow 거부, 실제 설치된 CLI stdin 호출, 선행 task 수용 기록, Jev 비구속적 비평, **decoded OTLP protobuf** 필드/비밀 제외를 검사합니다. mock worker/가짜 gateway를 쓰는 오프라인 계약 검사입니다. 기존 `verification/verify.py --suite offline`은 이전 Jev 라우팅 인터페이스 검증기이며 **controller의 품질이나 OTLP 실제 수집을 독립 인증하지 않습니다**.
 
-실모델 controller의 객관적 비교를 하려면 사용자 목표·필수 파일·acceptance를 결과 확인 전에 고정하고, Main의 첫 목표 hash→Astra 계획 출처→task DAG→native child 모델과 CLI typed effort→실제 파일·검사·검토→첫 시도 및 전체 시도의 품질·시간·토큰·비용을 각각 수집해야 합니다. `controller-status.json`의 Main attestation, `SubagentStop`, Gateway `200`, Jev 점수를 객관적 성공으로 세지 마세요. native/legacy/controller를 동일 목표·격리 환경에서 짝지어 비교하고, 모델 접근·시도 수·작업 순서·기준 변경을 보고해야 합니다. 이 새 controller의 실계정 A/B와 실제 AgentOTelStack 수집·조회는 수행 여부를 별도로 표시합니다. [운영 계약](CONTROLLER.ko.md)을 보세요.
+실모델 controller의 객관적 비교를 하려면 사용자 목표·필수 파일·acceptance를 결과 확인 전에 고정하고, Main의 첫 목표 hash→Astra 계획 출처→task DAG→native child 모델과 CLI typed effort→실제 파일·검사·검토→첫 시도 및 전체 시도의 품질·시간·토큰·비용을 각각 수집해야 합니다. `controller-status.json`의 Main attestation, `SubagentStop`, Gateway `200`, Jev 점수를 객관적 성공으로 세지 마세요. native/legacy/controller를 동일 목표·격리 환경에서 짝지어 비교하고, 모델 접근·시도 수·작업 순서·기준 변경을 보고해야 합니다. 실제 동기 `Agent`의 SubagentStop→PostToolUse 순서와 typed `assistant.effort` 파싱은 2026-09-26 오프라인 회귀에서 보완했습니다. 검증기의 observer는 호스트 matcher와 SUT stdout/stderr/종료 코드를 보존하지만, Python proxy의 추가 지연과 native hook 미호출은 별도로 관측해야 합니다. **세 조건의 동일 실저장소 작업을 실행·채점하는 driver와 사전에 확정된 실계정 registry/비용 한도는 아직 없습니다.** 기존 작은 함수 과제나 수정된 회귀 테스트를 실제 품질 비교로 대체하지 마세요. 이 새 controller의 실계정 A/B와 실제 AgentOTelStack 수집·조회는 수행 여부를 별도로 표시합니다. [운영 계약](CONTROLLER.ko.md)을 보세요.
 
 ## 실제 검증을 준비할 때
 

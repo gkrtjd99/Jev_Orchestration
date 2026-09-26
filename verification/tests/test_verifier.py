@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json,math,os,shutil,tempfile,unittest,urllib.request
+import json,math,os,shutil,subprocess,sys,tempfile,unittest,urllib.request
 from pathlib import Path
 from verifier.common import *
 from verifier.gateway import Gateway,validate_response
@@ -114,6 +114,31 @@ class EvidenceTests(unittest.TestCase):
         hooks=[{'event':{'hook_event_name':'PreToolUse'},'sut_invoked':True,'sut_returncode':1,'output':{'hookSpecificOutput':{'updatedInput':{'subagent_type':'jev4_bad'}}}}]
         with tempfile.TemporaryDirectory() as t:self.assertEqual(assess_routing(hooks,'claude',None,Path(t),{})['routes'],[])
 
+class ObserverTests(unittest.TestCase):
+    def test_callback_forwards_exact_stdout_stderr_and_exit(self):
+        callback=ROOT/'verifier/callback.py'
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);sut=root/'sut.py';sut.write_text('import sys\nsys.stdout.buffer.write(b\' {"ok": true}\\n\')\nsys.stderr.buffer.write(b\'sut warning\\n\')\nsys.exit(7)\n')
+            spec=root/'spec.json';write_json(spec,{'nonce':'test','home':str(root),'project':str(root),
+                'evidence_dir':str(root/'evidence'),'sut_rules':{'PreToolUse':{'argv':[sys.executable,str(sut)],'timeout':3}}})
+            event=json.dumps({'hook_event_name':'PreToolUse','cwd':str(root),'tool_name':'Agent'}).encode()
+            p=subprocess.run([sys.executable,str(callback),'--spec',str(spec),'--event','PreToolUse'],input=event,capture_output=True)
+            self.assertEqual(p.returncode,7);self.assertEqual(p.stdout,b' {"ok": true}\n');self.assertEqual(p.stderr,b'sut warning\n')
+            record=read_json(next((root/'evidence/hooks').glob('*.json')))
+            self.assertTrue(record['sut_invoked']);self.assertEqual(record['sut_returncode'],7)
+            self.assertEqual(record['output'],{'ok':True})
+    def test_callback_does_not_invent_success_for_malformed_sut_output(self):
+        callback=ROOT/'verifier/callback.py'
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);sut=root/'sut.py';sut.write_text('import sys\nsys.stdout.buffer.write(b\'not-json\\n\')\n')
+            spec=root/'spec.json';write_json(spec,{'nonce':'test','home':str(root),'project':str(root),
+                'evidence_dir':str(root/'evidence'),'sut_rules':{'PreToolUse':{'argv':[sys.executable,str(sut)],'timeout':3}}})
+            event=json.dumps({'hook_event_name':'PreToolUse','cwd':str(root)}).encode()
+            p=subprocess.run([sys.executable,str(callback),'--spec',str(spec),'--event','PreToolUse'],input=event,capture_output=True)
+            self.assertEqual(p.returncode,0);self.assertEqual(p.stdout,b'not-json\n')
+            record=read_json(next((root/'evidence/hooks').glob('*.json')))
+            self.assertFalse(record['sut_stdout_valid']);self.assertEqual(record['output'],{})
+
 class StatisticalTests(unittest.TestCase):
     def rows(self,n=10,synthetic=False):
         return [dict(task_id=str(i),repeat=0,runtime='claude',arm=a,evidence_source='SYNTHETIC_TEST_DRIVER' if synthetic else 'REAL_NATIVE_PROCESS',passed=True,duration_ms=100 if a=='native' else 50,contaminated=False,active_route_observed=True,model_effort_observed=True) for i in range(n) for a in ('native','active')]
@@ -170,6 +195,11 @@ class DriverIntegrationTests(unittest.TestCase):
                 r=one_trial(source=Path(source),node=shutil.which('node'),binary=str(local_fake),help_text='--output-format --settings --model --max-budget-usd --include-hook-events --forward-subagent-text --dangerously-bypass-hook-trust',runtime=runtime,arm='active',task=TASKS[0],repeat=0,values=values,gateway=g,artifacts=Path(td),approve_hooks=True,timeout=20,smoke=True)
                 self.assertTrue(r['passed'],r);self.assertTrue(r['active_route_observed'],r);self.assertEqual(r['evidence_source'],'SYNTHETIC_TEST_DRIVER')
                 self.assertTrue(all(x['model_status']=='PASS' and x['effort_status']=='PASS' for x in r['routing']['routes']),r['routing'])
+                observer=read_json(Path(td)/'review-hooks.json')
+                self.assertIn('PreCompact',observer['native_configuration']['hooks'])
+                self.assertIn('PreCompact',observer['observer_spec']['sut_rules'])
+                self.assertTrue(observer['native_configuration']['hooks']['PreToolUse'][0]['matcher'])
+                self.assertEqual(observer['observer_spec']['sut_rules']['PreToolUse']['timeout'],8)
 
 class HardenedGraderTests(unittest.TestCase):
     def grade_source(self, text):

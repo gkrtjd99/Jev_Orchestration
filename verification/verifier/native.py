@@ -37,32 +37,38 @@ def remove_credentials(home:Path):
 def create_observer(target:Target,runtime:str,arm:str,artifacts:Path):
     nativefile=target.home/('.claude/settings.json' if runtime=='claude' else '.codex/hooks.json')
     original=read_json(nativefile);sut_rules={}
+    nonce=uuid.uuid4().hex
+    specfile=target.work/'observer.json'
+    command=shlex.join([sys.executable,str(ROOT/'verifier/callback.py'),'--spec',str(specfile)])
+    events=['SessionStart','PreToolUse','PostToolUse','SubagentStart','SubagentStop',
+            'UserPromptSubmit','PreCompact','Stop','SessionEnd']
+    if runtime=='claude':events+=['PostToolUseFailure']
+    hooks={}
     if arm not in ('native','ultracode'):
         for event,groups in original.get('hooks',{}).items():
-            if len(groups)>1:raise Blocked('Multiple hook groups require a different adapter; not silently merged.')
-            for group in groups:
-                if len(group['hooks'])!=1:raise Blocked('Multiple SUT hook handlers unsupported')
-                cmd=group['hooks'][0]
-                if cmd.get('type')!='command':raise Blocked('This SUT adapter expects command hooks')
-                argv=shlex.split(cmd['command'])
-                if len(argv)!=6 or Path(argv[1]).resolve()!=target.installed_entry.resolve() or argv[2:4]!=['--runtime',runtime] or argv[4]!='--config' or Path(argv[5]).resolve()!=target.config_file.resolve():
-                    raise Blocked('Unexpected installer hook command; review before execution')
-                sut_rules.setdefault(event,[]).append({'matcher':group.get('matcher'),'argv':argv})
-    nonce=uuid.uuid4().hex
+            if len(groups)!=1 or len(groups[0].get('hooks',[]))!=1:
+                raise Blocked('Multiple SUT hook groups or handlers unsupported')
+            group=groups[0];cmd=group['hooks'][0]
+            if cmd.get('type')!='command' or not isinstance(cmd.get('timeout'),(int,float)) or cmd['timeout']<=0:
+                raise Blocked('Unexpected installer hook type or timeout')
+            argv=shlex.split(cmd['command'])
+            if len(argv)!=6 or Path(argv[1]).resolve()!=target.installed_entry.resolve() or argv[2:4]!=['--runtime',runtime] or argv[4]!='--config' or Path(argv[5]).resolve()!=target.config_file.resolve():
+                raise Blocked('Unexpected installer hook command; review before execution')
+            sut_rules[event]={'argv':argv,'timeout':cmd['timeout']}
+            # Keep the host's original matcher; only the validated command is wrapped.
+            hooks[event]=[{**group,'hooks':[{**cmd,'command':command+' --event '+shlex.quote(event),
+                'timeout':cmd['timeout']+4}]}]
+    for event in events:
+        if event not in hooks:
+            hooks[event]=[{'hooks':[{'type':'command','command':command,'timeout':12}]}]
     spec={'nonce':nonce,'home':str(target.home),'project':str(target.project),'evidence_dir':str(artifacts),
           'sut_rules':sut_rules,'env_file':str(target.config_file.parent/'.env')}
-    specfile=target.work/'observer.json';write_json(specfile,spec)
-    command=shlex.join([sys.executable,str(ROOT/'verifier/callback.py'),'--spec',str(specfile)])
-    events=['SessionStart','PreToolUse','PostToolUse','SubagentStart','SubagentStop','UserPromptSubmit','Stop','SessionEnd']
-    if runtime=='claude':events+=['PostToolUseFailure']
-    hooks={event:[{'hooks':[{'type':'command','command':command,'timeout':12}]}] for event in events}
+    write_json(specfile,spec)
     # Keep profiles absent from a native baseline, not just unused.
     if arm in ('native','ultracode'):
         shutil.rmtree(target.home/('.claude' if runtime=='claude' else '.codex')/'agents',ignore_errors=True)
-    if runtime=='claude':
-        write_json(nativefile,{'hooks':hooks})
-    else:
-        write_json(nativefile,{'hooks':hooks})
+    write_json(nativefile,{**original,'hooks':hooks})
+    if runtime=='codex':
         write_private(target.home/'.codex/config.toml',
             'approval_policy = "never"\nsandbox_mode = "workspace-write"\n[agents]\nenabled = true\n')
     # Human-readable, exact hook definition approval material. No auth files are included.

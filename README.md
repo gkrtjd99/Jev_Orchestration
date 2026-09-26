@@ -4,7 +4,7 @@
 
 새 대화형 CLI, 독립 worker 실행 엔진, MCP 서버, 재귀 `claude -p`/`codex exec` 실행은 없습니다. 기존 Main이 hook의 계획 규약을 지키며 **native Agent/Task**에 직접 위임합니다. Reporivet과 AgentOTelStack의 코드를 복제하거나 설치하지 않습니다.
 
-**상태:** 2026-09-26의 Node 243/243·검증기 자기 테스트 57/57·기존 라우팅의 독립 offline 검사는 통과했고, 제한적인 과거 실제 TypeSafe·native 위임 시험이 있습니다. 새 controller의 실모델 작업 품질·비용 및 실제 AgentOTelStack 저장·조회는 아직 검증하지 않았습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
+**상태:** 2026-09-26의 Node 243/243·검증기 자기 테스트 59/59·기존 라우팅의 독립 offline 검사는 통과했고, 제한적인 과거 실제 TypeSafe·native 위임 시험이 있습니다. 새 controller의 실모델 작업 품질·비용 및 실제 AgentOTelStack 저장·조회는 아직 검증하지 않았습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
 
 ## 무엇을 통합했나
 

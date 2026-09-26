@@ -11,7 +11,7 @@ class Target:
         self.home=work/'home';self.project=work/'project';self.home.mkdir(parents=True);self.project.mkdir(parents=True)
         self.config_file=self.home/'.config/jev-hooks/config.json'
         self.env=clean_env(self.home)
-    def install(self,mode='active', *, gateway=None, placeholder_key=False):
+    def install(self,mode='active', *, gateway=None, placeholder_key=False, runtime='both'):
         entry=self.source/'scripts/install.mjs'
         if not entry.is_file(): raise Blocked('UNSUPPORTED_SUT: scripts/install.mjs missing')
         allow={k:v for k,v in self.values.items() if k.startswith('JEV_') or k in ('TYPESAFE_API_KEY','TYPESAFE_BASE_URL')}
@@ -22,7 +22,9 @@ class Target:
         # Values containing a newline cannot be represented by this SUT env parser.
         if any('\n' in v or '\r' in v for v in allow.values()): raise ValueError('Newline in env value')
         write_private(envfile,'\n'.join(k+'='+v for k,v in allow.items())+'\n')
-        argv=[self.node,str(entry),'--home',str(self.home),'--project',str(self.project),'--runtime','both','--mode',mode,'--env-file',str(envfile),'--yes']
+        if runtime not in ('both','claude','codex') or mode=='controller' and runtime!='claude':
+            raise Blocked('Controller installation requires Claude-only runtime')
+        argv=[self.node,str(entry),'--home',str(self.home),'--project',str(self.project),'--runtime',runtime,'--mode',mode,'--env-file',str(envfile),'--yes']
         if self.registry: argv+=['--registry',str(self.registry)]
         proc=run_process(argv,cwd=self.source,env=self.env,timeout=30,log_prefix=self.artifacts/'installer',
                          secrets=[v for k,v in allow.items() if 'KEY' in k])
