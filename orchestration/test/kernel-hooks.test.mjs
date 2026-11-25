@@ -279,11 +279,97 @@ test('a failing or slow skills judge never breaks or stalls the route', async t 
   assert.ok(late.hookSpecificOutput.updatedInput && !JSON.stringify(late).includes('jev-skills'));
   assert.equal((await eventsOf(slow, 'skills'))[0].code, 'SKILLS_DEADLINE');
 
-  // A deferred route still records what the skills judge said, and injects nothing.
+  // A deferred route still records what the skills judge said. The call itself is never rewritten;
+  // see the dedicated deferred-route test below for what Main is told.
   const deferred = await withSkills(t);
   const text = await handleHook(event(deferred.project), 'claude', { config: deferred.config, client: client({ ...SELECT, information: 'missing' }) });
   assert.match(text.hookSpecificOutput.additionalContext, /gather_missing_context/);
-  assert.equal((await eventsOf(deferred, 'skills'))[0].injected, false);
+  assert.equal(text.hookSpecificOutput.updatedInput, undefined);
+  assert.equal((await eventsOf(deferred, 'skills'))[0].status, 'selected');
+});
+
+test('a deferred route keeps a selected skill: Main is told, the call is unchanged, the replay is identical', async t => {
+  // QA defect: when profile selection abstained, a skill selected with high confidence was silently dropped.
+  const f = await withSkills(t);
+  const judge = client({ ...SELECT, profile: 'defer' });
+  const deps = { config: f.config, client: judge };
+  const out = await handleHook(event(f.project), 'claude', deps);
+  const text = out.hookSpecificOutput.additionalContext;
+  assert.match(text, /^Jev did not select a model\/effort \(selector_abstained\)\./);
+  assert.match(text, /The original native call is unchanged\.\n\n<jev-skills>\n\{"load":\[\{"name":"notification-toggle","path":"\.claude\/skills\/notification-toggle\/SKILL\.md","p":0\.95\}\],"consider":\[\]\}\n<\/jev-skills>\n/);
+  assert.equal(out.hookSpecificOutput.updatedInput, undefined);
+  assert.equal(out.hookSpecificOutput.permissionDecision, undefined);
+  assert.ok(!text.includes('SKILL_DESCRIPTION_MARKER') && !text.includes('SKILL_BODY_MARKER'));
+  const [logged] = await eventsOf(f, 'skills');
+  assert.deepEqual([logged.status, logged.injected, logged.load.map(s => s.name)], ['selected', true, ['notification-toggle']]);
+  const calls = judge.count;
+  assert.deepEqual(await handleHook(event(f.project), 'claude', deps), out);
+  assert.equal(judge.count, calls); // the stored message is replayed; nothing is judged again
+
+  // Skills in shadow: the same deferral says nothing about skills.
+  const shadow = await withSkills(t, 'shadow');
+  const quiet = await handleHook(event(shadow.project), 'claude', { config: shadow.config, client: client({ ...SELECT, profile: 'defer' }) });
+  assert.match(quiet.hookSpecificOutput.additionalContext, /selector_abstained/);
+  assert.ok(!quiet.hookSpecificOutput.additionalContext.includes('jev-skills'));
+  assert.equal((await eventsOf(shadow, 'skills'))[0].injected, false);
+
+  // Hook mode shadow shows nothing at all, and nothing is recorded as injected.
+  const silent = await withSkills(t);
+  silent.config.mode = 'shadow';
+  assert.deepEqual(await handleHook(event(silent.project), 'claude', { config: silent.config, client: client({ ...SELECT, profile: 'defer' }) }), {});
+  assert.equal((await eventsOf(silent, 'skills'))[0].injected, false);
+
+  // The block is dropped, never truncated, when it does not fit next to the deferral notice.
+  const tight = await withSkills(t);
+  tight.config.maxContextChars = 260;
+  const bare = await handleHook(event(tight.project), 'claude', { config: tight.config, client: client({ ...SELECT, profile: 'defer' }) });
+  assert.match(bare.hookSpecificOutput.additionalContext, /unchanged\.$/);
+  assert.equal((await eventsOf(tight, 'skills'))[0].injected, false);
+});
+
+test('the documented minimum timeout of 50 ms still reaches the judge through the hook', async t => {
+  // QA defect: every hook call site passes an explicit budget, and a budget of exactly 50 ms had 49.99 ms
+  // left when the kernel compared it with its 50 ms floor, so the judge was never contacted.
+  const f = await fixture(t);
+  f.config.timeoutMs = 50;
+  validateConfig(f.config);
+  const judge = client();
+  const out = await handleHook(event(f.project), 'claude', { config: f.config, client: judge });
+  assert.match(out.hookSpecificOutput.updatedInput.subagent_type, /^jev4_/);
+  assert.ok(judge.count >= 1);
+  assert.ok(judge.calls[0].limits.timeoutMs <= 50 && judge.calls[0].limits.timeoutMs > 30);
+  assert.deepEqual(await eventsOf(f, 'hook_error'), []);
+
+  // The same floor value for the OpenAI provider timeout: one request is sent (it then times out against a slow server).
+  const { f: o, s, deps } = await openaiRouted(t, { delayMs: 400, openaiTimeoutMs: 50, routeDeadlineMs: 3000 });
+  const warned = await handleHook(event(o.project), 'claude', deps);
+  assert.match(warned.hookSpecificOutput.additionalContext, /DECISIONS_TIMEOUT/);
+  assert.equal(s.requests.length, 1);
+  assert.deepEqual((await decisions(o))[0].trail.map(x => [x.provider, x.code]), [['openai', 'DECISIONS_TIMEOUT']]);
+});
+
+test('a refused connection is reported with a typed network code, not a generic one', async t => {
+  // QA defect: Main saw JEV_UNAVAILABLE and the decision log KERNEL_JUDGE_ERROR for "nothing is listening".
+  const f = await fixture(t);
+  const s = await server(t);
+  await s.close(); // a loopback port with no listener; not a live API
+  f.config.endpoint = s.endpoint;
+  f.config.allowLoopback = true;
+  const out = await handleHook(event(f.project), 'claude', { config: f.config, apiKey: 'unit-test-jev-credential' });
+  assert.match(out.hookSpecificOutput.additionalContext, /^Jev hooks: JEV_NETWORK_ERROR\./);
+  assert.equal(out.hookSpecificOutput.updatedInput, undefined);
+  assert.equal(out.hookSpecificOutput.permissionDecision, undefined);
+  assert.deepEqual((await eventsOf(f, 'hook_error')).map(x => x.code), ['JEV_NETWORK_ERROR']);
+  assert.deepEqual((await decisions(f))[0].trail.map(x => [x.provider, x.code]), [['jev', 'JEV_NETWORK_ERROR']]);
+
+  // The same failure on the OpenAI judge, then the chain falls through to it only by name: no fallback answer exists.
+  const o = await fixture(t);
+  o.config.allowLoopback = true;
+  o.config.kernel.providers.openai = { ...o.config.kernel.providers.openai, endpoint: s.endpoint, approved: true };
+  o.config.kernel.points['delegation.classify'].judges = ['openai'];
+  const warned = await handleHook(event(o.project), 'claude', { config: o.config, runtimeEnv: { OPENAI_API_KEY: 'unit-test-openai-credential' } });
+  assert.match(warned.hookSpecificOutput.additionalContext, /^Jev hooks: DECISIONS_NETWORK_ERROR\./);
+  assert.deepEqual((await decisions(o))[0].trail.map(x => [x.provider, x.code]), [['openai', 'DECISIONS_NETWORK_ERROR']]);
 });
 
 test('the skills block is dropped, not truncated, when the context budget is exceeded', async t => {
@@ -652,6 +738,29 @@ test('kernel env overrides parse from process env and the private .env', async t
   assert.equal(fromDisk.config.kernel.providers.openai.timeoutMs, 50);
   assert.equal(fromDisk.config.timeoutMs, 1200);
   assert.equal((await loadConfig(f.file, { JEV_OPENAI_DECISIONS_TIMEOUT_MS: '5000' })).config.kernel.providers.openai.timeoutMs, 5000);
+});
+
+test('escalateBelow can be set from the environment, so an env-only local,jev chain can escalate', async t => {
+  // QA defect: JEV_SKILLS_JUDGES=local,jev alone left escalateBelow at 0, which made the chain local-only.
+  const f = await configFile(t);
+  const { config } = await loadConfig(f.file, {
+    JEV_SKILLS_JUDGES: 'local,jev', JEV_SKILLS_ESCALATE_BELOW: '0.6', JEV_SUPERVISOR_ESCALATE_BELOW: '1', JEV_DECISION_ESCALATE_BELOW: '0.25',
+  });
+  const k = config.kernel;
+  assert.deepEqual(k.points['delegation.skills'], { mode: 'off', judges: ['local', 'jev'], escalateBelow: 0.6 });
+  assert.equal(k.points['supervisor.outcome'].escalateBelow, 1);
+  for (const id of ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice']) assert.equal(k.points[id].escalateBelow, 0.25);
+  // Unset keeps the default; the private .env works too; process env wins.
+  assert.equal((await loadConfig(f.file, { JEV_SKILLS_JUDGES: 'local,jev' })).config.kernel.points['delegation.skills'].escalateBelow, 0);
+  await fs.writeFile(path.join(f.dir, '.env'), 'JEV_SKILLS_ESCALATE_BELOW=0.5\n', { mode: 0o600 });
+  assert.equal((await loadConfig(f.file, {})).config.kernel.points['delegation.skills'].escalateBelow, 0.5);
+  assert.equal((await loadConfig(f.file, { JEV_SKILLS_ESCALATE_BELOW: '0.0' })).config.kernel.points['delegation.skills'].escalateBelow, 0);
+  for (const [key, value] of [
+    ['JEV_SKILLS_ESCALATE_BELOW', '1.1'], ['JEV_SKILLS_ESCALATE_BELOW', '-0.1'], ['JEV_SKILLS_ESCALATE_BELOW', '6e-1'], ['JEV_SKILLS_ESCALATE_BELOW', '.6'],
+    ['JEV_SUPERVISOR_ESCALATE_BELOW', 'high'], ['JEV_SUPERVISOR_ESCALATE_BELOW', '0,6'], ['JEV_DECISION_ESCALATE_BELOW', '60%'], ['JEV_DECISION_ESCALATE_BELOW', '2'],
+  ]) {
+    await assert.rejects(loadConfig(f.file, { [key]: value }), code('INVALID_' + key), `${key}=${value}`);
+  }
 });
 
 test('kernel env overrides reject bad values with typed codes', async t => {

@@ -143,7 +143,8 @@ export class DecisionKernel {
    * chain (jev: config.timeoutMs, openai: providers.openai.timeoutMs, local: none), never more than
    * the caller's ceiling (for example what is left of the route deadline). It is a budget for the
    * whole chain, not per judge, and each judge still enforces its own timeout inside it.
-   * With the default chain ['jev'] this is exactly min(config.timeoutMs, ceiling), as before 3.2.0.
+   * With the default chain ['jev'] this is exactly min(config.timeoutMs, ceiling), the value the
+   * pre-kernel router passed to the client.
    * Returns null when nothing bounds the chain (no ceiling and no configured timeout).
    */
   budget(pointId, ceiling = Infinity) {
@@ -226,8 +227,11 @@ export class DecisionKernel {
       const judgeLimits = { ...limits, pointId };
       if (budget !== null) {
         const remaining = budget - (performance.now() - start);
+        // Later judges need at least the floor of what is left. The first judge is refused only when the
+        // caller's allowance itself is below the floor: an allowance of exactly 50 ms (the documented
+        // minimum timeout) has 49.99 ms left by the time this line runs and must still reach its judge.
         // A defaulted budget always lets the first judge run; the judge enforces its own timeout.
-        if (remaining < MIN_JUDGE_BUDGET_MS && (explicitBudget || i > 0)) {
+        if (i > 0 ? remaining < MIN_JUDGE_BUDGET_MS : explicitBudget && budget < MIN_JUDGE_BUDGET_MS) {
           lastError = fail('KERNEL_DEADLINE');
           trail.push({ provider, ok: false, code: 'KERNEL_DEADLINE', latencyMs: 0 });
           break;

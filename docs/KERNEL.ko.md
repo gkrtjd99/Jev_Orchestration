@@ -82,10 +82,11 @@
 - 확신은 한 번의 호출에 담긴 모든 답 중 **최솟값**입니다. `noul`은 `|2p-1|`, `choice`/`score`는 judge가 준 `confidence`입니다.
 - `escalateBelow`의 기본값은 `0`입니다. 즉 기본으로는 실패했을 때만 다음 judge로 갑니다.
 - 예산은 judge별이 아니라 **체인 전체 예산**입니다. 크기는 체인에 든 제공자의 요청 timeout 중 **가장 큰 값 하나**입니다(`jev`는 전역 `timeoutMs`, `openai`는 `kernel.providers.openai.timeoutMs`, `local`은 없음). 합이 아니므로 judge를 늘려도 대기 시간이 곱해지지 않습니다. 기본 체인 `["jev"]`에서는 예전과 똑같이 전역 `timeoutMs`입니다.
-- 호출부의 상한이 항상 이깁니다. 분류·skill 판단은 `routeDeadlineMs`, 프로필 선택은 route deadline에서 남은 시간을 상한으로 줍니다. 다음 judge로 넘어갈 때 남은 예산이 50ms 미만이면 `KERNEL_DEADLINE`으로 멈춥니다.
+- 호출부의 상한이 항상 이깁니다. 분류·skill 판단은 `routeDeadlineMs`, 프로필 선택은 route deadline에서 남은 시간을 상한으로 줍니다. 다음 judge로 넘어갈 때 남은 예산이 50ms 미만이면 `KERNEL_DEADLINE`으로 멈춥니다. 첫 judge는 호출부가 준 예산 자체가 50ms 미만일 때만 거부됩니다. 그래서 timeout을 허용 최솟값 50ms로 두어도 첫 judge에게 요청이 나갑니다(예전에는 예산 50ms에서 남은 시간이 49.99ms로 계산되어 judge를 부르지 않았습니다).
 - 각 judge는 그 예산 안에서 자기 timeout을 다시 적용합니다. 자세한 내용은 [제공자별 timeout](#제공자별-timeout)을 보세요.
 - 요청 수 상한(`circuit.maxRequestsPerSession`)과 circuit은 `delegation.skills`·`supervisor.outcome`이 나머지 네 지점과 **따로** 셉니다. 선택 지점을 켜도 라우팅의 요청 예산을 쓰지 않습니다. 대신 두 지점을 켜면 세션당 요청 수의 상한은 최대 두 배가 됩니다.
 - 채택된 답은 앞선 judge의 답과 섞지 않습니다. 한 결정은 한 judge의 답입니다.
+- 연결 자체가 실패하면(거부, DNS 실패 등) `JEV_NETWORK_ERROR` 또는 `DECISIONS_NETWORK_ERROR`로 기록합니다. timeout(`JEV_TIMEOUT`, `DECISIONS_TIMEOUT`), HTTP 오류(`JEV_HTTP_<상태>`, `DECISIONS_HTTP_<상태>`)와 구분됩니다.
 
 ### 제공자별 timeout
 
@@ -99,7 +100,7 @@
 
 - 기본값의 근거: 실제 관측 1회에서 첫(cold) 요청이 1200ms를 넘겼고 이후 요청은 280~580ms였습니다. cold 요청이 실제로 얼마나 걸렸는지는 기록되지 않았습니다. 2500ms는 넘겼던 한도의 약 두 배이고, 기본 `routeDeadlineMs`(3000ms)에서 프로필 선택에 500ms를 남깁니다. **측정된 분위수가 아닌 초기값입니다.**
 - 실제 요청 한도는 `min(제공자 timeout, 호출부가 준 체인의 남은 예산)`입니다. 제공자 timeout을 5000으로 올려도 `routeDeadlineMs`가 300이면 300ms 근처에서 `DECISIONS_TIMEOUT`으로 끝납니다.
-- OpenAI judge는 호출 시작 시점에 마감 시각을 하나 정합니다. cache·요청 수 잠금을 기다린 시간도 그 안에서 빠지고, 마감이 지났으면 요청을 보내지 않습니다.
+- OpenAI judge는 호출 시작 시점에 마감 시각을 하나 정합니다. 요청 전의 cache 잠금·요청 수 잠금 대기는 그 마감에서 끊기고(`LOCK_BUSY`), 마감이 지났으면 요청을 보내지 않으며 요청 수와 circuit 실패로도 세지 않습니다(`DECISIONS_TIMEOUT`). 요청이 끝난 뒤 성공·실패 횟수를 적는 짧은 잠금은 별도 한도(최대 1500ms)를 그대로 쓰므로, 잠금 경합이 심하면 호출이 마감보다 늦게 끝날 수 있습니다. 경합 상황은 테스트 한 건(cache 잠금 대기)으로만 확인했습니다.
 - **숨은 재시도나 warm-up 요청은 없습니다.** timeout된 요청은 한 번의 실패로 세고 체인의 다음 judge로 넘어갑니다.
 - hook 전체 한도와의 관계: 위임 `PreToolUse`는 분류와 프로필 선택이 `routeDeadlineMs`(최대 5500ms) 하나를 나눠 쓰고, 그 외 이벤트는 hook 한 번에 체인 하나만 실행하며 그 예산은 최대 5000ms입니다. 둘 다 `bin/jev-hook.mjs`의 watchdog(7000ms)과 설치된 hook timeout(8초)보다 짧습니다.
 
@@ -128,7 +129,7 @@
 }
 ```
 
-위 예시에서 `delegation.skills`만 기본값과 다릅니다. 로컬 규칙이 먼저 답하고, 확신이 0.6 미만이면 Jev에게 넘깁니다. `escalateBelow`는 env로 바꿀 수 없고 config에서만 설정합니다. kernel 설정을 바꾸면 정책 지문이 달라져 대기 중이던 호출은 `POLICY_CHANGED_DURING_PENDING_CALL`로 무효화됩니다.
+위 예시에서 `delegation.skills`만 기본값과 다릅니다. 로컬 규칙이 먼저 답하고, 확신이 0.6 미만이면 Jev에게 넘깁니다. `escalateBelow`는 config 또는 env(`JEV_SKILLS_ESCALATE_BELOW` 등, [환경 변수](#환경-변수))로 설정합니다. 체인만 `local,jev`로 바꾸고 `escalateBelow`를 0으로 두면 `local`이 답하는 한 Jev를 부르지 않습니다. kernel 설정을 바꾸면 정책 지문이 달라져 대기 중이던 호출은 `POLICY_CHANGED_DURING_PENDING_CALL`로 무효화됩니다.
 
 ## 제공자별 동의 관문
 
@@ -211,6 +212,7 @@ Before starting, load each "load" skill (use the Skill tool by name when availab
 - 전역 `active`에서는 worker에게 가는 routing packet 뒤에 빈 줄을 두고 붙습니다. 전역 `advisory`에서는 Main에게 보이는 조언 뒤에 붙습니다. 전역 `shadow`에서는 어디에도 붙지 않습니다.
 - 합친 길이가 `maxContextChars`를 넘으면 블록을 **자르지 않고 통째로 뺍니다.**
 - 같은 tool id로 호출이 다시 오면 저장해 둔 블록을 그대로 다시 씁니다.
+- 프로필 선택이 보류되어(`selector_abstained`, `gather_missing_context` 등) 모델·effort를 고르지 않은 경우에도, 전역 `active`/`advisory`이면 선택된 블록을 보류 안내문 뒤에 붙여 Main에게 보여 줍니다. 대기 중인 호출은 바꾸지 않습니다. 예전에는 이 경우 블록을 버렸습니다.
 
 ### why-not 추적
 
@@ -355,6 +357,9 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 | `JEV_SKILLS_JUDGES` | `jev` | skill 지점의 judge 체인. 쉼표로 구분, 순서대로 (`jev`, `openai`, `local`) |
 | `JEV_SUPERVISOR_JUDGES` | `jev` | supervisor 지점의 judge 체인 |
 | `JEV_DECISION_JUDGES` | `jev` | `delegation.classify`, `delegation.profile`, `failure.classify`, `read.advice` 네 지점의 체인 |
+| `JEV_SKILLS_ESCALATE_BELOW` | `0` | skill 지점의 `escalateBelow`. 0~1의 소수(`0.6` 형식, 지수 표기 불가). 답의 확신이 이 값 미만이면 체인의 다음 judge로 넘김 |
+| `JEV_SUPERVISOR_ESCALATE_BELOW` | `0` | supervisor 지점의 `escalateBelow` |
+| `JEV_DECISION_ESCALATE_BELOW` | `0` | 위 네 지점의 `escalateBelow` |
 | `JEV_SKILL_DIRS` | 없음 | 추가 skill 디렉터리. 절대 경로, 플랫폼 경로 구분자(POSIX는 `:`), 최대 8개. 프로젝트 `.claude/skills`는 항상 읽음 |
 | `JEV_OPENAI_DECISIONS_APPROVED` | `false` | `openai` judge로의 전송 승인 |
 | `JEV_OPENAI_DECISIONS_MODEL` | `gpt-6-luna` | `openai` judge의 모델 이름 |
@@ -362,7 +367,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 | `OPENAI_API_KEY` | 없음 | `openai` judge의 키. config에 저장하지 않음 |
 | `JEV_DECISION_LOG` | `true` | decision log 기록 여부 |
 
-기존 네 지점의 모드와 `escalateBelow`, 임계값은 env가 아니라 `config.kernel`에서 바꿉니다.
+기존 네 지점의 모드와 임계값은 env가 아니라 `config.kernel`에서 바꿉니다.
 
 ## 검증 상태
 

@@ -1,6 +1,6 @@
 /** Judges behind the decision kernel: OpenAI Decisions adapter and local rules. */
 import { performance } from 'node:perf_hooks';
-import { assert, object } from '../util.mjs';
+import { assert, object, networkFailure } from '../util.mjs';
 import { secretLike } from '../safety.mjs';
 import { JevClient } from '../jev.mjs';
 import { validateAnswers } from './answers.mjs';
@@ -146,10 +146,16 @@ export class OpenAIDecisionsClient extends JevClient {
     return Number.isInteger(t) && t >= OPENAI_TIMEOUT_MIN_MS && t <= OPENAI_TIMEOUT_MAX_MS ? t : OPENAI_TIMEOUT_DEFAULT_MS;
   }
 
+  get deadlineCode() { return 'DECISIONS_TIMEOUT'; }
+
   /**
-   * Same cache, request cap and circuit as JevClient, plus one absolute deadline for the whole call:
-   * time spent waiting on the cache or request-control locks is taken out of the request's allowance,
-   * so the judge as a whole never outlives min(provider timeout, caller's remaining chain budget).
+   * Same cache, request cap and circuit as JevClient, plus one absolute deadline for the call:
+   * min(provider timeout, caller's remaining chain budget) from now. The waits on the cache lock and on
+   * the request-control lock before the request stop at that deadline (LOCK_BUSY), a call whose deadline
+   * has passed is not counted as a request or a circuit failure (DECISIONS_TIMEOUT, nothing sent), and
+   * the HTTP request gets only what is left. Not covered: the short request-control bookkeeping write
+   * after the request (success/failure counter) keeps its own lock wait of up to 1500 ms, so under
+   * heavy lock contention the call can end later than the deadline even though no request outlives it.
    */
   async evaluate(state, questions, scope, limits = {}) {
     const allowance = Number.isFinite(limits.timeoutMs) ? Math.min(this.timeoutMs, limits.timeoutMs) : this.timeoutMs;
@@ -199,6 +205,7 @@ export class OpenAIDecisionsClient extends JevClient {
       return validateAnswers(fromWireResponse(body, questions), questions);
     } catch (e) {
       if (controller.signal.aborted) throw fail('DECISIONS_TIMEOUT');
+      if (networkFailure(e)) throw fail('DECISIONS_NETWORK_ERROR');
       throw e;
     } finally {
       clearTimeout(timer);

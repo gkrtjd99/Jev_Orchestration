@@ -361,6 +361,20 @@ test('timeoutMs is a total budget across the chain', async () => {
   await assert.rejects(k3.decide('read.advice', input({ limits: { timeoutMs: 10 } })), code('KERNEL_DEADLINE'));
   assert.equal(never.calls.length, 0);
 
+  // An allowance of exactly the floor (the documented minimum timeout, 50 ms) is not "below the floor":
+  // the first judge is contacted with what is left of it. One millisecond less is refused.
+  const edge = judge('jev-model');
+  const k4 = new DecisionKernel({}, { judges: { jev: edge } });
+  const atFloor = await k4.decide('read.advice', input({ limits: { timeoutMs: 50 } }));
+  assert.equal(atFloor.provider, 'jev');
+  assert.ok(edge.calls[0].limits.timeoutMs <= 50 && edge.calls[0].limits.timeoutMs > 30);
+  await assert.rejects(k4.decide('read.advice', input({ limits: { timeoutMs: 49 } })), code('KERNEL_DEADLINE'));
+  assert.equal(edge.calls.length, 1);
+  // With config.timeoutMs = 50 the call sites pass budget() = 50 explicitly.
+  const k5 = new DecisionKernel({ timeoutMs: 50 }, { judges: { jev: judge('jev-model') } });
+  assert.equal(k5.budget('read.advice', 3000), 50);
+  assert.equal((await k5.decide('read.advice', input({ limits: { timeoutMs: k5.budget('read.advice', 3000) } }))).provider, 'jev');
+
   // Without a budget no timeout is invented.
   await k3.decide('read.advice', input());
   assert.equal(Object.hasOwn(never.calls[0].limits, 'timeoutMs'), false);

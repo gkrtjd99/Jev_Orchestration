@@ -267,6 +267,45 @@ test('the caller budget and deadline still win over a longer provider timeout', 
   assert.equal(s.requests.length, 2);
 });
 
+test('openai lock waits stop at the call deadline and a spent deadline is neither sent nor counted', async t => {
+  // Two clients share the cache file of one identical decision. The first holds the cache lock for a 700 ms response.
+  const { config, server: s } = await setup(t, delayed(700), { timeoutMs: 5000 });
+  config.timeoutMs = 5000; // the inherited lock wait used to be min(config.timeoutMs, 1500), whatever the caller allowed
+  const holder = new OpenAIDecisionsClient(config, KEY);
+  const waiter = new OpenAIDecisionsClient(config, KEY);
+  const first = holder.evaluate({ a: 'lock' }, { safe: QUESTIONS.safe }, 'scope-lock');
+  await sleep(80);
+  const began = performance.now();
+  await assert.rejects(waiter.evaluate({ a: 'lock' }, { safe: QUESTIONS.safe }, 'scope-lock', { timeoutMs: 120 }), code('LOCK_BUSY'));
+  const waited = performance.now() - began;
+  assert.ok(waited < 450, `waited ${waited} ms on the cache lock with a 120 ms allowance`);
+  assert.equal((await first).cached, false);
+  assert.equal(s.requests.length, 1); // the waiter never sent anything
+
+  // A call whose allowance is already spent: no request, no request-cap use, no circuit failure.
+  const tight = await setup(t, null, { timeoutMs: 5000 });
+  tight.config.circuit = { ...tight.config.circuit, failureThreshold: 1 };
+  const strict = new OpenAIDecisionsClient(tight.config, KEY);
+  await assert.rejects(strict.evaluate({ a: 'spent' }, { safe: QUESTIONS.safe }, 'scope-spent', { timeoutMs: 0 }), code('DECISIONS_TIMEOUT'));
+  assert.equal(tight.server.requests.length, 0);
+  // With failureThreshold 1 a counted failure would have opened the circuit; the next call must still go out.
+  const next = await strict.evaluate({ a: 'spent' }, { safe: QUESTIONS.safe }, 'scope-spent');
+  assert.equal(next.cached, false);
+  assert.equal(tight.server.requests.length, 1);
+});
+
+test('openai adapter reports a refused connection with a typed code', async t => {
+  const { config, server: s } = await setup(t);
+  await s.close(); // loopback port with no listener
+  const client = new OpenAIDecisionsClient(config, KEY);
+  await assert.rejects(client.request({ a: 1 }, { safe: QUESTIONS.safe }), code('DECISIONS_NETWORK_ERROR'));
+  const jev = new JevClient({ ...config, endpoint: s.endpoint }, 'unit-test-jev-credential');
+  await assert.rejects(jev.request({ a: 1 }, { safe: QUESTIONS.safe }), code('JEV_NETWORK_ERROR'));
+  // Other failures keep their own codes: an HTTP status is not a network failure.
+  const up = await setup(t, (req, res) => json(res, {}, 503));
+  await assert.rejects(up.client.request({ a: 1 }, { safe: QUESTIONS.safe }), code('DECISIONS_HTTP_503'));
+});
+
 test('a kernel chain gives openai its provider timeout but never more than the remaining chain budget', async t => {
   const f = await fixture(t);
   const s = await server(t, delayed(350));

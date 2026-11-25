@@ -76,6 +76,12 @@ const KERNEL_JUDGE_ENV = {
   JEV_SUPERVISOR_JUDGES: ['supervisor.outcome'],
   JEV_DECISION_JUDGES: ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice'],
 };
+// Without these an env-only chain such as JEV_SKILLS_JUDGES=local,jev never escalates: escalateBelow defaults to 0.
+const KERNEL_ESCALATE_ENV = {
+  JEV_SKILLS_ESCALATE_BELOW: ['delegation.skills'],
+  JEV_SUPERVISOR_ESCALATE_BELOW: ['supervisor.outcome'],
+  JEV_DECISION_ESCALATE_BELOW: ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice'],
+};
 /** Kernel overrides from the private .env or process env. Keys never enter the config. */
 export function applyKernelEnvironment(c, get) {
   c.kernel = mergeKernel(c.kernel);
@@ -102,6 +108,13 @@ export function applyKernelEnvironment(c, get) {
     assert(judges.length >= 1 && judges.length <= PROVIDERS.length && judges.every(j => PROVIDERS.includes(j))
       && new Set(judges).size === judges.length, 'INVALID_' + key);
     for (const point of points(ids)) point.judges = [...judges];
+  }
+  for (const [key, ids] of Object.entries(KERNEL_ESCALATE_ENV)) {
+    const v = read(key);
+    if (v === null) continue;
+    // Plain decimals in [0, 1] only: Number('') or Number('1e-1') must not slip through.
+    assert(/^(?:0(?:\.\d{1,6})?|1(?:\.0{1,6})?)$/.test(v), 'INVALID_' + key);
+    for (const point of points(ids)) point.escalateBelow = Number(v);
   }
   const dirs = read('JEV_SKILL_DIRS');
   if (dirs !== null && object(k.skills)) {

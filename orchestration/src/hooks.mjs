@@ -193,13 +193,18 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
           try{await store.record('skills',skillsEvent(e.tool_use_id,skillsMode,skills,injected),e.tool_use_id);}catch{/* skill bookkeeping never fails a route */}
         };
         if(decision.deferred){
-          await recordSkills(false);
           // Shadow classification is log-only: nothing is shown to Main and no deferred task is stored.
           if(decision.reason==='classification_point_shadow_only'){
+            await recordSkills(false);
             await store.record('routing_skipped',{reason:decision.reason});
             return {};
           }
-          const message=`Jev did not select a model/effort (${decision.reason}). Main should gather missing evidence or inspect the model registry. No replacement execution was started. The original native call is unchanged.`;
+          const notice=`Jev did not select a model/effort (${decision.reason}). Main should gather missing evidence or inspect the model registry. No replacement execution was started. The original native call is unchanged.`;
+          // No model/effort was chosen, but a selected skill still applies to the unchanged call. Main is told
+          // (as in advisory mode); the pending input is never rewritten here. The stored message makes the replay identical.
+          const told=visible&&fits(notice,skillsText);
+          const message=told?notice+'\n\n'+skillsText:notice;
+          await recordSkills(told);
           await store.putTask(e.tool_use_id,{inputHash,policy,stamp,deferred:true,message});
           await store.record('route_deferred',{taskId:e.tool_use_id,reason:decision.reason},e.tool_use_id);
           return visible?contextOutput(e.event,message):{};
