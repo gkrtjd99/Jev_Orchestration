@@ -51,7 +51,7 @@ test('constants and defaults match the shared contract', () => {
   const off = { mode: 'off', judges: ['jev'], escalateBelow: 0 };
   assert.deepEqual(kernelDefaults(), {
     log: true,
-    providers: { openai: { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: false } },
+    providers: { openai: { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: false, timeoutMs: 2500 } },
     points: { 'delegation.classify': on, 'delegation.profile': on, 'delegation.skills': off, 'supervisor.outcome': off, 'failure.classify': on, 'read.advice': on },
     skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3 },
     supervisor: { maxReportChars: 1600, confidence: 0.65 },
@@ -75,7 +75,10 @@ test('mergeKernel handles missing and partial input', () => {
     supervisor: { confidence: 0.8 },
   });
   assert.equal(merged.log, false);
-  assert.deepEqual(merged.providers.openai, { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: true });
+  assert.deepEqual(merged.providers.openai, { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: true, timeoutMs: 2500 });
+  // A config written before the per-provider timeout existed is completed with the default; an explicit value is kept.
+  assert.equal(mergeKernel({ providers: { openai: { endpoint: 'https://api.openai.com', model: 'm', approved: true } } }).providers.openai.timeoutMs, 2500);
+  assert.equal(mergeKernel({ providers: { openai: { timeoutMs: 4000 } } }).providers.openai.timeoutMs, 4000);
   assert.deepEqual(merged.points['delegation.skills'], { mode: 'shadow', judges: ['jev'], escalateBelow: 0 });
   assert.deepEqual(merged.points['read.advice'], { mode: 'active', judges: ['local', 'jev'], escalateBelow: 0.6 });
   assert.deepEqual(merged.points['delegation.classify'], kernelDefaults().points['delegation.classify']);
@@ -104,6 +107,9 @@ test('validateKernel rejects every malformed field with a typed code', () => {
   bad(k => { k.providers.openai.model = ''; }, 'INVALID_KERNEL_OPENAI_MODEL');
   bad(k => { k.providers.openai.model = 'm'.repeat(101); }, 'INVALID_KERNEL_OPENAI_MODEL');
   bad(k => { k.providers.openai.approved = 'true'; }, 'INVALID_KERNEL_OPENAI_APPROVED');
+  for (const t of [49, 5001, 0, -1, 1200.5, '2500', null, undefined, Number.NaN, Infinity])
+    bad(k => { k.providers.openai.timeoutMs = t; }, 'INVALID_KERNEL_OPENAI_TIMEOUT');
+  for (const t of [50, 2500, 5000]) { const k = kernelDefaults(); k.providers.openai.timeoutMs = t; validateKernel(k); }
   bad(k => { k.points = []; }, 'INVALID_KERNEL_POINTS');
   bad(k => { delete k.points['read.advice']; }, 'INVALID_KERNEL_POINTS');
   bad(k => { k.points.extra = { mode: 'off', judges: ['jev'], escalateBelow: 0 }; }, 'INVALID_KERNEL_POINTS');
@@ -366,7 +372,9 @@ test('a chain without an explicit limit shares one config.timeoutMs', async () =
   const second = judge('openai-model', { delayMs: 90, error: fail('DECISIONS_TIMEOUT') });
   const third = judge('local-model');
   const log = memoryLog();
-  const kernel = new DecisionKernel({ ...configWith(points), timeoutMs: 120 }, { judges: { jev: stalled, openai: second, local: third }, log });
+  // The chain budget is the largest provider timeout in the chain; pin openai below config.timeoutMs here.
+  const lowOpenai = { providers: { openai: { timeoutMs: 60 } } };
+  const kernel = new DecisionKernel({ ...configWith(points, lowOpenai), timeoutMs: 120 }, { judges: { jev: stalled, openai: second, local: third }, log });
   const began = performance.now();
   await assert.rejects(kernel.decide('read.advice', input()), code('KERNEL_DEADLINE'));
   // One stalled judge, not three sequential full timeouts.
@@ -378,7 +386,7 @@ test('a chain without an explicit limit shares one config.timeoutMs', async () =
 
   // The next judge only gets what is left of the shared budget.
   const quick = judge('jev-model', { delayMs: 30, error: fail('JEV_TIMEOUT') });
-  const k2 = new DecisionKernel({ ...configWith(points), timeoutMs: 2000 }, { judges: { jev: quick, openai: third } });
+  const k2 = new DecisionKernel({ ...configWith(points, lowOpenai), timeoutMs: 2000 }, { judges: { jev: quick, openai: third } });
   assert.equal((await k2.decide('read.advice', input())).provider, 'openai');
   assert.ok(third.calls[0].limits.timeoutMs < 1980 && third.calls[0].limits.timeoutMs > 1000);
 
@@ -390,6 +398,45 @@ test('a chain without an explicit limit shares one config.timeoutMs', async () =
   // An explicit limit still wins over the config default.
   await k3.decide('failure.classify', input({ limits: { timeoutMs: 400 } }));
   assert.ok(first.calls[1].limits.timeoutMs > 300);
+});
+
+test('budget is the largest provider timeout in the chain, capped by the caller ceiling', async () => {
+  const points = {
+    'delegation.classify': { judges: ['openai'] },
+    'delegation.profile': { judges: ['jev', 'openai'] },
+    'delegation.skills': { judges: ['local'] },
+    'supervisor.outcome': { judges: ['openai', 'jev', 'local'] },
+  };
+  const k = new DecisionKernel({ ...configWith(points, { providers: { openai: { timeoutMs: 2500 } } }), timeoutMs: 1200 }, {});
+  assert.equal(k.budget('read.advice'), 1200);              // default chain ['jev']: exactly config.timeoutMs, as before
+  assert.equal(k.budget('read.advice', 3000), 1200);
+  assert.equal(k.budget('read.advice', 700), 700);
+  assert.equal(k.budget('delegation.classify'), 2500);      // openai only: its own timeout, not the Jev-tuned global
+  assert.equal(k.budget('delegation.classify', 3000), 2500);
+  assert.equal(k.budget('delegation.classify', 900), 900);  // the caller's ceiling (route deadline, remaining time) always wins
+  assert.equal(k.budget('delegation.profile'), 2500);       // max, not sum: adding a judge never multiplies the wait
+  assert.equal(k.budget('supervisor.outcome'), 2500);
+  assert.equal(k.budget('delegation.skills'), 1200);        // local rules only keep the previous default
+  assert.throws(() => k.budget('nope'), code('KERNEL_UNKNOWN_POINT'));
+  // A provider timeout below the global one never shrinks a chain that also has jev.
+  const low = new DecisionKernel({ ...configWith(points, { providers: { openai: { timeoutMs: 300 } } }), timeoutMs: 1200 }, {});
+  assert.equal(low.budget('delegation.classify'), 300);
+  assert.equal(low.budget('delegation.profile'), 1200);
+  // Nothing configured and no ceiling: no timeout is invented.
+  assert.equal(new DecisionKernel({}, {}).budget('read.advice'), null);
+  assert.equal(new DecisionKernel({}, {}).budget('read.advice', 800), 800);
+
+  // decide() without an explicit limit uses that budget; an explicit limit replaces it.
+  const openai = judge('openai-model');
+  const d = new DecisionKernel({ ...configWith({ 'read.advice': { judges: ['openai'] } }), timeoutMs: 1200 }, { judges: { openai } });
+  await d.decide('read.advice', input());
+  assert.ok(openai.calls[0].limits.timeoutMs <= 2500 && openai.calls[0].limits.timeoutMs > 2400);
+  await d.decide('read.advice', input({ limits: { timeoutMs: 400 } }));
+  assert.ok(openai.calls[1].limits.timeoutMs <= 400 && openai.calls[1].limits.timeoutMs > 300);
+
+  // The validated maxima keep any single chain below the 7000 ms hook watchdog (bin/jev-hook.mjs).
+  const max = new DecisionKernel({ ...configWith({ 'read.advice': { judges: ['jev', 'openai'] } }, { providers: { openai: { timeoutMs: 5000 } } }), timeoutMs: 5000 }, {});
+  assert.ok(max.budget('read.advice') <= 5000 && max.budget('read.advice') < 7000);
 });
 
 test('judge factories are lazy and called once', async () => {

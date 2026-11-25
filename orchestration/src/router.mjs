@@ -24,8 +24,10 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
   // An off classification point means routing is disabled, not broken: no judge is called and nothing is thrown.
   if(client.point?.('delegation.classify').mode==='off')return {deferred:true,reason:'classification_point_off',stageCount:0};
   // One total budget for the classification stage, however many judges the point chains.
+  // A kernel sizes it from the point's own judges (a per-provider timeout may exceed config.timeoutMs);
+  // the route deadline is the ceiling either way.
   const classify=await classifier.evaluate(state,routeQuestions(docs),scope,
-    {timeoutMs:Math.min(config.timeoutMs,config.optimization.routeDeadlineMs)});
+    {timeoutMs:client.budget?.('delegation.classify',config.optimization.routeDeadlineMs)??Math.min(config.timeoutMs,config.optimization.routeDeadlineMs)});
   // A shadow point is logged only: its answer must not steer a native call.
   if(classify.apply===false)return {deferred:true,reason:'classification_point_shadow_only',stageCount:1};
   const features=taskFeatures(classify.response,delegation,config);
@@ -56,7 +58,7 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
         objective:config.optimization.objective,recoveryAction:recovery.action,candidates,baseline:options.baseline.profileId,
         evidenceBasis:options.basis,evidenceRevision:observed.revision,registryRevision:registryFingerprint(config.registry),
         note:'policyDistance is a declared startup preference, NOT measured cost, latency, or capability. Missing statistics are unknown.'},
-        selectionQuestions(candidates),scope,{timeoutMs:Math.min(config.timeoutMs,Math.floor(remaining))});
+        selectionQuestions(candidates),scope,{timeoutMs:client.budget?.('delegation.profile',Math.floor(remaining))??Math.min(config.timeoutMs,Math.floor(remaining))});
       const a=choice.response.answers.profile;
       const probs=Object.values(a.probabilities).sort((a,b)=>b-a);
       const margin=probs[0]-(probs[1]||0);

@@ -8,6 +8,23 @@ import { validateAnswers } from './answers.mjs';
 const OPENAI_ORIGIN = 'https://api.openai.com';
 const MAX_REQUEST_BYTES = 524288;
 const MAX_RESPONSE_BYTES = 262144;
+/**
+ * Per-provider request timeout for the OpenAI Decisions judge (kernel.providers.openai.timeoutMs).
+ *
+ * The global config.timeoutMs (1200 ms) is tuned for Jev. In the one live observation we have, a cold
+ * first OpenAI request exceeded 1200 ms (its real duration was not captured) while later requests took
+ * 280-580 ms. 2500 ms is roughly twice the limit the cold call broke and more than four times the
+ * slowest warm call, and it still leaves 500 ms of the default 3000 ms route deadline for profile
+ * selection (which needs 100 ms). It is an initial value, not a measured percentile.
+ *
+ * The bounds equal those of config.timeoutMs (50..5000). The upper bound matters: a single chain can
+ * never be granted more than 5000 ms, which stays below the 7000 ms watchdog in bin/jev-hook.mjs.
+ * This is only a ceiling for one request: the caller's remaining chain budget still wins when smaller,
+ * and there is no retry and no warm-up request.
+ */
+export const OPENAI_TIMEOUT_DEFAULT_MS = 2500;
+export const OPENAI_TIMEOUT_MIN_MS = 50;
+export const OPENAI_TIMEOUT_MAX_MS = 5000;
 
 function fail(code) {
   const e = new Error(code);
@@ -123,7 +140,23 @@ export class OpenAIDecisionsClient extends JevClient {
     super({ ...config, endpoint: openai.endpoint, model: openai.model }, apiKey, options);
   }
 
-  async request(state, questions, { timeoutMs = this.config.timeoutMs } = {}) {
+  /** The provider's own request ceiling; a config built without mergeKernel falls back to the default. */
+  get timeoutMs() {
+    const t = this.config.kernel.providers.openai.timeoutMs;
+    return Number.isInteger(t) && t >= OPENAI_TIMEOUT_MIN_MS && t <= OPENAI_TIMEOUT_MAX_MS ? t : OPENAI_TIMEOUT_DEFAULT_MS;
+  }
+
+  /**
+   * Same cache, request cap and circuit as JevClient, plus one absolute deadline for the whole call:
+   * time spent waiting on the cache or request-control locks is taken out of the request's allowance,
+   * so the judge as a whole never outlives min(provider timeout, caller's remaining chain budget).
+   */
+  async evaluate(state, questions, scope, limits = {}) {
+    const allowance = Number.isFinite(limits.timeoutMs) ? Math.min(this.timeoutMs, limits.timeoutMs) : this.timeoutMs;
+    return super.evaluate(state, questions, scope, { ...limits, deadlineAt: performance.now() + allowance });
+  }
+
+  async request(state, questions, { timeoutMs = this.timeoutMs, deadlineAt = Infinity } = {}) {
     const c = this.config;
     const openai = c.kernel.providers.openai;
     assert(c.safety?.allowEgress === true, 'EGRESS_NOT_APPROVED');
@@ -135,8 +168,11 @@ export class OpenAIDecisionsClient extends JevClient {
     const payload = JSON.stringify({ model: c.model, input, questions: toWireQuestions(questions) });
     assert(Buffer.byteLength(payload) <= MAX_REQUEST_BYTES, 'DECISIONS_REQUEST_TOO_LARGE');
 
+    // The provider timeout replaces the Jev-tuned global one; the caller's limit and deadline can only shorten it.
+    const allowed = Math.min(this.timeoutMs, Number.isFinite(timeoutMs) ? timeoutMs : Infinity, deadlineAt - performance.now());
+    assert(allowed >= 1, 'DECISIONS_TIMEOUT'); // budget already spent: no request is sent
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.min(c.timeoutMs, timeoutMs));
+    const timer = setTimeout(() => controller.abort(), allowed);
     try {
       const response = await this.fetch(c.endpoint + '/v1/decisions', {
         method: 'POST', redirect: 'error', signal: controller.signal,

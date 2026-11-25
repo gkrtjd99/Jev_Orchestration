@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fixture, event, answer, mockClient, child } from './helpers.mjs';
+import { fixture, event, answer, mockClient, child, server } from './helpers.mjs';
 import { handleHook } from '../src/hooks.mjs';
 import { eventInput, delegation, rewrite } from '../src/adapters.mjs';
 import { routeContext, policyFingerprint } from '../src/policy.mjs';
@@ -589,7 +589,7 @@ test('kernel env overrides parse from process env and the private .env', async t
   const { config } = await loadConfig(f.file, {
     JEV_SKILLS_MODE: 'active', JEV_SUPERVISOR_MODE: 'shadow', JEV_SKILLS_JUDGES: 'local, jev', JEV_SUPERVISOR_JUDGES: 'openai,jev',
     JEV_DECISION_JUDGES: 'jev,openai', JEV_SKILL_DIRS: dirs.join(path.delimiter), JEV_OPENAI_DECISIONS_APPROVED: 'true',
-    JEV_OPENAI_DECISIONS_MODEL: 'operator-chosen-model', JEV_DECISION_LOG: 'false',
+    JEV_OPENAI_DECISIONS_MODEL: 'operator-chosen-model', JEV_DECISION_LOG: 'false', JEV_OPENAI_DECISIONS_TIMEOUT_MS: '3200',
   });
   const k = config.kernel;
   assert.deepEqual(k.points['delegation.skills'], { mode: 'active', judges: ['local', 'jev'], escalateBelow: 0 });
@@ -597,7 +597,7 @@ test('kernel env overrides parse from process env and the private .env', async t
   for (const id of ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice'])
     assert.deepEqual(k.points[id], { mode: 'active', judges: ['jev', 'openai'], escalateBelow: 0 });
   assert.deepEqual(k.skills.dirs, dirs);
-  assert.deepEqual(k.providers.openai, { endpoint: 'https://api.openai.com', model: 'operator-chosen-model', approved: true });
+  assert.deepEqual(k.providers.openai, { endpoint: 'https://api.openai.com', model: 'operator-chosen-model', approved: true, timeoutMs: 3200 });
   assert.equal(k.log, false);
 
   // Private .env values apply too; process env wins; keys reach runtimeEnv only.
@@ -608,6 +608,13 @@ test('kernel env overrides parse from process env and the private .env', async t
   assert.equal(disk.runtimeEnv.OPENAI_API_KEY, 'openai-test-key-not-real');
   assert.ok(!JSON.stringify(disk.config).includes('openai-test-key-not-real'));
   assert.equal(disk.apiKey, '');
+  // The OpenAI timeout defaults to 2500 without the variable, reads from the private .env, and never touches Jev's timeout.
+  assert.equal(disk.config.kernel.providers.openai.timeoutMs, 2500);
+  await fs.writeFile(path.join(f.dir, '.env'), 'JEV_OPENAI_DECISIONS_TIMEOUT_MS=50\n', { mode: 0o600 });
+  const fromDisk = await loadConfig(f.file, {});
+  assert.equal(fromDisk.config.kernel.providers.openai.timeoutMs, 50);
+  assert.equal(fromDisk.config.timeoutMs, 1200);
+  assert.equal((await loadConfig(f.file, { JEV_OPENAI_DECISIONS_TIMEOUT_MS: '5000' })).config.kernel.providers.openai.timeoutMs, 5000);
 });
 
 test('kernel env overrides reject bad values with typed codes', async t => {
@@ -617,9 +624,70 @@ test('kernel env overrides reject bad values with typed codes', async t => {
     ['JEV_SKILLS_JUDGES', 'jev,gemini'], ['JEV_SKILLS_JUDGES', 'jev,jev'], ['JEV_SUPERVISOR_JUDGES', 'jev,,local'], ['JEV_DECISION_JUDGES', 'jev openai'],
     ['JEV_SKILL_DIRS', 'relative/skills'], ['JEV_SKILL_DIRS', Array.from({ length: 9 }, (_, i) => '/abs/' + i).join(path.delimiter)],
     ['JEV_OPENAI_DECISIONS_APPROVED', 'yes'], ['JEV_OPENAI_DECISIONS_MODEL', 'bad model name'], ['JEV_DECISION_LOG', '1'],
+    ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '49'], ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '5001'], ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '2.5e3'],
+    ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '1200.5'], ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '-100'], ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', 'fast'],
+    ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '0x200'], ['JEV_OPENAI_DECISIONS_TIMEOUT_MS', '2500ms'],
   ]) {
     await assert.rejects(loadConfig(f.file, { [key]: value }), code('INVALID_' + key), `${key}=${value}`);
   }
+});
+
+// ---------------------------------------------------------------- per-provider OpenAI timeout through the hook
+
+/** Loopback Decisions endpoint answering with the same picks as helpers.answer(); not a live API. */
+async function decisionsServer(t, delayMs) {
+  const picks = { role: 'implement', complexity: 'bounded', risk: 'normal', reading: 'targeted', reasoning: 'routine', information: 'sufficient', failure: 'environment', kind: 'reference' };
+  return server(t, async (req, res, parsed) => {
+    await sleep(delayMs);
+    const answers = parsed.questions.map(q => {
+      if (q.type === 'predicate') return { type: 'predicate', name: q.name, probability: 0.1 };
+      const selected = picks[q.name] ?? q.choices[0].value;
+      return { type: 'choice', name: q.name, choice: selected, confidence: 1, probabilities: q.choices.map(c => ({ value: c.value, probability: c.value === selected ? 1 : 0 })) };
+    });
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ model: 'decisions-fixture-not-live', answers }));
+  });
+}
+async function openaiRouted(t, { delayMs, openaiTimeoutMs, routeDeadlineMs }) {
+  const f = await fixture(t);
+  const s = await decisionsServer(t, delayMs);
+  f.config.allowLoopback = true;
+  f.config.timeoutMs = 100; // the Jev-tuned global timeout is far below the simulated OpenAI latency
+  f.config.optimization.routeDeadlineMs = routeDeadlineMs;
+  f.config.kernel.providers.openai = { ...f.config.kernel.providers.openai, endpoint: s.endpoint, approved: true, timeoutMs: openaiTimeoutMs };
+  for (const id of ['delegation.classify', 'delegation.profile', 'failure.classify']) f.config.kernel.points[id].judges = ['openai'];
+  return { f, s, deps: { config: f.config, runtimeEnv: { OPENAI_API_KEY: 'unit-test-openai-credential' } } };
+}
+
+test('a slow first OpenAI call routes within its provider timeout although the global timeout is shorter', async t => {
+  const { f, s, deps } = await openaiRouted(t, { delayMs: 250, openaiTimeoutMs: 2500, routeDeadlineMs: 3000 });
+  const out = await handleHook(event(f.project), 'claude', deps);
+  // Classification (250 ms) and profile selection (250 ms) both exceeded config.timeoutMs=100 and still succeeded.
+  assert.match(out.hookSpecificOutput.updatedInput.subagent_type, /^jev4_/);
+  assert.deepEqual(s.requests.map(r => r.url), ['/v1/decisions', '/v1/decisions']);
+  assert.deepEqual((await decisions(f)).map(d => [d.pointId, d.provider, d.trail.length]), [['delegation.classify', 'openai', 1], ['delegation.profile', 'openai', 1]]);
+  assert.deepEqual(await eventsOf(f, 'hook_error'), []);
+
+  // A failure classification without an explicit limit gets the provider timeout as its chain budget too.
+  const failed = await handleHook({ ...event(f.project), hook_event_name: 'PostToolUseFailure', error: 'network unreachable' }, 'claude', deps);
+  assert.match(failed.hookSpecificOutput.additionalContext, /Jev failure category: environment/);
+  assert.equal(s.requests.length, 3);
+});
+
+test('the route deadline still stops an OpenAI call that its provider timeout would allow', async t => {
+  // Provider timeout at its maximum, response slower than the whole route deadline.
+  const { f, s, deps } = await openaiRouted(t, { delayMs: 1500, openaiTimeoutMs: 5000, routeDeadlineMs: 300 });
+  f.config.failureMode = 'block';
+  const began = performance.now();
+  const out = await handleHook(event(f.project), 'claude', deps);
+  const elapsed = performance.now() - began;
+  assert.ok(elapsed < 1200, `hook took ${elapsed} ms; it must end near the 300 ms route deadline, not the 1500 ms response or the 5000 ms provider timeout`);
+  assert.equal(out.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(out.hookSpecificOutput.permissionDecisionReason, /DECISIONS_TIMEOUT/);
+  assert.equal(s.requests.length, 1); // one attempt: no retry, no warm-up
+  const [record] = await decisions(f);
+  assert.deepEqual(record.trail.map(x => [x.provider, x.code]), [['openai', 'DECISIONS_TIMEOUT']]);
+  assert.ok(record.trail[0].latencyMs < 1000);
 });
 
 // ---------------------------------------------------------------- packaging and CLI

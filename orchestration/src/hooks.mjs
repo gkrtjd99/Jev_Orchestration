@@ -33,7 +33,7 @@ async function routeSkills(kernel,cfg,project,task,scope){
   const work=(async()=>{
     const catalog=await loadSkillCatalog({project,dirs:settings.dirs});
     return selectSkills({task,catalog,judge:kernel.forPoint(SKILLS_POINT),scope,config:settings,
-      limits:{timeoutMs:Math.min(cfg.timeoutMs,cfg.optimization.routeDeadlineMs)}});
+      limits:{timeoutMs:kernel.budget(SKILLS_POINT,cfg.optimization.routeDeadlineMs)}});
   })().catch(error=>({status:'unavailable',code:errorCode(error)}));
   try{return await Promise.race([work,deadline]);}finally{clearTimeout(timer);}
 }
@@ -71,7 +71,7 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
     if(secretLike(text,apiKey)||secretLike(text,runtimeEnv?.OPENAI_API_KEY||'')){await note({status:'skipped',reason:'secret_guard'});return null;}
     try{
       const decision=await kernel().decide(SUPERVISOR_POINT,{state:{report:redact(text,kernel().kernel.supervisor.maxReportChars)},
-        questions:supervisorQuestions(),scope,limits:{timeoutMs:cfg.timeoutMs},subject:prior.route.taskSignature||null});
+        questions:supervisorQuestions(),scope,limits:{timeoutMs:kernel().budget(SUPERVISOR_POINT)},subject:prior.route.taskSignature||null});
       const a=supervisorAdvice(decision.response.answers,kernel().kernel.supervisor);
       await note({status:'judged',outcome:a.outcome,confidence:a.confidence,evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId});
       return decision.apply&&visible&&a.advisory?contextOutput(e.event,a.text):null;

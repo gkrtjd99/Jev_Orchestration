@@ -81,9 +81,27 @@
 
 - 확신은 한 번의 호출에 담긴 모든 답 중 **최솟값**입니다. `noul`은 `|2p-1|`, `choice`/`score`는 judge가 준 `confidence`입니다.
 - `escalateBelow`의 기본값은 `0`입니다. 즉 기본으로는 실패했을 때만 다음 judge로 갑니다.
-- `timeoutMs`는 judge별이 아니라 **체인 전체 예산**입니다. 호출부가 한도를 주지 않으면 설정의 `timeoutMs` 한 번이 체인 전체 예산이 됩니다. 분류는 `timeoutMs`와 `routeDeadlineMs` 중 작은 값을 씁니다. 다음 judge로 넘어갈 때 남은 예산이 50ms 미만이면 `KERNEL_DEADLINE`으로 멈춥니다.
+- 예산은 judge별이 아니라 **체인 전체 예산**입니다. 크기는 체인에 든 제공자의 요청 timeout 중 **가장 큰 값 하나**입니다(`jev`는 전역 `timeoutMs`, `openai`는 `kernel.providers.openai.timeoutMs`, `local`은 없음). 합이 아니므로 judge를 늘려도 대기 시간이 곱해지지 않습니다. 기본 체인 `["jev"]`에서는 예전과 똑같이 전역 `timeoutMs`입니다.
+- 호출부의 상한이 항상 이깁니다. 분류·skill 판단은 `routeDeadlineMs`, 프로필 선택은 route deadline에서 남은 시간을 상한으로 줍니다. 다음 judge로 넘어갈 때 남은 예산이 50ms 미만이면 `KERNEL_DEADLINE`으로 멈춥니다.
+- 각 judge는 그 예산 안에서 자기 timeout을 다시 적용합니다. 자세한 내용은 [제공자별 timeout](#제공자별-timeout)을 보세요.
 - 요청 수 상한(`circuit.maxRequestsPerSession`)과 circuit은 `delegation.skills`·`supervisor.outcome`이 나머지 네 지점과 **따로** 셉니다. 선택 지점을 켜도 라우팅의 요청 예산을 쓰지 않습니다. 대신 두 지점을 켜면 세션당 요청 수의 상한은 최대 두 배가 됩니다.
 - 채택된 답은 앞선 judge의 답과 섞지 않습니다. 한 결정은 한 judge의 답입니다.
+
+### 제공자별 timeout
+
+전역 `timeoutMs`(기본 1200ms, `JEV_TIMEOUT_MS`)는 Jev에 맞춘 값입니다. OpenAI judge는 이 값을 물려받지 않고 `kernel.providers.openai.timeoutMs`를 씁니다.
+
+| 항목 | 값 |
+|---|---|
+| 기본값 | 2500ms |
+| 허용 범위 | 정수 50~5000 (전역 `timeoutMs`와 같은 범위). 벗어나면 `INVALID_KERNEL_OPENAI_TIMEOUT` |
+| env | `JEV_OPENAI_DECISIONS_TIMEOUT_MS` (숫자만, 같은 범위). 잘못되면 `INVALID_JEV_OPENAI_DECISIONS_TIMEOUT_MS` |
+
+- 기본값의 근거: 실제 관측 1회에서 첫(cold) 요청이 1200ms를 넘겼고 이후 요청은 280~580ms였습니다. cold 요청이 실제로 얼마나 걸렸는지는 기록되지 않았습니다. 2500ms는 넘겼던 한도의 약 두 배이고, 기본 `routeDeadlineMs`(3000ms)에서 프로필 선택에 500ms를 남깁니다. **측정된 분위수가 아닌 초기값입니다.**
+- 실제 요청 한도는 `min(제공자 timeout, 호출부가 준 체인의 남은 예산)`입니다. 제공자 timeout을 5000으로 올려도 `routeDeadlineMs`가 300이면 300ms 근처에서 `DECISIONS_TIMEOUT`으로 끝납니다.
+- OpenAI judge는 호출 시작 시점에 마감 시각을 하나 정합니다. cache·요청 수 잠금을 기다린 시간도 그 안에서 빠지고, 마감이 지났으면 요청을 보내지 않습니다.
+- **숨은 재시도나 warm-up 요청은 없습니다.** timeout된 요청은 한 번의 실패로 세고 체인의 다음 judge로 넘어갑니다.
+- hook 전체 한도와의 관계: 위임 `PreToolUse`는 분류와 프로필 선택이 `routeDeadlineMs`(최대 5500ms) 하나를 나눠 쓰고, 그 외 이벤트는 hook 한 번에 체인 하나만 실행하며 그 예산은 최대 5000ms입니다. 둘 다 `bin/jev-hook.mjs`의 watchdog(7000ms)과 설치된 hook timeout(8초)보다 짧습니다.
 
 ### 설정 예시
 
@@ -94,7 +112,7 @@
   "kernel": {
     "log": true,
     "providers": {
-      "openai": { "endpoint": "https://api.openai.com", "model": "gpt-6-luna", "approved": false }
+      "openai": { "endpoint": "https://api.openai.com", "model": "gpt-6-luna", "approved": false, "timeoutMs": 2500 }
     },
     "points": {
       "delegation.classify": { "mode": "active", "judges": ["jev"], "escalateBelow": 0 },
@@ -326,6 +344,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 | `JEV_SKILL_DIRS` | 없음 | 추가 skill 디렉터리. 절대 경로, 플랫폼 경로 구분자(POSIX는 `:`), 최대 8개. 프로젝트 `.claude/skills`는 항상 읽음 |
 | `JEV_OPENAI_DECISIONS_APPROVED` | `false` | `openai` judge로의 전송 승인 |
 | `JEV_OPENAI_DECISIONS_MODEL` | `gpt-6-luna` | `openai` judge의 모델 이름 |
+| `JEV_OPENAI_DECISIONS_TIMEOUT_MS` | `2500` | `openai` judge 요청 하나의 timeout(ms, 정수 50~5000). `JEV_TIMEOUT_MS`는 Jev 전용으로 남음 |
 | `OPENAI_API_KEY` | 없음 | `openai` judge의 키. config에 저장하지 않음 |
 | `JEV_DECISION_LOG` | `true` | decision log 기록 여부 |
 

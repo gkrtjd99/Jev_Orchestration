@@ -5,7 +5,8 @@ import { sleep } from '../src/util.mjs';
 import { validateAnswers as jevValidateAnswers, JevClient } from '../src/jev.mjs';
 import { validateAnswers, answerConfidence, minConfidence } from '../src/kernel/answers.mjs';
 import { OpenAIDecisionsClient, LocalJudge, toWireQuestions, fromWireResponse } from '../src/kernel/judges.mjs';
-import { mergeKernel } from '../src/kernel/kernel.mjs';
+import { mergeKernel, createKernel } from '../src/kernel/kernel.mjs';
+import { performance } from 'node:perf_hooks';
 
 const KEY = 'unit-test-openai-credential';
 const QUESTIONS = {
@@ -218,6 +219,89 @@ test('openai adapter reports HTTP errors and timeouts with typed codes', async t
   const started = Date.now();
   await assert.rejects(slow.client.request({ a: 1 }, { safe: QUESTIONS.safe }, { timeoutMs: 60 }), code('DECISIONS_TIMEOUT'));
   assert.ok(Date.now() - started < 350);
+});
+
+// ---------------------------------------------------------------- per-provider timeout (loopback server, no live API)
+
+const delayed = ms => async (req, res, parsed) => { await sleep(ms); json(res, wireBody(parsed.questions)); };
+
+test('openai adapter uses its own provider timeout instead of the Jev-tuned global one', async t => {
+  // Global timeout far below the response time: before the per-provider timeout this request timed out.
+  const cold = await setup(t, delayed(300), { timeoutMs: 1500 });
+  cold.config.timeoutMs = 100;
+  const response = await cold.client.request({ a: 1 }, { safe: QUESTIONS.safe });
+  assert.equal(response.answers.safe.noul, 0.8);
+  const viaEvaluate = await cold.client.evaluate({ a: 2 }, { safe: QUESTIONS.safe }, 'scope-timeout');
+  assert.equal(viaEvaluate.cached, false);
+  assert.equal(cold.server.requests.length, 2); // one request per call: no warm-up, no retry
+
+  // And the other way round: a generous global timeout does not extend a short provider timeout.
+  const strict = await setup(t, delayed(600), { timeoutMs: 120 });
+  strict.config.timeoutMs = 5000;
+  const began = performance.now();
+  await assert.rejects(strict.client.request({ a: 1 }, { safe: QUESTIONS.safe }), code('DECISIONS_TIMEOUT'));
+  await assert.rejects(strict.client.evaluate({ a: 2 }, { safe: QUESTIONS.safe }, 'scope-timeout'), code('DECISIONS_TIMEOUT'));
+  assert.ok(performance.now() - began < 550, 'both calls must stop at the 120 ms provider timeout');
+  assert.equal(strict.server.requests.length, 2); // a timed-out call is not retried
+
+  // The default applies when the config carries none, and the Jev client is unaffected by the OpenAI value.
+  const plain = await setup(t);
+  assert.equal(plain.config.kernel.providers.openai.timeoutMs, 2500);
+  assert.equal(plain.client.timeoutMs, 2500);
+  assert.equal(plain.client.config.timeoutMs, plain.config.timeoutMs);
+});
+
+test('the caller budget and deadline still win over a longer provider timeout', async t => {
+  const { client, server: s } = await setup(t, delayed(600), { timeoutMs: 5000 });
+  let began = performance.now();
+  await assert.rejects(client.request({ a: 1 }, { safe: QUESTIONS.safe }, { timeoutMs: 100 }), code('DECISIONS_TIMEOUT'));
+  assert.ok(performance.now() - began < 450);
+  began = performance.now();
+  await assert.rejects(client.evaluate({ a: 2 }, { safe: QUESTIONS.safe }, 'scope-budget', { timeoutMs: 100 }), code('DECISIONS_TIMEOUT'));
+  assert.ok(performance.now() - began < 450);
+  assert.equal(s.requests.length, 2);
+
+  // A deadline that already passed (for example after waiting on a lock) sends nothing at all.
+  await assert.rejects(client.request({ a: 3 }, { safe: QUESTIONS.safe }, { deadlineAt: performance.now() - 1 }), code('DECISIONS_TIMEOUT'));
+  await assert.rejects(client.request({ a: 3 }, { safe: QUESTIONS.safe }, { timeoutMs: 0 }), code('DECISIONS_TIMEOUT'));
+  assert.equal(s.requests.length, 2);
+});
+
+test('a kernel chain gives openai its provider timeout but never more than the remaining chain budget', async t => {
+  const f = await fixture(t);
+  const s = await server(t, delayed(350));
+  f.config.allowLoopback = true;
+  f.config.timeoutMs = 100; // Jev-tuned global, deliberately shorter than the OpenAI response
+  f.config.kernel = mergeKernel({
+    log: false,
+    providers: { openai: { endpoint: s.endpoint, approved: true, timeoutMs: 2000 } },
+    points: { 'read.advice': { judges: ['openai'] }, 'failure.classify': { judges: ['jev', 'openai'] } },
+  });
+  const questions = { safe: QUESTIONS.safe };
+  const jev = { calls: [], async evaluate(state, q, scope, limits) { this.calls.push(limits); await sleep(60); throw Object.assign(new Error('JEV_TIMEOUT'), { code: 'JEV_TIMEOUT' }); } };
+  const kernel = createKernel(f.config, { client: jev, runtimeEnv: { OPENAI_API_KEY: KEY } });
+
+  // No explicit limit: the chain budget is the provider timeout (2000), so a 350 ms response succeeds.
+  const slowOk = await kernel.decide('read.advice', { state: { n: 1 }, questions, scope: 'chain' });
+  assert.equal(slowOk.provider, 'openai');
+  assert.ok(slowOk.latencyMs >= 300);
+
+  // After a failed first judge, openai still answers inside the same single budget.
+  const second = await kernel.decide('failure.classify', { state: { n: 2 }, questions, scope: 'chain' });
+  assert.equal(second.provider, 'openai');
+  assert.deepEqual(second.trail.map(x => [x.provider, x.ok]), [['jev', false], ['openai', true]]);
+  assert.ok(jev.calls[0].timeoutMs <= 2000 && jev.calls[0].timeoutMs > 1900);
+
+  // An explicit chain budget below the response time wins over the 2000 ms provider timeout.
+  const began = performance.now();
+  await assert.rejects(kernel.decide('read.advice', { state: { n: 3 }, questions, scope: 'chain', limits: { timeoutMs: 150 } }), code('DECISIONS_TIMEOUT'));
+  assert.ok(performance.now() - began < 330, 'stopped by the 150 ms chain budget, before the 350 ms response');
+
+  // The chain budget is shared: 60 ms spent by the first judge leaves openai less than its response needs.
+  const shared = performance.now();
+  await assert.rejects(kernel.decide('failure.classify', { state: { n: 4 }, questions, scope: 'chain', limits: { timeoutMs: 300 } }), code('DECISIONS_TIMEOUT'));
+  assert.ok(performance.now() - shared < 420);
+  assert.equal(s.requests.length, 4); // exactly one request per decision that reached openai
 });
 
 test('openai adapter caps request and response sizes', async t => {

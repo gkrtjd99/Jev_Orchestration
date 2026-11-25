@@ -4,6 +4,7 @@ import path from 'node:path';
 import { assert, object, within, readJSON } from './util.mjs';
 import { defaultRegistry, validateRegistry, applyModelEnvironment } from './catalog.mjs';
 import { kernelDefaults, mergeKernel, validateKernel, MODES, PROVIDERS } from './kernel/kernel.mjs';
+import { OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './kernel/judges.mjs';
 export function defaults(home) {
   return {
     schema: 4, mode: 'shadow', safety:safetyDefaults(), enabledRuntimes: ['claude','codex'],
@@ -115,6 +116,13 @@ export function applyKernelEnvironment(c, get) {
   if (model !== null) {
     assert(/^[A-Za-z0-9_.-]{1,100}$/.test(model), 'INVALID_JEV_OPENAI_DECISIONS_MODEL');
     if (openai) openai.model = model;
+  }
+  const timeout = read('JEV_OPENAI_DECISIONS_TIMEOUT_MS');
+  if (timeout !== null) {
+    // Digits only: Number('') or Number('1e3') must not slip through as a timeout.
+    assert(/^\d{1,5}$/.test(timeout) && Number(timeout) >= OPENAI_TIMEOUT_MIN_MS && Number(timeout) <= OPENAI_TIMEOUT_MAX_MS,
+      'INVALID_JEV_OPENAI_DECISIONS_TIMEOUT_MS');
+    if (openai) openai.timeoutMs = Number(timeout);
   }
   const log = flag('JEV_DECISION_LOG');
   if (log !== null) k.log = log;

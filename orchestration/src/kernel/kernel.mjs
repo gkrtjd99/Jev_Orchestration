@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { assert, object, hash } from '../util.mjs';
 import { JevClient } from '../jev.mjs';
 import { minConfidence } from './answers.mjs';
-import { OpenAIDecisionsClient, LocalJudge } from './judges.mjs';
+import { OpenAIDecisionsClient, LocalJudge, OPENAI_TIMEOUT_DEFAULT_MS, OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './judges.mjs';
 
 export const POINTS = ['delegation.classify', 'delegation.profile', 'delegation.skills', 'supervisor.outcome', 'failure.classify', 'read.advice'];
 export const MODES = ['off', 'shadow', 'active'];
@@ -15,7 +15,7 @@ export function kernelDefaults() {
   const point = mode => ({ mode, judges: ['jev'], escalateBelow: 0 });
   return {
     log: true,
-    providers: { openai: { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: false } },
+    providers: { openai: { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: false, timeoutMs: OPENAI_TIMEOUT_DEFAULT_MS } },
     points: {
       'delegation.classify': point('active'),
       'delegation.profile': point('active'),
@@ -72,6 +72,7 @@ export function validateKernel(k) {
   assert(typeof openai.endpoint === 'string' && URL.canParse(openai.endpoint), 'INVALID_KERNEL_OPENAI_ENDPOINT');
   assert(typeof openai.model === 'string' && /^[A-Za-z0-9_.-]{1,100}$/.test(openai.model), 'INVALID_KERNEL_OPENAI_MODEL');
   assert(typeof openai.approved === 'boolean', 'INVALID_KERNEL_OPENAI_APPROVED');
+  assert(intIn(openai.timeoutMs, OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS), 'INVALID_KERNEL_OPENAI_TIMEOUT');
 
   assert(object(k.points), 'INVALID_KERNEL_POINTS');
   const ids = Object.keys(k.points);
@@ -137,6 +138,26 @@ export class DecisionKernel {
     return this.kernel.points[id];
   }
 
+  /**
+   * Total time one decision at this point may take: the largest per-provider request timeout in its
+   * chain (jev: config.timeoutMs, openai: providers.openai.timeoutMs, local: none), never more than
+   * the caller's ceiling (for example what is left of the route deadline). It is a budget for the
+   * whole chain, not per judge, and each judge still enforces its own timeout inside it.
+   * With the default chain ['jev'] this is exactly min(config.timeoutMs, ceiling), as before 3.2.0.
+   * Returns null when nothing bounds the chain (no ceiling and no configured timeout).
+   */
+  budget(pointId, ceiling = Infinity) {
+    const global = Number.isFinite(this.config?.timeoutMs) ? this.config.timeoutMs : null;
+    let own = null;
+    for (const provider of this.point(pointId).judges) {
+      const t = provider === 'jev' ? global : provider === 'openai' ? this.kernel.providers.openai.timeoutMs : null;
+      if (t !== null && (own === null || t > own)) own = t;
+    }
+    own ??= global; // a chain of local rules only keeps the previous default
+    const limit = Math.min(own ?? Infinity, Number.isFinite(ceiling) ? ceiling : Infinity);
+    return Number.isFinite(limit) ? limit : null;
+  }
+
   // Factories run at most once and only for providers a point actually reaches.
   judge(provider) {
     if (this.resolved.has(provider)) return this.resolved.get(provider);
@@ -169,10 +190,9 @@ export class DecisionKernel {
     const start = performance.now();
     const time = this.now();
     // timeoutMs is a total budget for the whole chain, not per judge. Without an explicit limit the
-    // chain still gets one config.timeoutMs in total, so adding judges never multiplies the wait.
+    // chain still gets a single budget (see budget()), so adding judges never multiplies the wait.
     const explicitBudget = Number.isFinite(limits.timeoutMs);
-    const budget = explicitBudget ? limits.timeoutMs
-      : Number.isFinite(this.config?.timeoutMs) ? this.config.timeoutMs : null;
+    const budget = explicitBudget ? limits.timeoutMs : this.budget(pointId);
     const stateHash = hash(state ?? null);
     const questionsHash = hash(questions ?? null);
     const scopeText = String(scope ?? '');
