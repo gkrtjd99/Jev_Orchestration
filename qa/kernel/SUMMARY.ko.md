@@ -73,6 +73,8 @@
 8. (major) 문서가 `adaptive`와 0.25를 실제보다 일반적인 것으로 서술 → `docs/KERNEL.ko.md`를 고침: `adaptive`는 문자 체계가 다를 때의 대비책이고, 0.25는 한국어 개발 작업 64건을 전부 넓게 보내는 가장 작은 어림수이며, 어휘 신호는 카탈로그 크기와 작업 길이에 따라 달라진다. "두 분포 사이가 비어 있다"는 틀린 서술 삭제.
 9. held-out "한 번만"이 기록만 되고 강제되지 않음 → 기록된 실행이 있는 세트는 `--respend-holdout` 없이는 거부. 세트의 ledger를 지워도 `RUN_LEDGER.jsonl`의 manifest 해시로 걸린다.
 
+수정 뒤(2026-11-25, Node v24.19.0): `bash scripts/test-all.sh` 종료 코드 0 (Node 542/542, 구문 65개 모듈, Python 검증 72건 OK), `npm test` 단독 542/542, `compare:default` 차이 0, `qa/kernel/test` 25/25. 실제 judge로는 아무것도 다시 돌리지 않았다.
+
 고치지 않고 남긴 것:
 
 - `adaptive`의 판별 기준 자체. 개발 세트에서 넓게 간 영어 작업 15건 중 14건이 skill 불필요 작업이고 새로 도달한 gold는 0개다. 대안("신호 0일 때만 넓게")은 영어를 1건만 넓게 보내지만 한국어 도달이 49/49에서 42/49로 떨어진다(오프라인, `results/dev-retrieval-offline/analysis.json`). 어느 쪽이 나은지는 실제 judge의 오주입률이 있어야 정할 수 있어 제품 정의는 그대로 두었다.

@@ -518,13 +518,13 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 
 **이 분석이 말해 주지 않는 것.** 도달 비율은 judge가 낼 수 있는 recall의 **상한**입니다. judge가 skill 20~40개를 볼 때의 precision, `need` 정확도, calibration, 지연, 토큰은 재지 않았습니다(전부 null). 넓게 보여 주면 오선택이 늘 수 있고, 그 여부는 실제 judge로 개발용 세트를 돌려야 알 수 있습니다. 그래서 기본값을 `lexical`로 남겼습니다.
 
-**오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh` 종료 코드 0, Node 534/534, 구문 65개 모듈, 2026-11-25, Node v24.19.0. `orchestration`에서 `npm test`만 돌려도 534/534)
+**오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh` 종료 코드 0, Node 542/542, 구문 65개 모듈, Python 검증 72건 OK, 2026-11-25, Node v24.19.0. `orchestration`에서 `npm test`만 돌려도 542/542. `qa/kernel/test`는 25/25)
 
 모두 mock judge, 로컬 어휘 judge, loopback 서버, 주입된 fetch, 로컬 CLI의 자식 프로세스로 돌린 계약 검사입니다.
 
 - kernel: 지점 모드, 체인 순서, 실패·낮은 확신 시 escalation, escalation 실패 시 보류한 답 채택, 체인 예산(명시·기본, 50ms 경계), 설정 병합·검증, env 덮어쓰기(`escalateBelow` 포함)
 - judge: OpenAI wire 변환과 응답 검증(label 기준 score 분포 포함), 동의 관문, 크기 제한, 답 검증, 선택 지점의 별도 요청 상한·circuit, 제공자별 timeout(loopback 서버로 제공자 timeout 적용·체인 예산 우선·route deadline 우선·재시도 없음 확인), 잠금 대기의 마감 준수, 연결 실패의 typed 코드
-- 후보 검색(`test/kernel-skills-retrieval.test.mjs`, 25건): 어휘 신호의 정의(한국어·혼합 문자·전각 포함)와 BM25 0과의 동치, 방식 선택과 `minCoverage` 경계, 고른 분할·질문 문구 불변·동시 전송, 공유 마감, 일부 요청 실패와 전부 실패, `need` 최댓값, 요청을 넘나드는 상한, 추적 완전성, `maxJudged` 초과 시 `dropped`, loopback Jev로 요청별 상한 계산과 원문 없는 요청별 log record, 이전 config와 byte 단위로 같은 hook 출력, hook의 `skills` 이벤트와 재호출 재현, `local` 기권과 `local,jev` escalation, env·CLI
+- 후보 검색(`test/kernel-skills-retrieval.test.mjs`, 33건. 리뷰 뒤 추가한 8건: 낮은 어휘 신호에서도 답하는 `local`, 요청 수 제한과 직접 호출 시 잘림, 요청 상한 대비 검증, 최대 fan-out 뒤에도 남는 요청 예산, 실제 client로 공유 마감·circuit 실패 1회 계산, 마감 뒤 차례가 온 요청의 미전송·미계산, 일부 실패 표시, hook 이벤트의 일부 실패 표시): 어휘 신호의 정의(한국어·혼합 문자·전각 포함)와 BM25 0과의 동치, 방식 선택과 `minCoverage` 경계, 고른 분할·질문 문구 불변·동시 전송, 공유 마감, 일부 요청 실패와 전부 실패, `need` 최댓값, 요청을 넘나드는 상한, 추적 완전성, `maxJudged` 초과 시 `dropped`, loopback Jev로 요청별 상한 계산과 원문 없는 요청별 log record, 이전 config와 byte 단위로 같은 hook 출력, hook의 `skills` 이벤트와 재호출 재현, `local` 기권과 `local,jev` escalation, env·CLI
 - skill: 카탈로그 읽기와 건너뛰기 규칙, 프로젝트 안 심볼릭 링크 root 허용과 프로젝트 밖 root 거부, 적대적 디렉터리 이름의 주입 차단, 경로 구간 검사, BM25, 임계값·상한, 주입 블록 형식, 예산 초과 시 생략, 재호출 재현, 실패 시 미선택, 보류된 route에서의 안내
 - supervisor: 판정 조건, 조언 문구, 확신 미달 시 기존 문구 유지
 - log·calibration: 형식 검사, 원문 미기록, 라벨 결합, 지표 계산, 지점별 실패·escalation 비율
