@@ -5,7 +5,7 @@ import { loadConfig } from '../src/config.mjs';
 import { DecisionLog, decisionLogDir } from '../src/kernel/log.mjs';
 import { calibrationReport, usageTotals } from '../src/kernel/calibration.mjs';
 
-const KNOWN = ['action', 'config', 'log-dir', 'point', 'since', 'threshold', 'decision', 'question', 'outcome', 'source', 'type', 'limit'];
+const KNOWN = ['action', 'config', 'log-dir', 'point', 'since', 'threshold', 'decision', 'question', 'outcome', 'source', 'exclude-source', 'type', 'limit'];
 const string = x => typeof x === 'string' && x.length > 0;
 
 async function openLog(args) {
@@ -30,6 +30,15 @@ function parseOutcome(raw, type) {
   return isBoolean ? raw === 'true' : isInteger ? Number(raw) : raw;
 }
 
+// --source a,b / --exclude-source a,b for the report: label sources to keep / to drop.
+function sourceList(raw, fallback) {
+  if (raw === undefined) return fallback;
+  assert(string(raw), 'INVALID_SOURCE_FILTER');
+  const list = raw.split(',').map(x => x.trim());
+  assert(list.length <= 32 && list.every(x => x.length > 0 && x.length <= 128), 'INVALID_SOURCE_FILTER');
+  return list;
+}
+
 function pointFilter(args) {
   if (args.point === undefined) return null;
   assert(string(args.point), 'INVALID_POINT');
@@ -40,7 +49,8 @@ try {
   const args = options(process.argv.slice(2));
   assert(Object.keys(args).every(k => KNOWN.includes(k)), 'UNKNOWN_ARGUMENT');
   assert(['report', 'label', 'show'].includes(args.action),
-    'Use --action report|label|show [--log-dir /absolute/dir | --config /absolute/config.json]');
+    'Use --action report|label|show [--log-dir /absolute/dir | --config /absolute/config.json]; report also takes --source a,b and --exclude-source a,b');
+  assert(args['exclude-source'] === undefined || args.action === 'report', 'EXCLUDE_SOURCE_IS_A_REPORT_FILTER');
   const log = await openLog(args);
   if (args.action === 'report') {
     let since = 0;
@@ -54,7 +64,9 @@ try {
       assert(threshold >= 0 && threshold <= 1, 'INVALID_THRESHOLD');
     }
     const { corruptLines, ...data } = await log.read({ since, pointId: pointFilter(args) });
-    console.log(JSON.stringify({ ...calibrationReport(data, { threshold }), corruptLines }, null, 2));
+    const sources = sourceList(args.source, null);
+    const excludeSources = sourceList(args['exclude-source'], []);
+    console.log(JSON.stringify({ ...calibrationReport(data, { threshold, sources, excludeSources }), corruptLines }, null, 2));
   } else if (args.action === 'label') {
     assert(string(args.decision) && string(args.question) && string(args.source),
       'Use --action label --decision <id> --question <qid> --outcome <value> --source <text> [--type noul|choice|score]');

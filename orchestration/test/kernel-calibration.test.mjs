@@ -133,8 +133,10 @@ test('metrics are null, never 0, without labeled rows or with an undefined denom
   assert.equal(m.tn, 2);
   close(m.brier, 0.025, 'brier');
 
-  assert.deepEqual(calibrationReport({ decisions: [], labels: [] }), { generatedFrom: { decisions: 0, labels: 0 }, invalidLabels: 0,
+  const { labels: labelSummary, ...emptyReport } = calibrationReport({ decisions: [], labels: [] });
+  assert.deepEqual(emptyReport, { generatedFrom: { decisions: 0, labels: 0 }, invalidLabels: 0,
     usage: { reported: 0, input_tokens: null, output_tokens: null, providers: [] }, points: [], groups: [] });
+  assert.deepEqual([labelSummary.bySource, labelSummary.weakSources, labelSummary.excludedByFilter], [[], [], 0]);
   assert.throws(() => calibrationReport({ decisions: [], labels: [] }, { threshold: 2 }), e => e.code === 'INVALID_CALIBRATION_OPTIONS');
   assert.throws(() => calibrationReport({ decisions: [], labels: [] }, { bins: 0 }), e => e.code === 'INVALID_CALIBRATION_OPTIONS');
 });
