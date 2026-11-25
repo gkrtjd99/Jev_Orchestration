@@ -220,4 +220,4 @@ expectations: 212 passed, 0 failed, 2 soft misses (WARN: live-judge choice or do
 hook invocations: 100 (88 in live-judge scenarios); wall clock ms  all p50 49 max 5557 | live p50 49 p95 816 max 1281 | live delegation PreToolUse p50 519 max 1281
 live requests (from decision-log trails): api.typesafe.ai=57 api.openai.com=18; loopback (not live)=8
 token usage returned by the APIs (successful responses): jev-1.14.0 in=73565 out=8259 (48 responses); gpt-6-luna in=25070 out=0 (17 responses)
-results: /Users/hakseong/Project/Jev_Orchestration/.claude/worktrees/qa-kernel/qa/kernel/results/20261125-e2e/hooks.json
+results: <repo>/qa/kernel/results/20261125-e2e/hooks.json

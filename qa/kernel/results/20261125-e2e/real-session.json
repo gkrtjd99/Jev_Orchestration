@@ -11,7 +11,7 @@
   "exitCode": 1,
   "init": {
     "model": "claude-sonnet-5-5",
-    "sessionId": "4431165d-da98-4ad7-ad14-75b237bc62b0",
+    "sessionId": "<redacted>",
     "jevAgentsListed": 27,
     "projectSkillsListed": [
       "changelog-hollowbrook",
@@ -67,15 +67,15 @@
   "checks": null,
   "evidence": null,
   "setup": {
-    "root": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2",
-    "home": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/home",
-    "project": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/project",
-    "envFile": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/private-setup.env",
-    "registryFile": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/models.confirmed.json",
-    "confFile": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/home/.config/jev-hooks/config.json",
-    "settingsFile": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/home/.claude/settings.json",
-    "entry": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/home/.local/share/jev-hooks/3.2.0/bin/jev-hook.mjs",
-    "stateDir": "/private/tmp/claude-501/-Users-hakseong-Library-Application-Support-Claude-scratch-workspaces-c5b1c11c-370e-43a3-980a-022e1bf8899b-17046915-36cb-456f-961c-3631b047dc8c-scratch-2026-11-25-a752b1/5d05c35d-6f5b-4800-a481-16edaaf8c814/scratchpad/real2/home/.local/state/jev-hooks",
+    "root": "<tmp>/real2",
+    "home": "<tmp>/real2/home",
+    "project": "<tmp>/real2/project",
+    "envFile": "<tmp>/real2/private-setup.env",
+    "registryFile": "<tmp>/real2/models.confirmed.json",
+    "confFile": "<tmp>/real2/home/.config/jev-hooks/config.json",
+    "settingsFile": "<tmp>/real2/home/.claude/settings.json",
+    "entry": "<tmp>/real2/home/.local/share/jev-hooks/3.2.0/bin/jev-hook.mjs",
+    "stateDir": "<tmp>/real2/home/.local/state/jev-hooks",
     "aliasModels": true
   }
 }
