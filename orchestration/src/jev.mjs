@@ -7,6 +7,9 @@ import { QUESTION_VERSION } from './questions.mjs';
 import { validateAnswers } from './kernel/answers.mjs';
 // Re-exported so existing importers of jev.mjs keep working.
 export { validateAnswers };
+// Opt-in points outside the routing path. They count against their own request cap and circuit,
+// so a shadow or advisory point can never exhaust the budget that routing depends on.
+const AUXILIARY_POINTS=new Set(['delegation.skills','supervisor.outcome']);
 export class JevClient{
   constructor(config,apiKey,{fetchImpl=fetch}={}){this.config=config;this.key=apiKey;this.fetch=fetchImpl;}
   async request(state,questions,{timeoutMs=this.config.timeoutMs}={}){
@@ -35,7 +38,8 @@ export class JevClient{
     const cache=await get();if(cache)return {response:cache,cached:true,latencyMs:performance.now()-start};
     return withLock(file+'.lock',async()=>{
       const again=await get();if(again)return {response:again,cached:true,latencyMs:performance.now()-start};
-      const controlFile=path.join(c.stateDir,'request-control',hash({scope,endpoint:c.endpoint,account:hash(this.key)})+'.json');
+      const controlFile=path.join(c.stateDir,'request-control',hash({scope,endpoint:c.endpoint,account:hash(this.key),
+        ...(AUXILIARY_POINTS.has(limits.pointId)?{bucket:'auxiliary'}:{})})+'.json');
       await withLock(controlFile+'.lock',async()=>{
         const info=await readJSON(controlFile,{requests:0,failures:0,openUntil:0});
         assert(info.openUntil<=Date.now(),'JEV_CIRCUIT_OPEN');

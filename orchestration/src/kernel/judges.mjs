@@ -61,6 +61,33 @@ function distribution(list) {
   return out;
 }
 
+/**
+ * Score answers are keyed by `label`: the adapter sends the labels '0'..'n-1' itself, so they are the
+ * only field guaranteed to match the normalized scale. `value` is trusted only as far as it can be
+ * mapped onto that scale by one constant offset (for example 1-based levels); anything else fails closed.
+ */
+function scoreAnswer(a) {
+  assert(Array.isArray(a.probabilities), 'INVALID_DECISIONS_ENVELOPE');
+  if (!a.probabilities.some(item => object(item) && item.label !== undefined)) {
+    return { type: 'score', score: a.score, confidence: a.confidence, probabilities: distribution(a.probabilities) };
+  }
+  const probabilities = {};
+  let offset = null;
+  for (const item of a.probabilities) {
+    assert(object(item) && typeof item.label === 'string' && /^\d$/.test(item.label), 'INVALID_DECISIONS_ENVELOPE');
+    assert(!Object.hasOwn(probabilities, item.label), 'INVALID_DECISIONS_ENVELOPE');
+    probabilities[item.label] = item.probability;
+    if (item.value === undefined) continue;
+    const value = typeof item.value === 'string' && item.value.trim() !== '' ? Number(item.value) : item.value;
+    assert(typeof value === 'number' && Number.isFinite(value), 'INVALID_DECISIONS_ENVELOPE');
+    const delta = value - Number(item.label);
+    assert(offset === null || Math.abs(delta - offset) < 1e-9, 'INVALID_DECISIONS_ENVELOPE');
+    offset = delta;
+  }
+  const score = typeof a.score === 'number' && offset ? a.score - offset : a.score;
+  return { type: 'score', score, confidence: a.confidence, probabilities };
+}
+
 /** Wire response -> normalized {model, answers, usage}; answers are positional and must echo the name. */
 export function fromWireResponse(body, questions) {
   const ids = Object.keys(questions);
@@ -78,7 +105,7 @@ export function fromWireResponse(body, questions) {
     } else if (a.type === 'choice' && expected === 'choice') {
       answers[id] = { type: 'choice', choice: a.choice, confidence: a.confidence, probabilities: distribution(a.probabilities) };
     } else if (a.type === 'score' && expected === 'score') {
-      answers[id] = { type: 'score', score: a.score, confidence: a.confidence, probabilities: distribution(a.probabilities) };
+      answers[id] = scoreAnswer(a);
     } else {
       throw fail('INVALID_DECISIONS_ENVELOPE');
     }

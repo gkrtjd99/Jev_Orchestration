@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture, server, mockClient, answer } from './helpers.mjs';
+import { performance } from 'node:perf_hooks';
 import { sleep } from '../src/util.mjs';
 import { routeQuestions, failureQuestions } from '../src/questions.mjs';
 import { POINTS, MODES, PROVIDERS, kernelDefaults, mergeKernel, validateKernel, DecisionKernel, createKernel } from '../src/kernel/kernel.mjs';
@@ -264,9 +265,53 @@ test('low confidence escalates to the next judge', async () => {
   assert.equal(accepted.trail.length, 1);
   assert.equal(untouched.calls.length, 0);
 
-  // Escalation followed by a failing judge fails closed with that judge's error.
-  const k4 = new DecisionKernel(configWith(points), { judges: { local, jev: judge('x', { error: fail('JEV_CIRCUIT_OPEN') }) } });
-  await assert.rejects(k4.decide('read.advice', input()), code('JEV_CIRCUIT_OPEN'));
+});
+
+test('a failed escalation falls back to the held low-confidence answer', async () => {
+  const points = { 'read.advice': { judges: ['local', 'jev'], escalateBelow: 0.8 } };
+  const local = judge('local-model', { confidence: 0.55 });
+
+  // The escalation judge fails: the chain is exactly as available as its first judge alone.
+  const log = memoryLog();
+  const k1 = new DecisionKernel(configWith(points), { judges: { local, jev: judge('x', { error: fail('JEV_CIRCUIT_OPEN') }) }, log });
+  const d = await k1.decide('read.advice', input());
+  assert.equal(d.provider, 'local');
+  assert.equal(d.fallback, true);
+  assert.equal(d.apply, true);
+  assert.equal(d.response.model, 'local-model');
+  assert.ok(Math.abs(d.confidence - 0.55) < 1e-9);
+  assert.equal(log.records.length, 1);
+  const r = log.records[0];
+  assert.deepEqual([r.provider, r.model], ['local', 'local-model']);
+  assert.ok(Math.abs(r.confidence - 0.55) < 1e-9);
+  assert.equal(r.answers.role.choice, 'implement');
+  assert.deepEqual(r.trail.map(s => [s.provider, s.ok, s.code]), [['local', true, 'KERNEL_LOW_CONFIDENCE'], ['jev', false, 'JEV_CIRCUIT_OPEN']]);
+
+  // The budget runs out before the escalation judge can start.
+  const slow = judge('local-model', { confidence: 0.55, delayMs: 80 });
+  const never = judge('jev-model');
+  const log2 = memoryLog();
+  const k2 = new DecisionKernel(configWith(points), { judges: { local: slow, jev: never }, log: log2 });
+  const late = await k2.decide('read.advice', input({ limits: { timeoutMs: 100 } }));
+  assert.equal(late.provider, 'local');
+  assert.equal(late.fallback, true);
+  assert.equal(never.calls.length, 0);
+  assert.deepEqual(log2.records[0].trail.map(s => [s.provider, s.ok, s.code]), [['local', true, 'KERNEL_LOW_CONFIDENCE'], ['jev', false, 'KERNEL_DEADLINE']]);
+
+  // Of several held answers the most confident one stands.
+  const three = { 'read.advice': { judges: ['local', 'openai', 'jev'], escalateBelow: 0.8 } };
+  const k3 = new DecisionKernel(configWith(three), { judges: { local: judge('weak', { confidence: 0.4 }), openai: judge('better', { confidence: 0.7 }), jev: judge('x', { error: fail('JEV_TIMEOUT') }) } });
+  assert.equal((await k3.decide('read.advice', input())).response.model, 'better');
+  const k4 = new DecisionKernel(configWith(three), { judges: { local: judge('better', { confidence: 0.7 }), openai: judge('weak', { confidence: 0.4 }), jev: judge('x', { error: fail('JEV_TIMEOUT') }) } });
+  assert.equal((await k4.decide('read.advice', input())).response.model, 'better');
+
+  // A successful final judge is not a fallback, and with no valid answer at all the chain still fails closed.
+  const k5 = new DecisionKernel(configWith(points), { judges: { local, jev: judge('jev-model', { confidence: 0.6 }) } });
+  assert.equal((await k5.decide('read.advice', input())).fallback, false);
+  const log6 = memoryLog();
+  const k6 = new DecisionKernel(configWith(points), { judges: { local: judge('x', { error: fail('LOCAL_ABSTAIN') }), jev: judge('x', { error: fail('JEV_CIRCUIT_OPEN') }) }, log: log6 });
+  await assert.rejects(k6.decide('read.advice', input()), code('JEV_CIRCUIT_OPEN'));
+  assert.equal(log6.records[0].provider, 'none');
 });
 
 test('a missing or broken provider counts as a failed judge', async () => {
@@ -313,6 +358,38 @@ test('timeoutMs is a total budget across the chain', async () => {
   // Without a budget no timeout is invented.
   await k3.decide('read.advice', input());
   assert.equal(Object.hasOwn(never.calls[0].limits, 'timeoutMs'), false);
+});
+
+test('a chain without an explicit limit shares one config.timeoutMs', async () => {
+  const points = { 'read.advice': { judges: ['jev', 'openai', 'local'] } };
+  const stalled = judge('jev-model', { delayMs: 90, error: fail('JEV_TIMEOUT') });
+  const second = judge('openai-model', { delayMs: 90, error: fail('DECISIONS_TIMEOUT') });
+  const third = judge('local-model');
+  const log = memoryLog();
+  const kernel = new DecisionKernel({ ...configWith(points), timeoutMs: 120 }, { judges: { jev: stalled, openai: second, local: third }, log });
+  const began = performance.now();
+  await assert.rejects(kernel.decide('read.advice', input()), code('KERNEL_DEADLINE'));
+  // One stalled judge, not three sequential full timeouts.
+  assert.ok(performance.now() - began < 170);
+  assert.ok(stalled.calls[0].limits.timeoutMs <= 120 && stalled.calls[0].limits.timeoutMs > 100);
+  assert.equal(second.calls.length, 0);
+  assert.equal(third.calls.length, 0);
+  assert.deepEqual(log.records[0].trail.map(s => [s.provider, s.code]), [['jev', 'JEV_TIMEOUT'], ['openai', 'KERNEL_DEADLINE']]);
+
+  // The next judge only gets what is left of the shared budget.
+  const quick = judge('jev-model', { delayMs: 30, error: fail('JEV_TIMEOUT') });
+  const k2 = new DecisionKernel({ ...configWith(points), timeoutMs: 2000 }, { judges: { jev: quick, openai: third } });
+  assert.equal((await k2.decide('read.advice', input())).provider, 'openai');
+  assert.ok(third.calls[0].limits.timeoutMs < 1980 && third.calls[0].limits.timeoutMs > 1000);
+
+  // The smallest valid config.timeoutMs (50) still reaches the first judge; only an explicit limit can pre-empt it.
+  const first = judge('jev-model');
+  const k3 = new DecisionKernel({ timeoutMs: 50 }, { judges: { jev: first } });
+  assert.equal((await k3.decide('read.advice', input())).provider, 'jev');
+  assert.ok(first.calls[0].limits.timeoutMs <= 50);
+  // An explicit limit still wins over the config default.
+  await k3.decide('failure.classify', input({ limits: { timeoutMs: 400 } }));
+  assert.ok(first.calls[1].limits.timeoutMs > 300);
 });
 
 test('judge factories are lazy and called once', async () => {

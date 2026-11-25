@@ -115,10 +115,40 @@ function operational(decisions) {
   return {
     cachedRate: ratio(decisions.filter(d => d.cached).length, n),
     latencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95) },
-    escalationRate: ratio(decisions.filter(d => (d.trail?.length ?? 0) > 1).length, n),
-    failureRate: ratio(decisions.filter(d => d.provider === 'none').length, n),
     meanConfidence: mean(decisions.map(d => d.confidence).filter(c => typeof c === 'number')),
   };
+}
+
+/**
+ * Failure and escalation rates per decision point. They cannot live in the provider groups: a failed
+ * decision is logged with provider 'none', so its rate there is 1 by construction and 0 everywhere else.
+ * Judges are counted from the trail, where each attempt names the provider that made it.
+ */
+function pointSummaries(decisions) {
+  const points = new Map();
+  for (const d of decisions) {
+    if (!points.has(d.pointId)) points.set(d.pointId, { decisions: [], judges: new Map() });
+    const point = points.get(d.pointId);
+    point.decisions.push(d);
+    for (const step of Array.isArray(d.trail) ? d.trail : []) {
+      if (!point.judges.has(step.provider)) point.judges.set(step.provider, { attempts: 0, failures: 0, lowConfidence: 0 });
+      const judge = point.judges.get(step.provider);
+      judge.attempts++;
+      if (step.ok !== true) judge.failures++;
+      else if (step.code === 'KERNEL_LOW_CONFIDENCE') judge.lowConfidence++;
+    }
+  }
+  return [...points.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([pointId, { decisions: all, judges }]) => {
+    const failed = all.filter(d => d.provider === 'none').length;
+    const escalated = all.filter(d => (d.trail?.length ?? 0) > 1).length;
+    return {
+      pointId, decisions: all.length, failed, failureRate: ratio(failed, all.length),
+      escalated, escalationRate: ratio(escalated, all.length),
+      judges: [...judges.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([provider, j]) => ({
+        provider, ...j, failureRate: ratio(j.failures, j.attempts),
+      })),
+    };
+  });
 }
 
 /**
@@ -166,5 +196,5 @@ export function calibrationReport({ decisions = [], labels = [] } = {}, { bins =
       };
     });
   return { generatedFrom: { decisions: decisions.length, labels: labels.length },
-    invalidLabels: out.reduce((n, g) => n + g.invalidLabels, 0), groups: out };
+    invalidLabels: out.reduce((n, g) => n + g.invalidLabels, 0), points: pointSummaries(decisions), groups: out };
 }

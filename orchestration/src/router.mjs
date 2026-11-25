@@ -21,7 +21,11 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
   // A decision kernel exposes per-point judges; a plain client answers every point itself.
   const classifier=client.forPoint?.('delegation.classify')??client;
   const selectorJudge=client.forPoint?.('delegation.profile')??client;
-  const classify=await classifier.evaluate(state,routeQuestions(docs),scope);
+  // An off classification point means routing is disabled, not broken: no judge is called and nothing is thrown.
+  if(client.point?.('delegation.classify').mode==='off')return {deferred:true,reason:'classification_point_off',stageCount:0};
+  // One total budget for the classification stage, however many judges the point chains.
+  const classify=await classifier.evaluate(state,routeQuestions(docs),scope,
+    {timeoutMs:Math.min(config.timeoutMs,config.optimization.routeDeadlineMs)});
   // A shadow point is logged only: its answer must not steer a native call.
   if(classify.apply===false)return {deferred:true,reason:'classification_point_shadow_only',stageCount:1};
   const features=taskFeatures(classify.response,delegation,config);

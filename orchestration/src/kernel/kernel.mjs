@@ -168,7 +168,11 @@ export class DecisionKernel {
 
     const start = performance.now();
     const time = this.now();
-    const budget = Number.isFinite(limits.timeoutMs) ? limits.timeoutMs : null;
+    // timeoutMs is a total budget for the whole chain, not per judge. Without an explicit limit the
+    // chain still gets one config.timeoutMs in total, so adding judges never multiplies the wait.
+    const explicitBudget = Number.isFinite(limits.timeoutMs);
+    const budget = explicitBudget ? limits.timeoutMs
+      : Number.isFinite(this.config?.timeoutMs) ? this.config.timeoutMs : null;
     const stateHash = hash(state ?? null);
     const questionsHash = hash(questions ?? null);
     const scopeText = String(scope ?? '');
@@ -179,14 +183,31 @@ export class DecisionKernel {
     const id = provider => hash({ pointId, scope: scopeText, stateHash, questionsHash, provider, time });
     const trail = [];
     let lastError = null;
+    // Best valid answer that was below escalateBelow. It is used only if no later judge answers.
+    let held = null;
+
+    const accept = async ({ provider, result, confidence }, fallback) => {
+      const latencyMs = performance.now() - start;
+      const decisionId = id(provider);
+      const cached = result.cached === true;
+      const model = typeof result.response.model === 'string' && result.response.model ? result.response.model : 'unknown';
+      await this.record({
+        ...base, decisionId, provider, model, cached, latencyMs, confidence,
+        answers: compactAnswers(result.response.answers), trail,
+      });
+      return {
+        pointId, mode, skipped: false, apply: mode === 'active', response: result.response, provider,
+        cached, latencyMs, confidence, trail, decisionId, fallback,
+      };
+    };
 
     for (let i = 0; i < point.judges.length; i++) {
       const provider = point.judges[i];
       const judgeLimits = { ...limits, pointId };
       if (budget !== null) {
-        // timeoutMs is a total budget for the whole chain, not per judge.
         const remaining = budget - (performance.now() - start);
-        if (remaining < MIN_JUDGE_BUDGET_MS) {
+        // A defaulted budget always lets the first judge run; the judge enforces its own timeout.
+        if (remaining < MIN_JUDGE_BUDGET_MS && (explicitBudget || i > 0)) {
           lastError = fail('KERNEL_DEADLINE');
           trail.push({ provider, ok: false, code: 'KERNEL_DEADLINE', latencyMs: 0 });
           break;
@@ -210,23 +231,16 @@ export class DecisionKernel {
       const confident = point.escalateBelow <= 0 || (confidence !== null && confidence >= point.escalateBelow);
       if (!last && !confident) {
         trail.push({ ...step, escalated: true });
-        lastError = fail('KERNEL_LOW_CONFIDENCE');
+        if (!held || (confidence ?? -1) >= (held.confidence ?? -1)) held = { provider, result, confidence };
         continue;
       }
       trail.push(step);
-      const latencyMs = performance.now() - start;
-      const decisionId = id(provider);
-      const cached = result.cached === true;
-      const model = typeof result.response.model === 'string' && result.response.model ? result.response.model : 'unknown';
-      await this.record({
-        ...base, decisionId, provider, model, cached, latencyMs, confidence,
-        answers: compactAnswers(result.response.answers), trail,
-      });
-      return {
-        pointId, mode, skipped: false, apply: mode === 'active', response: result.response, provider,
-        cached, latencyMs, confidence, trail, decisionId,
-      };
+      return accept({ provider, result, confidence }, false);
     }
+
+    // Escalation must never make a point less available than its first judge alone:
+    // when every later judge failed or the budget ran out, the held low-confidence answer stands.
+    if (held) return accept(held, true);
 
     await this.record({
       ...base, decisionId: id('none'), provider: 'none', model: 'none', cached: false,

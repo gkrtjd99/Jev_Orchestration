@@ -169,6 +169,12 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
           }
           return visible?warning(e.event,'TOOL_ID_REUSED_WITH_DIFFERENT_INPUT'):{};
         }
+        // A classification point that is off disables routing on purpose. It is not an outage:
+        // no judge (skills included) is called and failureMode 'block' does not apply.
+        if(kernel().point('delegation.classify').mode==='off'){
+          await store.record('routing_skipped',{reason:'classification_point_off'});
+          return {};
+        }
         const routeGoal=snap.goalEligible?snap.goalHash:'';
         const retry=await store.failureFor(hash([routeGoal,plan?.revision||'',d.text]));
         const parentGoal=cfg.safety.sharePlanContext&&cfg.safety.retainPromptText&&snap.goalEligible?snap.goal:'';
@@ -188,6 +194,11 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         };
         if(decision.deferred){
           await recordSkills(false);
+          // Shadow classification is log-only: nothing is shown to Main and no deferred task is stored.
+          if(decision.reason==='classification_point_shadow_only'){
+            await store.record('routing_skipped',{reason:decision.reason});
+            return {};
+          }
           const message=`Jev did not select a model/effort (${decision.reason}). Main should gather missing evidence or inspect the model registry. No replacement execution was started. The original native call is unchanged.`;
           await store.putTask(e.tool_use_id,{inputHash,policy,stamp,deferred:true,message});
           await store.record('route_deferred',{taskId:e.tool_use_id,reason:decision.reason},e.tool_use_id);

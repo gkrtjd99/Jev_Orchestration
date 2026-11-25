@@ -10,6 +10,7 @@ import { routeContext, policyFingerprint } from '../src/policy.mjs';
 import { SessionStore } from '../src/state.mjs';
 import { loadConfig, validateConfig, defaults } from '../src/config.mjs';
 import { install } from '../src/install.mjs';
+import { performance } from 'node:perf_hooks';
 import { VERSION, writeJSON, readJSON, sleep } from '../src/util.mjs';
 import { kernelDefaults } from '../src/kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from '../src/kernel/log.mjs';
@@ -433,9 +434,9 @@ test('existing judgments honour their point mode', async t => {
   // A shadow classification is logged but must not steer the native call.
   const shadow = await fixture(t);
   shadow.config.kernel.points['delegation.classify'].mode = 'shadow';
-  const out = await handleHook(event(shadow.project), 'claude', { config: shadow.config, client: client() });
-  assert.equal(out.hookSpecificOutput.updatedInput, undefined);
-  assert.match(out.hookSpecificOutput.additionalContext, /classification_point_shadow_only/);
+  const shadowJudge = client();
+  assert.deepEqual(await handleHook(event(shadow.project), 'claude', { config: shadow.config, client: shadowJudge }), {});
+  assert.equal(shadowJudge.count, 1);
 
   // A profile point that is off or shadow keeps the policy incumbent.
   for (const mode of ['off', 'shadow']) {
@@ -446,6 +447,71 @@ test('existing judgments honour their point mode', async t => {
     const reason = (await store(incumbent).getTask('tool-1')).route.decisionReason;
     assert.equal(reason, mode === 'off' ? 'selector_unavailable_incumbent' : 'selector_shadow_only_incumbent');
   }
+});
+
+test('a shadow classification point is silent in every hook mode and stores no deferred task', async t => {
+  for (const mode of ['active', 'advisory', 'shadow']) {
+    const f = await fixture(t);
+    f.config.mode = mode;
+    f.config.failureMode = 'block';
+    f.config.kernel.points['delegation.classify'].mode = 'shadow';
+    const judge = client();
+    const deps = { config: f.config, client: judge };
+    assert.deepEqual(await handleHook(event(f.project), 'claude', deps), {}, mode);
+    assert.equal(judge.count, 1);
+    // Logged by the kernel, visible nowhere else: no deferred task, no "gather missing evidence" replay.
+    assert.equal(await store(f).getTask('tool-1'), null);
+    assert.deepEqual(await eventsOf(f, 'route_deferred'), []);
+    assert.deepEqual((await eventsOf(f, 'routing_skipped')).map(x => x.reason), ['classification_point_shadow_only']);
+    assert.deepEqual((await decisions(f)).map(d => [d.pointId, d.mode]), [['delegation.classify', 'shadow']]);
+    assert.deepEqual(await handleHook(event(f.project), 'claude', deps), {}, mode + ' retry');
+    assert.ok(!(await stateText(f.config.stateDir)).includes('gather missing evidence'));
+  }
+});
+
+test('an off classification point disables routing without an error, a deny, or any judge call', async t => {
+  const f = await withSkills(t, 'active');
+  f.config.failureMode = 'block';
+  f.config.kernel.points['delegation.classify'].mode = 'off';
+  const judge = client(SELECT);
+  for (const mode of ['active', 'advisory', 'shadow']) {
+    f.config.mode = mode;
+    assert.deepEqual(await handleHook(event(f.project), 'claude', { config: f.config, client: judge }), {}, mode);
+  }
+  // Neither classification nor the parallel skills judgment was started.
+  assert.equal(judge.count, 0);
+  assert.deepEqual(await decisions(f), []);
+  assert.deepEqual(await eventsOf(f, 'hook_error'), []);
+  assert.deepEqual(await eventsOf(f, 'skills'), []);
+  assert.deepEqual((await eventsOf(f, 'routing_skipped')).map(x => x.reason), Array(3).fill('classification_point_off'));
+  assert.equal(await store(f).getTask('tool-1'), null);
+
+  // A real outage is still an outage: strict mode keeps denying when the classifier fails.
+  const outage = await fixture(t);
+  outage.config.failureMode = 'block';
+  const denied = await handleHook(event(outage.project), 'claude', { config: outage.config, client: client({}, { failOn: () => true }) });
+  assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(denied.hookSpecificOutput.permissionDecisionReason, /JEV_HTTP_503/);
+});
+
+test('a classification judge chain shares one budget and still returns the strict deny', async t => {
+  const f = await fixture(t);
+  f.config.failureMode = 'block';
+  f.config.timeoutMs = 1200;
+  f.config.optimization.routeDeadlineMs = 200;
+  f.config.kernel.points['delegation.classify'].judges = ['jev', 'local'];
+  // The first judge stalls for most of the budget and then fails; the second must not get a fresh timeout.
+  const judge = client({}, { delayMs: 170, failOn: () => true });
+  const began = performance.now();
+  const out = await handleHook(event(f.project), 'claude', { config: f.config, client: judge });
+  assert.ok(performance.now() - began < 1000);
+  assert.equal(judge.count, 1);
+  assert.ok(judge.calls[0].limits.timeoutMs <= 200 && judge.calls[0].limits.timeoutMs > 100);
+  assert.equal(out.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(out.hookSpecificOutput.permissionDecisionReason, /KERNEL_DEADLINE/);
+  const [record] = await decisions(f);
+  assert.deepEqual(record.trail.map(s => [s.provider, s.code]), [['jev', 'JEV_HTTP_503'], ['local', 'KERNEL_DEADLINE']]);
+  assert.deepEqual((await eventsOf(f, 'hook_error')).map(x => x.code), ['KERNEL_DEADLINE']);
 });
 
 test('an invalid kernel fails closed as a typed hook warning', async t => {

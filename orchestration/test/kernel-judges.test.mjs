@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture, server } from './helpers.mjs';
 import { sleep } from '../src/util.mjs';
-import { validateAnswers as jevValidateAnswers } from '../src/jev.mjs';
+import { validateAnswers as jevValidateAnswers, JevClient } from '../src/jev.mjs';
 import { validateAnswers, answerConfidence, minConfidence } from '../src/kernel/answers.mjs';
 import { OpenAIDecisionsClient, LocalJudge, toWireQuestions, fromWireResponse } from '../src/kernel/judges.mjs';
 import { mergeKernel } from '../src/kernel/kernel.mjs';
@@ -108,6 +108,82 @@ test('response translation checks order, names, types and envelope', () => {
   bad({ model: 'm', answers: [good.answers[0], { ...good.answers[1], probabilities: [{ value: 'plan', probability: 0.5 }, { value: 'plan', probability: 0.5 }] }, good.answers[2]] });
   bad({ model: 'm', answers: [good.answers[0], 'nope', good.answers[2]] });
   bad({ model: 'm', answers: [good.answers[0], good.answers[1], { type: 'refusal', name: 'quality' }] }, 'DECISIONS_REFUSAL');
+});
+
+test('score distributions are keyed by the adapter-controlled label, not the wire value', () => {
+  const q = { quality: QUESTIONS.quality };
+  const body = (score, items) => ({ model: 'm', answers: [{ type: 'score', name: 'quality', score, confidence: 0.6, probabilities: items }] });
+  const expected = { type: 'score', score: 2, confidence: 0.6, probabilities: { 0: 0.1, 1: 0.3, 2: 0.6 } };
+  const ps = [0.1, 0.3, 0.6];
+  const items = value => ps.map((probability, i) => ({ value: value(i), label: String(i), probability }));
+
+  // 1-based values: the labels still address levels 0..2 and the score moves onto the same scale.
+  const oneBased = validateAnswers(fromWireResponse(body(3, items(i => i + 1)), q), q);
+  assert.deepEqual(oneBased.answers.quality, expected);
+  const fractional = fromWireResponse(body(2.5, items(i => i + 1)), q).answers.quality;
+  assert.equal(fractional.score, 1.5);
+  // 0-based numbers, numeric strings, and labels without any value all normalize identically.
+  for (const value of [i => i, i => String(i), () => undefined]) {
+    assert.deepEqual(validateAnswers(fromWireResponse(body(2, items(value)), q), q).answers.quality, expected);
+  }
+  // No labels at all: values are the keys, as before.
+  const bare = ps.map((probability, i) => ({ value: i, probability }));
+  assert.deepEqual(validateAnswers(fromWireResponse(body(2, bare), q), q).answers.quality, expected);
+
+  // Anything that cannot be mapped by one constant offset fails closed instead of being guessed.
+  const bad = [
+    items(i => i * 2),                                             // not a constant offset
+    items(i => ['low', 'mid', 'high'][i]),                         // non-numeric values
+    ps.map((probability, i) => ({ value: i, label: 'x' + i, probability })), // labels the adapter never sent
+    [...items(i => i).slice(0, 2), { value: 2, label: '1', probability: 0.6 }], // duplicate label
+    [{ value: 0, label: '0', probability: 0.4 }, { value: 1, probability: 0.6 }], // mixed
+  ];
+  for (const list of bad) assert.throws(() => fromWireResponse(body(2, list), q), code('INVALID_DECISIONS_ENVELOPE'));
+  // A level the question does not have is still rejected by the shared validation.
+  const extra = [...items(i => i), { value: 3, label: '3', probability: 0 }];
+  assert.throws(() => validateAnswers(fromWireResponse(body(2, extra), q), q), code('INVALID_JEV_SCORE'));
+});
+
+test('skills and supervisor judgments use their own request cap and circuit', async t => {
+  const f = await fixture(t);
+  const s = await server(t);
+  f.config.endpoint = s.endpoint;
+  f.config.allowLoopback = true;
+  f.config.circuit.maxRequestsPerSession = 2;
+  const jev = new JevClient(f.config, 'fixture-key');
+  const noul = { q: { type: 'noul', instructions: 'yes?' } };
+  let n = 0;
+  const ask = pointId => jev.evaluate({ task: n++ }, noul, 'one-session', pointId ? { pointId } : {});
+
+  // Opt-in points spend their own budget ...
+  await ask('delegation.skills');
+  await ask('supervisor.outcome');
+  await assert.rejects(ask('delegation.skills'), code('JEV_REQUEST_CAP'));
+  await assert.rejects(ask('supervisor.outcome'), code('JEV_REQUEST_CAP'));
+  // ... so routing still has all of its own, shared by every routing point and by plain callers.
+  await ask('delegation.classify');
+  await ask(null);
+  for (const pointId of ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice', null]) {
+    await assert.rejects(ask(pointId), code('JEV_REQUEST_CAP'));
+  }
+  assert.equal(s.requests.length, 4);
+
+  // A failing auxiliary point opens only its own circuit.
+  const g = await fixture(t);
+  let fail = true;
+  const flaky = await server(t, (req, res, parsed) => {
+    if (fail) { res.writeHead(503); res.end(); return; }
+    json(res, { model: 'm', answers: { q: { type: 'noul', noul: 0.5 } } });
+  });
+  g.config.endpoint = flaky.endpoint;
+  g.config.allowLoopback = true;
+  g.config.circuit.failureThreshold = 2;
+  const other = new JevClient(g.config, 'fixture-key');
+  const again = pointId => other.evaluate({ task: n++ }, noul, 'one-session', { pointId });
+  for (let i = 0; i < 2; i++) await assert.rejects(again('delegation.skills'), code('JEV_HTTP_503'));
+  await assert.rejects(again('supervisor.outcome'), code('JEV_CIRCUIT_OPEN'));
+  fail = false;
+  assert.equal((await again('delegation.classify')).response.answers.q.noul, 0.5);
 });
 
 test('openai adapter fails closed on refusal, bad envelopes and invalid distributions', async t => {

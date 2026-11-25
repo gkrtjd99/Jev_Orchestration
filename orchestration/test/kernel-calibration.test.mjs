@@ -133,7 +133,7 @@ test('metrics are null, never 0, without labeled rows or with an undefined denom
   assert.equal(m.tn, 2);
   close(m.brier, 0.025, 'brier');
 
-  assert.deepEqual(calibrationReport({ decisions: [], labels: [] }), { generatedFrom: { decisions: 0, labels: 0 }, invalidLabels: 0, groups: [] });
+  assert.deepEqual(calibrationReport({ decisions: [], labels: [] }), { generatedFrom: { decisions: 0, labels: 0 }, invalidLabels: 0, points: [], groups: [] });
   assert.throws(() => calibrationReport({ decisions: [], labels: [] }, { threshold: 2 }), e => e.code === 'INVALID_CALIBRATION_OPTIONS');
   assert.throws(() => calibrationReport({ decisions: [], labels: [] }, { bins: 0 }), e => e.code === 'INVALID_CALIBRATION_OPTIONS');
 });
@@ -203,15 +203,50 @@ test('operational metrics cover all decisions and split groups by point, provide
   assert.deepEqual(jev.models, ['fixture-model', 'other-model']);
   assert.equal(jev.counts.decisions, 4);
   assert.equal(jev.operational.cachedRate, 0.25);
-  assert.equal(jev.operational.escalationRate, 0.25);
-  assert.equal(jev.operational.failureRate, 0);
+  // Failure and escalation are point-level facts; a per-provider failure rate would be 0 or 1 by construction.
+  assert.deepEqual(Object.keys(jev.operational).sort(), ['cachedRate', 'latencyMs', 'meanConfidence']);
   // Nearest rank over [10, 20, 30, 400].
   assert.deepEqual(jev.operational.latencyMs, { p50: 20, p95: 400 });
   close(jev.operational.meanConfidence, 0.8, 'meanConfidence');
   const failed = report.groups[2];
   assert.deepEqual(failed.counts, { decisions: 1, answers: 0, labeled: 0 });
-  assert.equal(failed.operational.failureRate, 1);
-  assert.equal(failed.operational.escalationRate, 1);
   assert.equal(failed.operational.meanConfidence, null);
   assert.deepEqual(failed.metrics, {});
+
+  assert.equal(report.points.length, 1);
+  const point = report.points[0];
+  assert.deepEqual([point.pointId, point.decisions, point.failed, point.escalated], ['delegation.classify', 6, 1, 2]);
+  close(point.failureRate, 1 / 6, 'failureRate');
+  close(point.escalationRate, 2 / 6, 'escalationRate');
+  assert.deepEqual(point.judges, [
+    { provider: 'jev', attempts: 6, failures: 1, lowConfidence: 0, failureRate: 1 / 6 },
+    { provider: 'local', attempts: 2, failures: 2, lowConfidence: 0, failureRate: 1 },
+  ]);
+});
+
+test('failure and escalation rates are reported per point across all of its decisions', () => {
+  const failedTrail = [{ provider: 'jev', ok: false, code: 'JEV_TIMEOUT', latencyMs: 40 }];
+  const none = { provider: 'none', model: 'none', confidence: null };
+  const decisions = [
+    decision(noul(0.9)),
+    decision({}, { ...none, trail: failedTrail }),
+    decision({}, { ...none, trail: failedTrail }),
+    // A held low-confidence answer that stood after the escalation judge failed.
+    decision(noul(0.6), { pointId: 'read.advice', provider: 'local', trail: [
+      { provider: 'local', ok: true, code: 'KERNEL_LOW_CONFIDENCE', confidence: 0.2, latencyMs: 1 },
+      { provider: 'jev', ok: false, code: 'JEV_CIRCUIT_OPEN', latencyMs: 2 }] }),
+    decision(noul(0.6), { pointId: 'read.advice', trail: undefined }),
+  ];
+  const report = calibrationReport({ decisions, labels: [] });
+  // The provider groups alone cannot show 2/3: the failures sit in their own 'none' group.
+  assert.deepEqual(report.groups.filter(g => g.pointId === 'delegation.classify').map(g => [g.provider, g.counts.decisions]), [['jev', 1], ['none', 2]]);
+  const [classify, read] = report.points;
+  assert.deepEqual([classify.pointId, classify.decisions, classify.failed, classify.escalated, classify.escalationRate], ['delegation.classify', 3, 2, 0, 0]);
+  close(classify.failureRate, 2 / 3, 'failureRate');
+  assert.deepEqual(classify.judges, [{ provider: 'jev', attempts: 3, failures: 2, lowConfidence: 0, failureRate: 2 / 3 }]);
+  assert.deepEqual([read.pointId, read.decisions, read.failed, read.failureRate, read.escalated, read.escalationRate], ['read.advice', 2, 0, 0, 1, 0.5]);
+  assert.deepEqual(read.judges, [
+    { provider: 'jev', attempts: 1, failures: 1, lowConfidence: 0, failureRate: 1 },
+    { provider: 'local', attempts: 1, failures: 0, lowConfidence: 1, failureRate: 0 },
+  ]);
 });
