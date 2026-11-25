@@ -102,7 +102,7 @@ Right after the quick start (`shadow`, sending off) nothing visible happens. Cha
 
 1. `JEV_ALLOW_EGRESS=true`: judges start being called. Results are only recorded; Main sees nothing.
 2. `JEV_MODE=advisory`, `JEV_SKILLS_MODE=active`: judgments are shown to Main as advice. Delegation calls are unchanged.
-3. `JEV_MODE=active`: the profile and the skill block are applied to the delegation call. Codex also needs `JEV_CODEX_REWRITE_APPROVED=true`. This step has been checked in real Claude Code sessions (in the `auto` permission mode the host refuses the rewritten call once and Main issues it again); it has not been checked in Codex.
+3. `JEV_MODE=active`: the profile and the skill block are applied to the delegation call. Codex also needs `JEV_CODEX_REWRITE_APPROVED=true`. This step has been checked in real Claude Code sessions in the `auto` permission mode only (3 sessions; there the host refuses the rewritten call once and Main issues it again); other permission modes and Codex have not been checked.
 
 At step 2, when Main delegates to a subagent, Main receives advice like this (format example, shortened).
 

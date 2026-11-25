@@ -102,7 +102,7 @@ node orchestration/scripts/uninstall.mjs                 # 해제 계획. --yes 
 
 1. `JEV_ALLOW_EGRESS=true`: judge를 부르기 시작합니다. 결과는 기록만 되고 Main에게 보이지 않습니다.
 2. `JEV_MODE=advisory`, `JEV_SKILLS_MODE=active`: 판단이 Main에게 조언으로 보입니다. 위임 호출은 바뀌지 않습니다.
-3. `JEV_MODE=active`: 위임 호출에 프로필과 skill 블록이 반영됩니다. Codex는 `JEV_CODEX_REWRITE_APPROVED=true`도 필요합니다. 이 단계는 Claude Code의 실제 세션에서 확인했고(권한 모드 `auto`에서는 host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출합니다), Codex에서는 확인하지 않았습니다.
+3. `JEV_MODE=active`: 위임 호출에 프로필과 skill 블록이 반영됩니다. Codex는 `JEV_CODEX_REWRITE_APPROVED=true`도 필요합니다. 이 단계는 Claude Code의 실제 세션에서 권한 모드 `auto`로만 확인했고(세션 3개. host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출합니다), 다른 권한 모드와 Codex에서는 확인하지 않았습니다.
 
 2단계에서 Main이 subagent에게 일을 위임하면 Main은 다음과 같은 조언을 받습니다(형식 예시, 일부 생략).
 
