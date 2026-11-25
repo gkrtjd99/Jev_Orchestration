@@ -1,3 +1,8 @@
+> **Superseded.** This folder is the collector's output BEFORE independent review. Its `need` numbers are wrong
+> (the label rule was corrected), injected and non-injected delegations are mixed under one source, and the
+> `sufficient` flag is misleading. Use [`../collector-20261125-r2/`](../collector-20261125-r2/README.md) instead.
+> The files here are kept only so the correction can be traced.
+
 # Outcome collector on the real-session evidence, 2026-11-25
 
 Output of `orchestration/scripts/collect.mjs` (the outcome collector, `docs/KERNEL.ko.md` section "결과 수집기") run
