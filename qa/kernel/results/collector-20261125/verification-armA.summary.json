@@ -1,0 +1,66 @@
+{
+  "entries": 8,
+  "validator": {
+    "name": "pilot-checker",
+    "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+  },
+  "artifactSha256": "2fa44a52a07acc55fb8649582e7160f4166327948318074ef8e173db3b160473",
+  "tasks": [
+    {
+      "task": "t01",
+      "kind": "skill",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": true
+    },
+    {
+      "task": "t02",
+      "kind": "skill",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": true
+    },
+    {
+      "task": "t03",
+      "kind": "control",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": null
+    },
+    {
+      "task": "t04",
+      "kind": "skill",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": true
+    },
+    {
+      "task": "t05",
+      "kind": "skill",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": true
+    },
+    {
+      "task": "t06",
+      "kind": "skill",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": true
+    },
+    {
+      "task": "t07",
+      "kind": "control",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": null
+    },
+    {
+      "task": "t08",
+      "kind": "skill",
+      "delegated": true,
+      "passed": true,
+      "conventionPassed": true
+    }
+  ]
+}
