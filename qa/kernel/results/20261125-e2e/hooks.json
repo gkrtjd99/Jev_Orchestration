@@ -1,0 +1,5543 @@
+{
+  "meta": {
+    "tool": "qa/kernel/e2e-hooks.mjs",
+    "date": "2026-11-25T04:35:37.833Z",
+    "node": "v24.19.0",
+    "productVersion": "3.2.0",
+    "commit": "e8333f9",
+    "live": true,
+    "note": "Invocations with live:false talk to a loopback socket started by this driver (failure/latency injection), never to a judge.",
+    "entrypoint": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.local/share/jev-hooks/3.2.0/bin/jev-hook.mjs",
+    "runId": "mwvmqvmx"
+  },
+  "totals": {
+    "expectations": 214,
+    "passed": 212,
+    "failed": 0,
+    "softMisses": 2,
+    "softExpectations": 12,
+    "hookInvocations": 100,
+    "liveInvocations": 88,
+    "decisionRecords": 83
+  },
+  "timingMs": {
+    "all": {
+      "n": 100,
+      "p50": 49,
+      "p95": 887,
+      "max": 5557
+    },
+    "liveJudgeScenarios": {
+      "n": 88,
+      "p50": 49,
+      "p95": 816,
+      "max": 1281
+    },
+    "livePreToolUseDelegation": {
+      "n": 36,
+      "p50": 519,
+      "p95": 1014,
+      "max": 1281
+    },
+    "livePostToolUse": {
+      "n": 7,
+      "p50": 290,
+      "p95": 705,
+      "max": 705
+    },
+    "lifecycleEvents": {
+      "n": 50,
+      "p50": 43,
+      "p95": 56,
+      "max": 59
+    },
+    "loopbackStress": {
+      "n": 12,
+      "p50": 46,
+      "p95": 5557,
+      "max": 5557
+    },
+    "watchdogMs": 7000,
+    "hostHookTimeoutMs": 8000,
+    "slowest": [
+      {
+        "scenario": "f5-slow-classify-then-hang",
+        "step": "pre",
+        "ms": 5557,
+        "live": false
+      },
+      {
+        "scenario": "f4-blackhole-max-timeouts",
+        "step": "pre",
+        "ms": 5064,
+        "live": false
+      },
+      {
+        "scenario": "f4-blackhole-max-timeouts",
+        "step": "post-failure",
+        "ms": 5057,
+        "live": false
+      },
+      {
+        "scenario": "s17-openai-only-cold-latency",
+        "step": "pre-2",
+        "ms": 1281,
+        "live": true
+      },
+      {
+        "scenario": "s15-chain-jev-openai-fallback",
+        "step": "pre",
+        "ms": 1014,
+        "live": true
+      }
+    ]
+  },
+  "liveRequests": {
+    "derivedFrom": "decision-log trails (one network-judge step = one request; cached answers and not-sent codes excluded)",
+    "api.typesafe.ai": 57,
+    "api.openai.com": 18,
+    "loopbackNotLive": 8,
+    "failuresByCode": {
+      "jev:JEV_HTTP_401": 7,
+      "openai:OPENAI_DECISIONS_NOT_APPROVED": 1,
+      "jev:KERNEL_JUDGE_ERROR": 2,
+      "jev:JEV_TIMEOUT": 7,
+      "openai:DECISIONS_TIMEOUT": 1,
+      "jev:KERNEL_DEADLINE": 1,
+      "openai:KERNEL_DEADLINE": 5
+    }
+  },
+  "tokenUsageFromApiResponses": {
+    "jev-1.14.0": {
+      "responses": 48,
+      "input_tokens": 73565,
+      "output_tokens": 8259,
+      "otherUsageFields": {}
+    },
+    "gpt-6-luna": {
+      "responses": 17,
+      "input_tokens": 25070,
+      "output_tokens": 0,
+      "otherUsageFields": {}
+    }
+  },
+  "setup": {
+    "root": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc",
+    "home": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home",
+    "project": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/project",
+    "envFile": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/private-setup.env",
+    "registryFile": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/models.confirmed.json",
+    "confFile": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.config/jev-hooks/config.json",
+    "settingsFile": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.claude/settings.json",
+    "entry": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.local/share/jev-hooks/3.2.0/bin/jev-hook.mjs",
+    "stateDir": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.local/state/jev-hooks",
+    "aliasModels": false
+  },
+  "scenarios": {
+    "s01-lifecycle": {},
+    "s02-default-active": {
+      "decisions": [
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 329,
+          "trail": "jev:ok@329ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 193,
+          "trail": "jev:ok@193ms"
+        }
+      ]
+    },
+    "s03-default-shadow": {},
+    "s04-skills-shadow": {
+      "decisions": [
+        {
+          "point": "delegation.skills",
+          "mode": "shadow",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 303,
+          "trail": "jev:ok@302ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 305,
+          "trail": "jev:ok@305ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 181,
+          "trail": "jev:ok@180ms"
+        }
+      ],
+      "skillsEvent": {
+        "type": "skills",
+        "time": 1795581304272,
+        "taskId": "toolu_qa_s04_a",
+        "mode": "shadow",
+        "status": "selected",
+        "code": null,
+        "need": 0.72,
+        "candidates": 4,
+        "decisionId": "6c2514a479effa028350e2d47e5b876c4664285f586f4e5496279296f0f7530e",
+        "cached": false,
+        "catalog": "9563a8391eef4a184bf7f7bea7b94c9391f889a142144089064e0cff7bdc1858",
+        "injected": false,
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "trace": [
+          {
+            "name": "changelog-hollowbrook",
+            "stage": "loaded",
+            "probability": 0.98
+          },
+          {
+            "name": "sql-migration-safety",
+            "stage": "below_threshold",
+            "probability": 0.02
+          },
+          {
+            "name": "k6-load-test",
+            "stage": "below_threshold",
+            "probability": 0.01
+          },
+          {
+            "name": "pdf-table-extract",
+            "stage": "below_threshold",
+            "probability": 0.01
+          }
+        ]
+      }
+    },
+    "s05-skills-active-match": {
+      "matching task.block": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "decisions": [
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 287,
+          "trail": "jev:ok@287ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 285,
+          "trail": "jev:ok@285ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 173,
+          "trail": "jev:ok@173ms"
+        }
+      ],
+      "skillsEvent": {
+        "type": "skills",
+        "time": 1795581304894,
+        "taskId": "toolu_qa_s05_a",
+        "mode": "active",
+        "status": "selected",
+        "code": null,
+        "need": 0.73,
+        "candidates": 4,
+        "decisionId": "00066c4b8fb6b9a6cdf508c310bd5fb717a500c28c1bde8b9be17f2802b1e8f0",
+        "cached": false,
+        "catalog": "9563a8391eef4a184bf7f7bea7b94c9391f889a142144089064e0cff7bdc1858",
+        "injected": true,
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "trace": [
+          {
+            "name": "changelog-hollowbrook",
+            "stage": "loaded",
+            "probability": 0.98
+          },
+          {
+            "name": "sql-migration-safety",
+            "stage": "below_threshold",
+            "probability": 0.01
+          },
+          {
+            "name": "k6-load-test",
+            "stage": "below_threshold",
+            "probability": 0.01
+          },
+          {
+            "name": "pdf-table-extract",
+            "stage": "below_threshold",
+            "probability": 0.01
+          }
+        ]
+      }
+    },
+    "s06-skills-active-unrelated": {
+      "skillsEvent": {
+        "type": "skills",
+        "time": 1795581305626,
+        "taskId": "toolu_qa_s06_a",
+        "mode": "active",
+        "status": "none",
+        "code": null,
+        "need": 0.07,
+        "candidates": 4,
+        "decisionId": "30151d4af822b4504de0b0a45dba8e8e71ee1286e6d2e44f4bd7a533b977fe80",
+        "cached": false,
+        "catalog": "9563a8391eef4a184bf7f7bea7b94c9391f889a142144089064e0cff7bdc1858",
+        "injected": false,
+        "load": [],
+        "suggest": [],
+        "trace": [
+          {
+            "name": "changelog-hollowbrook",
+            "stage": "need_gate",
+            "probability": 0.03
+          },
+          {
+            "name": "k6-load-test",
+            "stage": "need_gate",
+            "probability": 0.01
+          },
+          {
+            "name": "pdf-table-extract",
+            "stage": "need_gate",
+            "probability": 0.01
+          },
+          {
+            "name": "sql-migration-safety",
+            "stage": "need_gate",
+            "probability": 0.01
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 289,
+          "trail": "jev:ok@289ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 295,
+          "trail": "jev:ok@295ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 185,
+          "trail": "jev:ok@185ms"
+        }
+      ]
+    },
+    "s07-skills-active-other-skills": {
+      "load-test task.block": {
+        "load": [
+          {
+            "name": "k6-load-test",
+            "path": ".claude/skills/k6-load-test/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "outputKinds": [
+        "deferred",
+        "rewrite"
+      ],
+      "decisions": [
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 273,
+          "trail": "jev:ok@273ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 263,
+          "trail": "jev:ok@263ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 174,
+          "trail": "jev:ok@174ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 281,
+          "trail": "jev:ok@281ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 284,
+          "trail": "jev:ok@284ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 184,
+          "trail": "jev:ok@184ms"
+        }
+      ]
+    },
+    "s08-advisory": {
+      "advisory.block": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      }
+    },
+    "s09-custom-agent": {},
+    "s10-explicit-model": {},
+    "s11-supervisor-active": {
+      "supervisorEvents": [
+        {
+          "type": "supervisor",
+          "time": 1795581308747,
+          "taskId": "toolu_qa_s11_a",
+          "mode": "active",
+          "status": "judged",
+          "outcome": "complete",
+          "confidence": 1,
+          "evidence": 1.99,
+          "advisory": true,
+          "decisionId": "9400101a797898eaf3a1462f9adec6fbbb3ca5a1b4af7b504ddb7309882f5c24"
+        },
+        {
+          "type": "supervisor",
+          "time": 1795581309662,
+          "taskId": "toolu_qa_s11_b",
+          "mode": "active",
+          "status": "judged",
+          "outcome": "escalate",
+          "confidence": 0.97,
+          "evidence": 0.02,
+          "advisory": true,
+          "decisionId": "2e04fe9c109d82757d6774b80b4e1efaf2f3392928779541ceffd226efb47dd0"
+        }
+      ],
+      "outputs": {
+        "complete": "Jev supervisor (advisory): complete (confidence 1.00, reported evidence level 2 of 2). The report claims the assigned outcome. This is a judgment of the report text only, not of the work. Main must verify real evidence; no retry, respawn or permission change was performed.",
+        "blocked": "Jev supervisor (advisory): escalate (confidence 0.97, reported evidence level 0 of 2). The report suggests a decision by Main or a person is needed. This is a judgment of the report text only, not of the work. Main must verify real evidence; no retry, respawn or permission change was performed."
+      },
+      "decisions": [
+        {
+          "point": "supervisor.outcome",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 272,
+          "trail": "jev:ok@272ms"
+        },
+        {
+          "point": "supervisor.outcome",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 266,
+          "trail": "jev:ok@266ms"
+        }
+      ]
+    },
+    "s12-chain-local-jev": {
+      "decisions": [
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "local",
+          "model": "local-rules",
+          "cached": false,
+          "latencyMs": 0,
+          "trail": "local:ok@0ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 264,
+          "trail": "jev:ok@264ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 180,
+          "trail": "jev:ok@180ms"
+        }
+      ],
+      "block": {
+        "load": [],
+        "consider": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.69
+          }
+        ]
+      }
+    },
+    "s13-chain-local-jev-escalate": {
+      "block": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "decisions": [
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 302,
+          "trail": "local:ok(low)@0ms > jev:ok@302ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 369,
+          "trail": "jev:ok@369ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 218,
+          "trail": "jev:ok@218ms"
+        }
+      ],
+      "escalated chain.block": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      }
+    },
+    "s14-chain-jev-openai": {
+      "chain jev,openai.block": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "decisions": [
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 296,
+          "trail": "jev:ok@296ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 300,
+          "trail": "jev:ok@300ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "jev",
+          "model": "jev-1.14.0",
+          "cached": false,
+          "latencyMs": 171,
+          "trail": "jev:ok@171ms"
+        }
+      ]
+    },
+    "s15-chain-jev-openai-fallback": {
+      "decisions": [
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 656,
+          "trail": "jev:JEV_HTTP_401@261ms > openai:ok@395ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 952,
+          "trail": "jev:JEV_HTTP_401@260ms > openai:ok@693ms"
+        }
+      ],
+      "openai fallback.block": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 1
+          }
+        ],
+        "consider": []
+      },
+      "supervisorEvent": {
+        "type": "supervisor",
+        "time": 1795581313489,
+        "taskId": "toolu_qa_s15_a",
+        "mode": "active",
+        "status": "judged",
+        "outcome": "complete",
+        "confidence": 0.81,
+        "evidence": 1.97,
+        "advisory": true,
+        "decisionId": "442a29d155194ea2dd5e546b2bf0b53a57fb5e8ed5ddc9e6e5b28087cc04b17f"
+      }
+    },
+    "s16-openai-not-approved": {},
+    "s17-openai-only-cold-latency": {
+      "decisions": [
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 363,
+          "trail": "openai:ok@363ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 462,
+          "trail": "openai:ok@462ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 440,
+          "trail": "openai:ok@440ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 511,
+          "trail": "openai:ok@511ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 303,
+          "trail": "openai:ok@303ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 363,
+          "trail": "openai:ok@363ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 778,
+          "trail": "openai:ok@778ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 429,
+          "trail": "openai:ok@429ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 440,
+          "trail": "openai:ok@440ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 541,
+          "trail": "openai:ok@540ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 238,
+          "trail": "openai:ok@238ms"
+        },
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 520,
+          "trail": "openai:ok@520ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 556,
+          "trail": "openai:ok@556ms"
+        },
+        {
+          "point": "delegation.profile",
+          "mode": "active",
+          "provider": "openai",
+          "model": "gpt-6-luna",
+          "cached": false,
+          "latencyMs": 225,
+          "trail": "openai:ok@225ms"
+        }
+      ],
+      "outputKinds": [
+        "rewrite",
+        "rewrite",
+        "rewrite",
+        "rewrite",
+        "rewrite"
+      ],
+      "openaiSteps": [
+        {
+          "point": "delegation.skills",
+          "ok": true,
+          "code": null,
+          "ms": 363
+        },
+        {
+          "point": "delegation.classify",
+          "ok": true,
+          "code": null,
+          "ms": 462
+        },
+        {
+          "point": "delegation.skills",
+          "ok": true,
+          "code": null,
+          "ms": 440
+        },
+        {
+          "point": "delegation.classify",
+          "ok": true,
+          "code": null,
+          "ms": 511
+        },
+        {
+          "point": "delegation.profile",
+          "ok": true,
+          "code": null,
+          "ms": 303
+        },
+        {
+          "point": "delegation.skills",
+          "ok": true,
+          "code": null,
+          "ms": 363
+        },
+        {
+          "point": "delegation.classify",
+          "ok": true,
+          "code": null,
+          "ms": 778
+        },
+        {
+          "point": "delegation.profile",
+          "ok": true,
+          "code": null,
+          "ms": 429
+        },
+        {
+          "point": "delegation.skills",
+          "ok": true,
+          "code": null,
+          "ms": 440
+        },
+        {
+          "point": "delegation.classify",
+          "ok": true,
+          "code": null,
+          "ms": 540
+        },
+        {
+          "point": "delegation.profile",
+          "ok": true,
+          "code": null,
+          "ms": 238
+        },
+        {
+          "point": "delegation.classify",
+          "ok": true,
+          "code": null,
+          "ms": 520
+        },
+        {
+          "point": "delegation.skills",
+          "ok": true,
+          "code": null,
+          "ms": 556
+        },
+        {
+          "point": "delegation.profile",
+          "ok": true,
+          "code": null,
+          "ms": 225
+        }
+      ],
+      "openaiLatencyMs": {
+        "n": 14,
+        "p50": 440,
+        "p95": 778,
+        "max": 778,
+        "timeouts": 0,
+        "failures": 0
+      }
+    },
+    "s18-parallel-delegations": {
+      "outputKinds": [
+        "rewrite",
+        "rewrite",
+        "rewrite"
+      ],
+      "blocks": [
+        {
+          "load": [
+            {
+              "name": "changelog-hollowbrook",
+              "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+              "p": 0.98
+            }
+          ],
+          "consider": []
+        },
+        {
+          "load": [
+            {
+              "name": "sql-migration-safety",
+              "path": ".claude/skills/sql-migration-safety/SKILL.md",
+              "p": 0.98
+            }
+          ],
+          "consider": []
+        },
+        {
+          "load": [
+            {
+              "name": "k6-load-test",
+              "path": ".claude/skills/k6-load-test/SKILL.md",
+              "p": 0.99
+            }
+          ],
+          "consider": []
+        }
+      ]
+    },
+    "f1-wrong-key": {
+      "decisions": [
+        {
+          "point": "delegation.classify",
+          "mode": "active",
+          "provider": "none",
+          "model": "none",
+          "cached": false,
+          "latencyMs": 264,
+          "trail": "jev:JEV_HTTP_401@264ms"
+        },
+        {
+          "point": "delegation.skills",
+          "mode": "active",
+          "provider": "none",
+          "model": "none",
+          "cached": false,
+          "latencyMs": 336,
+          "trail": "jev:JEV_HTTP_401@336ms"
+        },
+        {
+          "point": "failure.classify",
+          "mode": "active",
+          "provider": "none",
+          "model": "none",
+          "cached": false,
+          "latencyMs": 243,
+          "trail": "jev:JEV_HTTP_401@242ms"
+        }
+      ]
+    },
+    "f2-unreachable-endpoint": {
+      "code": "JEV_UNAVAILABLE"
+    },
+    "f3-tiny-timeout": {
+      "minimumTimeoutTrail": "jev:KERNEL_DEADLINE@0ms"
+    },
+    "f4-blackhole-max-timeouts": {
+      "preMs": 5064,
+      "preCode": "KERNEL_DEADLINE",
+      "postFailureMs": 5057
+    },
+    "f5-slow-classify-then-hang": {
+      "preMs": 5557,
+      "kind": "rewrite",
+      "routeReason": "selector_unavailable_incumbent"
+    },
+    "f6-bad-input": {},
+    "z1-decision-log": {
+      "recordsByPointModeProvider": {
+        "delegation.classify|active|jev": 18,
+        "delegation.profile|active|jev": 17,
+        "delegation.skills|shadow|jev": 1,
+        "delegation.skills|active|jev": 10,
+        "supervisor.outcome|active|jev": 2,
+        "delegation.skills|active|local": 1,
+        "delegation.classify|active|openai": 6,
+        "delegation.skills|active|openai": 6,
+        "supervisor.outcome|active|openai": 1,
+        "delegation.skills|active|none": 6,
+        "delegation.profile|active|openai": 4,
+        "delegation.classify|active|none": 7,
+        "failure.classify|active|none": 2,
+        "delegation.profile|active|none": 1
+      },
+      "records": 82
+    },
+    "z2-state-files": {
+      "stateFiles": 274
+    },
+    "z3-cli": {
+      "reportPoints": [
+        {
+          "point": "delegation.classify",
+          "decisions": 31,
+          "failed": 7,
+          "escalated": 2,
+          "judges": [
+            "jev:25/7f/0low",
+            "openai:8/2f/0low"
+          ]
+        },
+        {
+          "point": "delegation.profile",
+          "decisions": 22,
+          "failed": 1,
+          "escalated": 1,
+          "judges": [
+            "jev:18/1f/0low",
+            "openai:5/1f/0low"
+          ]
+        },
+        {
+          "point": "delegation.skills",
+          "decisions": 24,
+          "failed": 6,
+          "escalated": 4,
+          "judges": [
+            "jev:17/6f/0low",
+            "local:2/0f/1low",
+            "openai:9/3f/0low"
+          ]
+        },
+        {
+          "point": "failure.classify",
+          "decisions": 2,
+          "failed": 2,
+          "escalated": 1,
+          "judges": [
+            "jev:2/2f/0low",
+            "openai:1/1f/0low"
+          ]
+        },
+        {
+          "point": "supervisor.outcome",
+          "decisions": 3,
+          "failed": 0,
+          "escalated": 1,
+          "judges": [
+            "jev:3/1f/0low",
+            "openai:1/0f/0low"
+          ]
+        }
+      ],
+      "reportGroups": [
+        {
+          "point": "delegation.classify",
+          "provider": "jev",
+          "type": "choice",
+          "decisions": 18,
+          "labeled": 0,
+          "p50": 295.066458,
+          "p95": 4827.92525,
+          "metrics": {
+            "brier": null,
+            "accuracy": null,
+            "ece": null,
+            "meanConfidence": null,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.classify",
+          "provider": "jev",
+          "type": "noul",
+          "decisions": 18,
+          "labeled": 0,
+          "p50": 295.066458,
+          "p95": 4827.92525,
+          "metrics": {
+            "brier": null,
+            "ece": null,
+            "baseRate": null,
+            "threshold": 0.5,
+            "precision": null,
+            "recall": null,
+            "f1": null,
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.classify",
+          "provider": "none",
+          "type": null,
+          "decisions": 7,
+          "labeled": 0,
+          "p50": 63.709709000000004,
+          "p95": 5006.317292,
+          "metrics": {}
+        },
+        {
+          "point": "delegation.classify",
+          "provider": "openai",
+          "type": "choice",
+          "decisions": 6,
+          "labeled": 0,
+          "p50": 520.081667,
+          "p95": 778.4422500000001,
+          "metrics": {
+            "brier": null,
+            "accuracy": null,
+            "ece": null,
+            "meanConfidence": null,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.classify",
+          "provider": "openai",
+          "type": "noul",
+          "decisions": 6,
+          "labeled": 0,
+          "p50": 520.081667,
+          "p95": 778.4422500000001,
+          "metrics": {
+            "brier": null,
+            "ece": null,
+            "baseRate": null,
+            "threshold": 0.5,
+            "precision": null,
+            "recall": null,
+            "f1": null,
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.profile",
+          "provider": "jev",
+          "type": "choice",
+          "decisions": 17,
+          "labeled": 0,
+          "p50": 180.524042,
+          "p95": 217.97695900000002,
+          "metrics": {
+            "brier": null,
+            "accuracy": null,
+            "ece": null,
+            "meanConfidence": null,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.profile",
+          "provider": "none",
+          "type": null,
+          "decisions": 1,
+          "labeled": 0,
+          "p50": 671.8402080000005,
+          "p95": 671.8402080000005,
+          "metrics": {}
+        },
+        {
+          "point": "delegation.profile",
+          "provider": "openai",
+          "type": "choice",
+          "decisions": 4,
+          "labeled": 0,
+          "p50": 237.81070799999998,
+          "p95": 428.842,
+          "metrics": {
+            "brier": null,
+            "accuracy": null,
+            "ece": null,
+            "meanConfidence": null,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.skills",
+          "provider": "jev",
+          "type": "noul",
+          "decisions": 11,
+          "labeled": 0,
+          "p50": 296.460167,
+          "p95": 372.801333,
+          "metrics": {
+            "brier": null,
+            "ece": null,
+            "baseRate": null,
+            "threshold": 0.5,
+            "precision": null,
+            "recall": null,
+            "f1": null,
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.skills",
+          "provider": "local",
+          "type": "noul",
+          "decisions": 1,
+          "labeled": 0,
+          "p50": 0.23304100000000005,
+          "p95": 0.23304100000000005,
+          "metrics": {
+            "brier": null,
+            "ece": null,
+            "baseRate": null,
+            "threshold": 0.5,
+            "precision": null,
+            "recall": null,
+            "f1": null,
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "delegation.skills",
+          "provider": "none",
+          "type": null,
+          "decisions": 6,
+          "labeled": 0,
+          "p50": 62.21570800000001,
+          "p95": 5016.45575,
+          "metrics": {}
+        },
+        {
+          "point": "delegation.skills",
+          "provider": "openai",
+          "type": "noul",
+          "decisions": 6,
+          "labeled": 0,
+          "p50": 439.781,
+          "p95": 952.124333,
+          "metrics": {
+            "brier": null,
+            "ece": null,
+            "baseRate": null,
+            "threshold": 0.5,
+            "precision": null,
+            "recall": null,
+            "f1": null,
+            "tp": 0,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "failure.classify",
+          "provider": "none",
+          "type": null,
+          "decisions": 2,
+          "labeled": 0,
+          "p50": 242.57095800000002,
+          "p95": 5005.441167,
+          "metrics": {}
+        },
+        {
+          "point": "supervisor.outcome",
+          "provider": "jev",
+          "type": "choice",
+          "decisions": 2,
+          "labeled": 0,
+          "p50": 265.87929199999996,
+          "p95": 271.62350000000004,
+          "metrics": {
+            "brier": null,
+            "accuracy": null,
+            "ece": null,
+            "meanConfidence": null,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "supervisor.outcome",
+          "provider": "jev",
+          "type": "score",
+          "decisions": 2,
+          "labeled": 0,
+          "p50": 265.87929199999996,
+          "p95": 271.62350000000004,
+          "metrics": {
+            "mae": null,
+            "exactLevelAccuracy": null
+          }
+        },
+        {
+          "point": "supervisor.outcome",
+          "provider": "openai",
+          "type": "choice",
+          "decisions": 1,
+          "labeled": 0,
+          "p50": 626.092959,
+          "p95": 626.092959,
+          "metrics": {
+            "brier": null,
+            "accuracy": null,
+            "ece": null,
+            "meanConfidence": null,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              }
+            ]
+          }
+        },
+        {
+          "point": "supervisor.outcome",
+          "provider": "openai",
+          "type": "score",
+          "decisions": 1,
+          "labeled": 0,
+          "p50": 626.092959,
+          "p95": 626.092959,
+          "metrics": {
+            "mae": null,
+            "exactLevelAccuracy": null
+          }
+        }
+      ],
+      "whyNotLocal": {
+        "judge": "local-lexical-uncalibrated",
+        "note": "Probabilities are a lexical BM25 heuristic, not calibrated judgments.",
+        "whyNot": {
+          "name": "sql-migration-safety",
+          "stage": "below_threshold",
+          "bm25": 1.1910371633721755,
+          "rank": 2,
+          "probability": 0.22944107812906886,
+          "reason": "probability_below_suggest"
+        }
+      },
+      "whyNotConfig": {
+        "judge": "config",
+        "point": "delegation.skills",
+        "mode": "shadow",
+        "judges": [
+          "jev"
+        ],
+        "whyNot": {
+          "name": "sql-migration-safety",
+          "stage": "below_threshold",
+          "bm25": 1.1910371633721755,
+          "rank": 2,
+          "probability": 0.01,
+          "reason": "probability_below_suggest"
+        }
+      }
+    }
+  },
+  "expectations": [
+    {
+      "scenario": "install",
+      "name": "installer plan run exits 0 and applies nothing",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "install",
+      "name": "installer --yes exits 0 and reports applied",
+      "pass": true,
+      "soft": false,
+      "detail": "{\n  \"applied\": true,\n  \"config\": \"/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.config/jev-hooks/config.json\",\n  \"files\": [\n    \"/private/var/folders/5w/7w1hw08s7gv4k7j"
+    },
+    {
+      "scenario": "install",
+      "name": "every installed file is inside the disposable HOME",
+      "pass": true,
+      "soft": false,
+      "detail": "64 files"
+    },
+    {
+      "scenario": "install",
+      "name": "installed entrypoint and kernel modules exist",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "install",
+      "name": "installed .env is mode 600",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "install",
+      "name": "state directory is inside the disposable HOME",
+      "pass": true,
+      "soft": false,
+      "detail": "/private/var/folders/5w/7w1hw08s7gv4k7j8f57dslnw0000gn/T/jev-e2e-4YorWc/home/.local/state/jev-hooks"
+    },
+    {
+      "scenario": "install",
+      "name": "settings.json registers the installed entrypoint for 9 events with timeout 8",
+      "pass": true,
+      "soft": false,
+      "detail": "SessionStart,UserPromptSubmit,PreToolUse,PostToolUse,SubagentStart,SubagentStop,PreCompact,SessionEnd,PostToolUseFailure"
+    },
+    {
+      "scenario": "install",
+      "name": "installed defaults: skills and supervisor points off, OpenAI not approved",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "install",
+      "name": "claude profile definitions were installed",
+      "pass": true,
+      "soft": false,
+      "detail": "27 profiles"
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "SessionStart exits 0 with visible context in active mode",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "UserPromptSubmit exits 0 with visible context",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "SubagentStart exits 0 with valid JSON",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "SubagentStop exits 0 with valid JSON",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "PreCompact exits 0 with valid JSON",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "SessionEnd exits 0 with valid JSON",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "Workflow PreToolUse is observed, not denied (default policy warn)",
+      "pass": true,
+      "soft": false,
+      "detail": "context"
+    },
+    {
+      "scenario": "s01-lifecycle",
+      "name": "no decision was logged for lifecycle events",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "default config: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "default config: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "default config: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "default config: no <jev-skills> block in the rewritten prompt",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "decision log has delegation.classify for this session and no skills/supervisor record",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "all decisions answered by jev (default chain)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "session state has a route event and no skills event",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "replay of the same tool_use_id gives byte-identical output",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s02-default-active",
+      "name": "replay made no new judge call",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s03-default-shadow",
+      "name": "installed default (shadow): exit 0 and empty output, native call untouched",
+      "pass": true,
+      "soft": false,
+      "detail": "{}\n"
+    },
+    {
+      "scenario": "s03-default-shadow",
+      "name": "shadow still judged and recorded a route",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "skills shadow: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "skills shadow: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "skills shadow: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "skills shadow: no <jev-skills> block in the rewritten prompt",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "skills decision logged once with mode shadow",
+      "pass": true,
+      "soft": false,
+      "detail": "[{\"point\":\"delegation.skills\",\"mode\":\"shadow\",\"provider\":\"jev\",\"model\":\"jev-1.14.0\",\"cached\":false,\"latencyMs\":303,\"trail\":\"jev:ok@302ms\"}]"
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "skills event recorded with mode shadow and injected=false",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"type\":\"skills\",\"time\":1795581304272,\"taskId\":\"toolu_qa_s04_a\",\"mode\":\"shadow\",\"status\":\"selected\",\"code\":null,\"need\":0.72,\"candidates\":4,\"decisionId\":\"6c2514a479effa028350e2d47e5b876c4664285f586f4e5496279296f0f7530e\",\"cached\":false,\"catalog\":\"9563a8391eef4a184bf7f7bea7b94c9391f889a142144089064e0cf"
+    },
+    {
+      "scenario": "s04-skills-shadow",
+      "name": "shadow judge still rated the matching skill (recorded, not applied)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "skills active (matching task): exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "skills active (matching task): prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "skills active (matching task): original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "matching task: <jev-skills> block present and parsable",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.98}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "matching task: expected skill \"changelog-hollowbrook\" selected (load or consider)",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.98}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "matching task: expected skill \"changelog-hollowbrook\" is in \"load\"",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.98}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "matching task: no unrelated skill auto-loaded",
+      "pass": true,
+      "soft": false,
+      "detail": "[\"changelog-hollowbrook\"]"
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "matching task: injected path is the logical .claude/skills/<folder>/SKILL.md",
+      "pass": true,
+      "soft": false,
+      "detail": ".claude/skills/changelog-hollowbrook/SKILL.md"
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "matching task: block carries only name/path/p (no description text)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "block is appended after the routing packet, separated by a blank line",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "the injected path opens the synthetic SKILL.md inside the project",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "skills decision logged with mode active; answers are need + skill_N numbers only",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "skills event: mode active, injected=true, decisionId matches the log",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "replay of the same tool_use_id gives byte-identical output (block included)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "replay made no new judge call",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s05-skills-active-match",
+      "name": "PreToolUse on the already rewritten input does not append a second block",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code="
+    },
+    {
+      "scenario": "s06-skills-active-unrelated",
+      "name": "skills active (unrelated task): exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s06-skills-active-unrelated",
+      "name": "skills active (unrelated task): prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_implement_standard_high_768a2a2b41 Jev route: implement / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s06-skills-active-unrelated",
+      "name": "skills active (unrelated task): original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s06-skills-active-unrelated",
+      "name": "skills active (unrelated task): no <jev-skills> block in the rewritten prompt",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s06-skills-active-unrelated",
+      "name": "skills event recorded with injected=false and nothing loaded",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"type\":\"skills\",\"time\":1795581305626,\"taskId\":\"toolu_qa_s06_a\",\"mode\":\"active\",\"status\":\"none\",\"code\":null,\"need\":0.07,\"candidates\":4,\"decisionId\":\"30151d4af822b4504de0b0a45dba8e8e71ee1286e6d2e44f4bd7a533b977fe80\",\"cached\":false,\"catalog\":\"9563a8391eef4a184bf7f7bea7b94c9391f889a142144089064e0cff7bd"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "migration task: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=deferred"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "migration task: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": false,
+      "soft": true,
+      "detail": "kind=deferred code= profile= Jev did not select a model/effort (selector_abstained). Main should gather missing evidence or inspect the model registry. No replacement execution was started."
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": true,
+      "detail": "kind=rewrite code= profile=jev4_implement_standard_high_768a2a2b41 Jev route: implement / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: <jev-skills> block present and parsable",
+      "pass": true,
+      "soft": true,
+      "detail": "{\"load\":[{\"name\":\"k6-load-test\",\"path\":\".claude/skills/k6-load-test/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: expected skill \"k6-load-test\" selected (load or consider)",
+      "pass": true,
+      "soft": true,
+      "detail": "{\"load\":[{\"name\":\"k6-load-test\",\"path\":\".claude/skills/k6-load-test/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: expected skill \"k6-load-test\" is in \"load\"",
+      "pass": true,
+      "soft": true,
+      "detail": "{\"load\":[{\"name\":\"k6-load-test\",\"path\":\".claude/skills/k6-load-test/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: no unrelated skill auto-loaded",
+      "pass": true,
+      "soft": true,
+      "detail": "[\"k6-load-test\"]"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: injected path is the logical .claude/skills/<folder>/SKILL.md",
+      "pass": true,
+      "soft": true,
+      "detail": ".claude/skills/k6-load-test/SKILL.md"
+    },
+    {
+      "scenario": "s07-skills-active-other-skills",
+      "name": "load-test task: block carries only name/path/p (no description text)",
+      "pass": true,
+      "soft": true,
+      "detail": ""
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: exit 0, advice only, pending call unchanged (no updatedInput, no permission decision)",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=advice Jev advisory: consider native profile jev4_documentation_standard_high_21966ba8e9 (claude-opus-5-5, high). The pending t"
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory text says the pending call is UNCHANGED",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: <jev-skills> block present and parsable",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.98}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: expected skill \"changelog-hollowbrook\" selected (load or consider)",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.98}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: expected skill \"changelog-hollowbrook\" is in \"load\"",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.98}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: no unrelated skill auto-loaded",
+      "pass": true,
+      "soft": false,
+      "detail": "[\"changelog-hollowbrook\"]"
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: injected path is the logical .claude/skills/<folder>/SKILL.md",
+      "pass": true,
+      "soft": false,
+      "detail": ".claude/skills/changelog-hollowbrook/SKILL.md"
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory: block carries only name/path/p (no description text)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s08-advisory",
+      "name": "advisory replay is byte-identical",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s09-custom-agent",
+      "name": "custom agent: exit 0 and empty output (delegation preserved)",
+      "pass": true,
+      "soft": false,
+      "detail": "{}\n"
+    },
+    {
+      "scenario": "s09-custom-agent",
+      "name": "custom agent PostToolUse: generic observation only, no supervisor advice",
+      "pass": true,
+      "soft": false,
+      "detail": "context"
+    },
+    {
+      "scenario": "s09-custom-agent",
+      "name": "session records custom_agent_preserved and no skills/supervisor/route event",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s09-custom-agent",
+      "name": "no judge was called for a custom agent",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s10-explicit-model",
+      "name": "explicit model: exit 0, warning EXPLICIT_NATIVE_SETTINGS_PRESERVED, no rewrite, no deny",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=EXPLICIT_NATIVE_SETTINGS_PRESERVED"
+    },
+    {
+      "scenario": "s10-explicit-model",
+      "name": "no judge was called for an explicit-model delegation",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s10-explicit-model",
+      "name": "secret-like task text: SECRET_GUARD warning, nothing sent",
+      "pass": true,
+      "soft": false,
+      "detail": "SECRET_GUARD"
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation A: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation A: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation A: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation A: no <jev-skills> block in the rewritten prompt",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation B: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation B: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_implement_standard_high_768a2a2b41 Jev route: implement / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation B: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "supervisor scenario delegation B: no <jev-skills> block in the rewritten prompt",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "complete report: judged as \"complete\"",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"type\":\"supervisor\",\"time\":1795581308747,\"taskId\":\"toolu_qa_s11_a\",\"mode\":\"active\",\"status\":\"judged\",\"outcome\":\"complete\",\"confidence\":1,\"evidence\":1.99,\"advisory\":true,\"decisionId\":\"9400101a797898eaf3a1462f9adec6fbbb3ca5a1b4af7b504ddb7309882f5c24\"}"
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "complete report: advice is shown to Main and says it judges the report text only",
+      "pass": true,
+      "soft": false,
+      "detail": "supervisor"
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "blocked report: judged as not complete (retry/replan/escalate)",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"type\":\"supervisor\",\"time\":1795581309662,\"taskId\":\"toolu_qa_s11_b\",\"mode\":\"active\",\"status\":\"judged\",\"outcome\":\"escalate\",\"confidence\":0.97,\"evidence\":0.02,\"advisory\":true,\"decisionId\":\"2e04fe9c109d82757d6774b80b4e1efaf2f3392928779541ceffd226efb47dd0\"}"
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "blocked report: output never denies or rewrites anything",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "two supervisor.outcome decisions logged (mode active, choice + score answers)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s11-supervisor-active",
+      "name": "report for a tool id this extension never routed is not judged",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s12-chain-local-jev",
+      "name": "chain local,jev (escalateBelow 0): exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s12-chain-local-jev",
+      "name": "chain local,jev (escalateBelow 0): prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s12-chain-local-jev",
+      "name": "chain local,jev (escalateBelow 0): original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s12-chain-local-jev",
+      "name": "skills decision answered by the local judge alone (escalateBelow defaults to 0)",
+      "pass": true,
+      "soft": false,
+      "detail": "local:ok@0ms"
+    },
+    {
+      "scenario": "s12-chain-local-jev",
+      "name": "classification still answered by jev",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "chain local,jev (escalateBelow 0.6): exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "chain local,jev (escalateBelow 0.6): prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "chain local,jev (escalateBelow 0.6): original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "skills trail starts with local; a low-confidence local answer escalates to jev, which is adopted",
+      "pass": true,
+      "soft": false,
+      "detail": "local:ok(low)@0ms > jev:ok@302ms"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "escalated chain: <jev-skills> block present and parsable",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "escalated chain: expected skill \"changelog-hollowbrook\" selected (load or consider)",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "escalated chain: expected skill \"changelog-hollowbrook\" is in \"load\"",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "escalated chain: no unrelated skill auto-loaded",
+      "pass": true,
+      "soft": false,
+      "detail": "[\"changelog-hollowbrook\"]"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "escalated chain: injected path is the logical .claude/skills/<folder>/SKILL.md",
+      "pass": true,
+      "soft": false,
+      "detail": ".claude/skills/changelog-hollowbrook/SKILL.md"
+    },
+    {
+      "scenario": "s13-chain-local-jev-escalate",
+      "name": "escalated chain: block carries only name/path/p (no description text)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai (jev healthy): exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai (jev healthy): prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai (jev healthy): original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai: <jev-skills> block present and parsable",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai: expected skill \"changelog-hollowbrook\" selected (load or consider)",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai: expected skill \"changelog-hollowbrook\" is in \"load\"",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":0.99}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai: no unrelated skill auto-loaded",
+      "pass": true,
+      "soft": false,
+      "detail": "[\"changelog-hollowbrook\"]"
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai: injected path is the logical .claude/skills/<folder>/SKILL.md",
+      "pass": true,
+      "soft": false,
+      "detail": ".claude/skills/changelog-hollowbrook/SKILL.md"
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "chain jev,openai: block carries only name/path/p (no description text)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s14-chain-jev-openai",
+      "name": "with a healthy first judge every decision is answered by jev and openai is never asked",
+      "pass": true,
+      "soft": false,
+      "detail": "jev:ok@296ms | jev:ok@300ms | jev:ok@171ms"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "classification: jev fails with a typed code, the live OpenAI judge answers",
+      "pass": true,
+      "soft": false,
+      "detail": "jev:JEV_HTTP_401@261ms > openai:ok@395ms"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "chain jev,openai (jev key rejected): exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "chain jev,openai (jev key rejected): prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_light_high_1bcce93a36 Jev route: documentation / light / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "chain jev,openai (jev key rejected): original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "openai fallback: <jev-skills> block present and parsable",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":1}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "openai fallback: expected skill \"changelog-hollowbrook\" selected (load or consider)",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":1}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "openai fallback: expected skill \"changelog-hollowbrook\" is in \"load\"",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"load\":[{\"name\":\"changelog-hollowbrook\",\"path\":\".claude/skills/changelog-hollowbrook/SKILL.md\",\"p\":1}],\"consider\":[]}"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "openai fallback: no unrelated skill auto-loaded",
+      "pass": true,
+      "soft": false,
+      "detail": "[\"changelog-hollowbrook\"]"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "openai fallback: injected path is the logical .claude/skills/<folder>/SKILL.md",
+      "pass": true,
+      "soft": false,
+      "detail": ".claude/skills/changelog-hollowbrook/SKILL.md"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "openai fallback: block carries only name/path/p (no description text)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "skills: answered by openai after the jev failure",
+      "pass": true,
+      "soft": false,
+      "detail": "jev:JEV_HTTP_401@260ms > openai:ok@693ms"
+    },
+    {
+      "scenario": "s15-chain-jev-openai-fallback",
+      "name": "supervisor (choice + score) answered by openai through the hook: judged \"complete\"",
+      "pass": true,
+      "soft": false,
+      "detail": "jev:JEV_HTTP_401@239ms > openai:ok@387ms {\"type\":\"supervisor\",\"time\":1795581313489,\"taskId\":\"toolu_qa_s15_a\",\"mode\":\"active\",\"status\":\"judged\",\"outcome\":\"complete\",\"confidence\":0.81,\"evidence\":1.97,\"advisory\":true,\"decisionId\":\"442a29d155194ea2dd5e546b2bf0b53a57fb5e8ed5ddc9e6e5b28087cc04b17f\"}"
+    },
+    {
+      "scenario": "s16-openai-not-approved",
+      "name": "openai in the chain without approval: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s16-openai-not-approved",
+      "name": "openai in the chain without approval: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s16-openai-not-approved",
+      "name": "openai in the chain without approval: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s16-openai-not-approved",
+      "name": "openai in the chain without approval: no <jev-skills> block in the rewritten prompt",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s16-openai-not-approved",
+      "name": "skills unavailable with OPENAI_DECISIONS_NOT_APPROVED; routing unaffected",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"type\":\"skills\",\"time\":1795581314124,\"taskId\":\"toolu_qa_s16_a\",\"mode\":\"active\",\"status\":\"unavailable\",\"code\":\"OPENAI_DECISIONS_NOT_APPROVED\",\"need\":null,\"candidates\":4,\"decisionId\":null,\"cached\":fals"
+    },
+    {
+      "scenario": "s16-openai-not-approved",
+      "name": "the refused judge is logged as a failed decision (provider none) with the typed code",
+      "pass": true,
+      "soft": false,
+      "detail": "openai:OPENAI_DECISIONS_NOT_APPROVED@2ms"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "openai-only delegation 0: exit 0, never denied",
+      "pass": true,
+      "soft": false,
+      "detail": "rewrite"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "openai-only delegation 1: exit 0, never denied",
+      "pass": true,
+      "soft": false,
+      "detail": "rewrite"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "openai-only delegation 2: exit 0, never denied",
+      "pass": true,
+      "soft": false,
+      "detail": "rewrite"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "openai-only delegation 3: exit 0, never denied",
+      "pass": true,
+      "soft": false,
+      "detail": "rewrite"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "openai-only delegation 4: exit 0, never denied",
+      "pass": true,
+      "soft": false,
+      "detail": "rewrite"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "no OpenAI request in a cold hook process hit the 2500 ms provider timeout",
+      "pass": true,
+      "soft": false,
+      "detail": "[]"
+    },
+    {
+      "scenario": "s17-openai-only-cold-latency",
+      "name": "all five delegations were routed by the OpenAI judge",
+      "pass": true,
+      "soft": true,
+      "detail": "rewrite,rewrite,rewrite,rewrite,rewrite"
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 0: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 0: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= profile=jev4_documentation_standard_high_21966ba8e9 Jev route: documentation / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 0: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 1: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 1: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": true,
+      "detail": "kind=rewrite code= profile=jev4_implement_standard_xhigh_2b499d6605 Jev route: implement / standard / effort=xhigh; native execution remains in this session."
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 1: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 2: exit 0, valid output, never a deny",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=rewrite"
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 2: prompt rewritten to an installed jev4_ profile without a permission decision",
+      "pass": true,
+      "soft": true,
+      "detail": "kind=rewrite code= profile=jev4_implement_standard_high_768a2a2b41 Jev route: implement / standard / effort=high; native execution remains in this session."
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "parallel delegation 2: original task text preserved as the prefix, followed by the <jev-routing> packet",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "s18-parallel-delegations",
+      "name": "three concurrent hooks in one session: no LOCK_BUSY or hook_error",
+      "pass": true,
+      "soft": false,
+      "detail": "[]"
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "wrong TypeSafe key (active): exit 0, no deny, no rewrite (native call proceeds unchanged)",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=warning"
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "wrong TypeSafe key (active): Main sees a typed warning (JEV_HTTP_4)",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=JEV_HTTP_401"
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "wrong TypeSafe key (active): finished in 415 ms, below 7000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "skills judge failure selects nothing (status unavailable)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "PostToolUse after a failed route: generic observation, exit 0",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "PostToolUseFailure with a failing judge: exit 0 and a typed warning, no deny",
+      "pass": true,
+      "soft": false,
+      "detail": "warning JEV_HTTP_401"
+    },
+    {
+      "scenario": "f1-wrong-key",
+      "name": "wrong key in shadow mode: exit 0 and empty output",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f2-unreachable-endpoint",
+      "name": "unreachable endpoint (connection refused): exit 0, no deny, no rewrite (native call proceeds unchanged)",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=warning"
+    },
+    {
+      "scenario": "f2-unreachable-endpoint",
+      "name": "unreachable endpoint (connection refused): Main sees a typed warning",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=JEV_UNAVAILABLE"
+    },
+    {
+      "scenario": "f2-unreachable-endpoint",
+      "name": "unreachable endpoint (connection refused): finished in 63 ms, below 7000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=60 against the live API: exit 0, no deny, no rewrite (native call proceeds unchanged)",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=warning"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=60 against the live API: Main sees a typed warning (JEV_TIMEOUT)",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=JEV_TIMEOUT"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=60 against the live API: finished in 158 ms, below 2000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_OPENAI_DECISIONS_TIMEOUT_MS=60 against the live API: exit 0, no deny, no rewrite (native call proceeds unchanged)",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=warning"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_OPENAI_DECISIONS_TIMEOUT_MS=60 against the live API: Main sees a typed warning (DECISIONS_TIMEOUT)",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=DECISIONS_TIMEOUT"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_OPENAI_DECISIONS_TIMEOUT_MS=60 against the live API: finished in 151 ms, below 2000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=50 (documented minimum): exit 0, no deny, no rewrite (native call proceeds unchanged)",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=warning"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=50 (documented minimum): Main sees a typed warning",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=KERNEL_DEADLINE"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=50 (documented minimum): finished in 55 ms, below 2000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "JEV_TIMEOUT_MS=50 (documented minimum): the judge is actually asked and times out (JEV_TIMEOUT), as before the kernel",
+      "pass": false,
+      "soft": true,
+      "detail": "code=KERNEL_DEADLINE trail=jev:KERNEL_DEADLINE@0ms"
+    },
+    {
+      "scenario": "f3-tiny-timeout",
+      "name": "out-of-range JEV_OPENAI_DECISIONS_TIMEOUT_MS: exit 1, \"{}\" on stdout, typed code on stderr, no deny",
+      "pass": true,
+      "soft": false,
+      "detail": "jev-hooks: INVALID_JEV_OPENAI_DECISIONS_TIMEOUT_MS; no native worker executed by extension\n"
+    },
+    {
+      "scenario": "f4-blackhole-max-timeouts",
+      "name": "both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): exit 0, no deny, no rewrite (native call proceeds unchanged)",
+      "pass": true,
+      "soft": false,
+      "detail": "exit=0 kind=warning"
+    },
+    {
+      "scenario": "f4-blackhole-max-timeouts",
+      "name": "both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): Main sees a typed warning",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=warning code=KERNEL_DEADLINE"
+    },
+    {
+      "scenario": "f4-blackhole-max-timeouts",
+      "name": "both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): finished in 5064 ms, below 7000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f4-blackhole-max-timeouts",
+      "name": "PostToolUseFailure with hanging judges: exit 0, no deny, 5057 ms < 7000 ms",
+      "pass": true,
+      "soft": false,
+      "detail": "warning KERNEL_DEADLINE"
+    },
+    {
+      "scenario": "f5-slow-classify-then-hang",
+      "name": "slow classification (4.8 s) + hanging selector and skills judge: exit 0, no deny, 5557 ms < 7000 ms watchdog (loopback stub, not live)",
+      "pass": true,
+      "soft": false,
+      "detail": "kind=rewrite code= stderr="
+    },
+    {
+      "scenario": "f5-slow-classify-then-hang",
+      "name": "the hook process was not ended by its own watchdog (no HOOK_DEADLINE on stderr)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "f6-bad-input",
+      "name": "garbage on stdin: exit 1, \"{}\" on stdout, no deny",
+      "pass": true,
+      "soft": false,
+      "detail": "jev-hooks: HOOK_INPUT_OR_CONFIG_ERROR; no native worker executed by extension\n"
+    },
+    {
+      "scenario": "f6-bad-input",
+      "name": "cwd outside the allow-listed project: exit 0 and empty output",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z1-decision-log",
+      "name": "decision log directory exists with mode 700",
+      "pass": true,
+      "soft": false,
+      "detail": "700"
+    },
+    {
+      "scenario": "z1-decision-log",
+      "name": "decision log holds only decisions-/labels-YYYY-MM.jsonl files, each mode 600",
+      "pass": true,
+      "soft": false,
+      "detail": "decisions-2026-11.jsonl"
+    },
+    {
+      "scenario": "z1-decision-log",
+      "name": "every decision line passes the product record contract",
+      "pass": true,
+      "soft": false,
+      "detail": "82 records"
+    },
+    {
+      "scenario": "z1-decision-log",
+      "name": "decision log contains no task, report, skill-description or skill-name text",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z1-decision-log",
+      "name": "decision log contains neither API key",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z2-state-files",
+      "name": "every file under the state directory is mode 600",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z2-state-files",
+      "name": "no API key anywhere under the state directory",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z2-state-files",
+      "name": "no task text anywhere under the state directory (retainPromptText is off)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z2-state-files",
+      "name": "no worker report text anywhere under the state directory",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z2-state-files",
+      "name": "no skill description or body text anywhere under the state directory",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z2-state-files",
+      "name": "key values exist only in the private setup env and the installed .env",
+      "pass": true,
+      "soft": false,
+      "detail": "home/.config/jev-hooks/.env,private-setup.env"
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "decisions.mjs --action report (installed config via HOME): exit 0 with points and groups",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "report covers classify, profile, skills and supervisor points",
+      "pass": true,
+      "soft": false,
+      "detail": "delegation.classify,delegation.profile,delegation.skills,failure.classify,supervisor.outcome"
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "unlabeled calibration metrics are null, not 0",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "decisions.mjs --action show: exit 0 with at most 3 skills decisions",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "decisions.mjs --action label: exit 0",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "the label is joined in the next report (1 label, group not \"sufficient\")",
+      "pass": true,
+      "soft": false,
+      "detail": "{\"decisions\":24,\"labels\":1}"
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "label for an unknown decision is refused (UNKNOWN_DECISION, exit 1)",
+      "pass": true,
+      "soft": false,
+      "detail": "UNKNOWN_DECISION\n"
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "skills.mjs --list: exit 0, the four synthetic skills, nothing skipped",
+      "pass": true,
+      "soft": false,
+      "detail": "{\n  \"fingerprint\": \"9563a8391eef4a184bf7f7bea7b94c9391f889a142144089064e0cff7bdc1858\",\n  \"skills\": [\n    {\n      \"name\": \"changelog-hollowbrook\",\n      \"description\": \"Hollowbrook changelog convention"
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "skills.mjs --why-not (local judge, no network): exit 0 with a stage and reason",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "skills.mjs --why-not for an unknown skill: not_in_catalog",
+      "pass": true,
+      "soft": false,
+      "detail": "{\n  \"judge\": \"local-lexical-uncalibrated\",\n  \"note\": \"Probabilities are a lexical BM25 heuristic, not calibrated judgmen"
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "skills.mjs --judge config with the installed default (point off): unavailable / KERNEL_POINT_OFF",
+      "pass": true,
+      "soft": false,
+      "detail": "{\n  \"judge\": \"config\",\n  \"point\": \"delegation.skills\",\n  \"mode\": \"off\",\n  \"judges\": [\n    \"jev\"\n  ],\n  \"status\": \"unavailable\",\n  \"need\": null,\n  \"load\": [],\n  "
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "skills.mjs --why-not --judge config (installed chain, live Jev): exit 0 with a judged stage and probability",
+      "pass": true,
+      "soft": false,
+      "detail": "{\n  \"judge\": \"config\",\n  \"point\": \"delegation.skills\",\n  \"mode\": \"shadow\",\n  \"judges\": [\n    \"jev\"\n  ],\n  \"whyNot\": {\n    \"name\": \"sql-migration-safety\",\n    \"stage\": \"below_threshold\",\n    \"bm25\": 1."
+    },
+    {
+      "scenario": "z3-cli",
+      "name": "the CLI run was written to the installed decision log",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "isolation",
+      "name": "the real ~/.config/jev-hooks was not created or touched",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "isolation",
+      "name": "the real ~/.claude/settings.json was not modified",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "isolation",
+      "name": "no live-judge hook invocation approaches the watchdog (max 1281 ms < 5000 ms)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "scenario": "isolation",
+      "name": "no hook invocation at all reached the 7000 ms watchdog or the host timeout (max 5557 ms)",
+      "pass": true,
+      "soft": false,
+      "detail": ""
+    }
+  ],
+  "invocations": [
+    {
+      "n": 1,
+      "scenario": "s01-lifecycle",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 42,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 2,
+      "scenario": "s01-lifecycle",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 40,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 3,
+      "scenario": "s01-lifecycle",
+      "step": "SubagentStart",
+      "event": "SubagentStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 4,
+      "scenario": "s01-lifecycle",
+      "step": "SubagentStop",
+      "event": "SubagentStop",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 42,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 5,
+      "scenario": "s01-lifecycle",
+      "step": "PreCompact",
+      "event": "PreCompact",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 40,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 6,
+      "scenario": "s01-lifecycle",
+      "step": "SessionEnd",
+      "event": "SessionEnd",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 7,
+      "scenario": "s01-lifecycle",
+      "step": "workflow-boundary",
+      "event": "PreToolUse",
+      "tool": "Workflow",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 38,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 8,
+      "scenario": "s02-default-active",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 9,
+      "scenario": "s02-default-active",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 42,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 10,
+      "scenario": "s02-default-active",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 580,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 11,
+      "scenario": "s02-default-active",
+      "step": "replay",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 60,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 12,
+      "scenario": "s03-default-shadow",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 44,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 13,
+      "scenario": "s03-default-shadow",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 45,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 14,
+      "scenario": "s03-default-shadow",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 501,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 15,
+      "scenario": "s04-skills-shadow",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 57,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 16,
+      "scenario": "s04-skills-shadow",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 47,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 17,
+      "scenario": "s04-skills-shadow",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 544,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 18,
+      "scenario": "s05-skills-active-match",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 53,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 19,
+      "scenario": "s05-skills-active-match",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 45,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 20,
+      "scenario": "s05-skills-active-match",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 521,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 21,
+      "scenario": "s05-skills-active-match",
+      "step": "replay",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 61,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 22,
+      "scenario": "s05-skills-active-match",
+      "step": "replay-on-rewritten-input",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 49,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 23,
+      "scenario": "s06-skills-active-unrelated",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 24,
+      "scenario": "s06-skills-active-unrelated",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 25,
+      "scenario": "s06-skills-active-unrelated",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 537,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_high_768a2a2b41",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 26,
+      "scenario": "s07-skills-active-other-skills",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 54,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 27,
+      "scenario": "s07-skills-active-other-skills",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 44,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 28,
+      "scenario": "s07-skills-active-other-skills",
+      "step": "pre-migration",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 507,
+      "kind": "deferred",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 29,
+      "scenario": "s07-skills-active-other-skills",
+      "step": "pre-loadtest",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 542,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_high_768a2a2b41",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "k6-load-test",
+            "path": ".claude/skills/k6-load-test/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 30,
+      "scenario": "s08-advisory",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 56,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 31,
+      "scenario": "s08-advisory",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 44,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 32,
+      "scenario": "s08-advisory",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 537,
+      "kind": "advice",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 33,
+      "scenario": "s08-advisory",
+      "step": "replay",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 64,
+      "kind": "advice",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 34,
+      "scenario": "s09-custom-agent",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 44,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 35,
+      "scenario": "s09-custom-agent",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 40,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 36,
+      "scenario": "s09-custom-agent",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 37,
+      "scenario": "s09-custom-agent",
+      "step": "post",
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 42,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 38,
+      "scenario": "s10-explicit-model",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 39,
+      "scenario": "s10-explicit-model",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 45,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 40,
+      "scenario": "s10-explicit-model",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 40,
+      "kind": "warning",
+      "code": "EXPLICIT_NATIVE_SETTINGS_PRESERVED",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 41,
+      "scenario": "s10-explicit-model",
+      "step": "pre-secret-like",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "warning",
+      "code": "SECRET_GUARD",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 42,
+      "scenario": "s11-supervisor-active",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 43,
+      "scenario": "s11-supervisor-active",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 44,
+      "scenario": "s11-supervisor-active",
+      "step": "pre-a",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 519,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 45,
+      "scenario": "s11-supervisor-active",
+      "step": "post-complete-report",
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 350,
+      "kind": "supervisor",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 46,
+      "scenario": "s11-supervisor-active",
+      "step": "pre-b",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 569,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_high_768a2a2b41",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 47,
+      "scenario": "s11-supervisor-active",
+      "step": "post-blocked-report",
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 344,
+      "kind": "supervisor",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 48,
+      "scenario": "s11-supervisor-active",
+      "step": "post-unrouted-id",
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 49,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 49,
+      "scenario": "s12-chain-local-jev",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 50,
+      "scenario": "s12-chain-local-jev",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 51,
+      "scenario": "s12-chain-local-jev",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 501,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [],
+        "consider": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.69
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    {
+      "n": 52,
+      "scenario": "s13-chain-local-jev-escalate",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 56,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 53,
+      "scenario": "s13-chain-local-jev-escalate",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 54,
+      "scenario": "s13-chain-local-jev-escalate",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 648,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 55,
+      "scenario": "s14-chain-jev-openai",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 53,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 56,
+      "scenario": "s14-chain-jev-openai",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 57,
+      "scenario": "s14-chain-jev-openai",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 529,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 58,
+      "scenario": "s15-chain-jev-openai-fallback",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 51,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 59,
+      "scenario": "s15-chain-jev-openai-fallback",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 44,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 60,
+      "scenario": "s15-chain-jev-openai-fallback",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 1014,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_light_high_1bcce93a36",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 1
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 61,
+      "scenario": "s15-chain-jev-openai-fallback",
+      "step": "post-complete-report",
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 705,
+      "kind": "supervisor",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 62,
+      "scenario": "s16-openai-not-approved",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 49,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 63,
+      "scenario": "s16-openai-not-approved",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 64,
+      "scenario": "s16-openai-not-approved",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 522,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 65,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 56,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 66,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 67,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "pre-0",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 519,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_light_high_1bcce93a36",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 1
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 68,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "pre-1",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 887,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_xhigh_2b499d6605",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "sql-migration-safety",
+            "path": ".claude/skills/sql-migration-safety/SKILL.md",
+            "p": 1
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 69,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "pre-2",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 1281,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_light_xhigh_ff7d173a5a",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "k6-load-test",
+            "path": ".claude/skills/k6-load-test/SKILL.md",
+            "p": 1
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 70,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "pre-3",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 850,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_high_768a2a2b41",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 71,
+      "scenario": "s17-openai-only-cold-latency",
+      "step": "pre-4",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 816,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 1
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 72,
+      "scenario": "s18-parallel-delegations",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 49,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 73,
+      "scenario": "s18-parallel-delegations",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 74,
+      "scenario": "s18-parallel-delegations",
+      "step": "parallel-0",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 612,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_documentation_standard_high_21966ba8e9",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "changelog-hollowbrook",
+            "path": ".claude/skills/changelog-hollowbrook/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 75,
+      "scenario": "s18-parallel-delegations",
+      "step": "parallel-2",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 643,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_high_768a2a2b41",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "k6-load-test",
+            "path": ".claude/skills/k6-load-test/SKILL.md",
+            "p": 0.99
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 76,
+      "scenario": "s18-parallel-delegations",
+      "step": "parallel-1",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 655,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_implement_standard_xhigh_2b499d6605",
+      "skillsBlock": {
+        "load": [
+          {
+            "name": "sql-migration-safety",
+            "path": ".claude/skills/sql-migration-safety/SKILL.md",
+            "p": 0.98
+          }
+        ],
+        "consider": []
+      },
+      "stderr": ""
+    },
+    {
+      "n": 77,
+      "scenario": "f1-wrong-key",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 49,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 78,
+      "scenario": "f1-wrong-key",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 79,
+      "scenario": "f1-wrong-key",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 415,
+      "kind": "warning",
+      "code": "JEV_HTTP_401",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 80,
+      "scenario": "f1-wrong-key",
+      "step": "post",
+      "event": "PostToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 49,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 81,
+      "scenario": "f1-wrong-key",
+      "step": "post-failure",
+      "event": "PostToolUseFailure",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 290,
+      "kind": "warning",
+      "code": "JEV_HTTP_401",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 82,
+      "scenario": "f1-wrong-key",
+      "step": "pre-shadow",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 315,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 83,
+      "scenario": "f2-unreachable-endpoint",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 54,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 84,
+      "scenario": "f2-unreachable-endpoint",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 42,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 85,
+      "scenario": "f2-unreachable-endpoint",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 63,
+      "kind": "warning",
+      "code": "JEV_UNAVAILABLE",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 86,
+      "scenario": "f3-tiny-timeout",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 40,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 87,
+      "scenario": "f3-tiny-timeout",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 42,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 88,
+      "scenario": "f3-tiny-timeout",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 158,
+      "kind": "warning",
+      "code": "JEV_TIMEOUT",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 89,
+      "scenario": "f3-tiny-timeout",
+      "step": "pre-openai",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 151,
+      "kind": "warning",
+      "code": "DECISIONS_TIMEOUT",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 90,
+      "scenario": "f3-tiny-timeout",
+      "step": "pre-minimum-50ms",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 55,
+      "kind": "warning",
+      "code": "KERNEL_DEADLINE",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 91,
+      "scenario": "f3-tiny-timeout",
+      "step": "pre-invalid-timeout-env",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": true,
+      "exit": 1,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 39,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": "jev-hooks: INVALID_JEV_OPENAI_DECISIONS_TIMEOUT_MS; no native worker executed by extension"
+    },
+    {
+      "n": 92,
+      "scenario": "f4-blackhole-max-timeouts",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 39,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 93,
+      "scenario": "f4-blackhole-max-timeouts",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 41,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 94,
+      "scenario": "f4-blackhole-max-timeouts",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 5064,
+      "kind": "warning",
+      "code": "KERNEL_DEADLINE",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 95,
+      "scenario": "f4-blackhole-max-timeouts",
+      "step": "post-failure",
+      "event": "PostToolUseFailure",
+      "tool": "Agent",
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 5057,
+      "kind": "warning",
+      "code": "KERNEL_DEADLINE",
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 96,
+      "scenario": "f5-slow-classify-then-hang",
+      "step": "session-start",
+      "event": "SessionStart",
+      "tool": null,
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 59,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 97,
+      "scenario": "f5-slow-classify-then-hang",
+      "step": "user-prompt",
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 43,
+      "kind": "context",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 98,
+      "scenario": "f5-slow-classify-then-hang",
+      "step": "pre",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 5557,
+      "kind": "rewrite",
+      "code": null,
+      "subagentType": "jev4_plan_strategic_high_bacf4e801f",
+      "skillsBlock": null,
+      "stderr": ""
+    },
+    {
+      "n": 99,
+      "scenario": "f6-bad-input",
+      "step": "garbage-stdin",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": false,
+      "exit": 1,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 46,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": "jev-hooks: HOOK_INPUT_OR_CONFIG_ERROR; no native worker executed by extension"
+    },
+    {
+      "n": 100,
+      "scenario": "f6-bad-input",
+      "step": "project-not-allowed",
+      "event": "PreToolUse",
+      "tool": "Agent",
+      "live": false,
+      "exit": 0,
+      "signal": null,
+      "killedAtHostTimeout": false,
+      "ms": 44,
+      "kind": "empty",
+      "code": null,
+      "subagentType": null,
+      "skillsBlock": null,
+      "stderr": ""
+    }
+  ]
+}

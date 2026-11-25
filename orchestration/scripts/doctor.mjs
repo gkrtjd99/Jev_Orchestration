@@ -1,7 +1,7 @@
 // Read-only probes. A version or HTTP response is NOT a native routing end-to-end test.
 import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
 import {options,readJSON} from '../src/util.mjs';import {loadConfig} from '../src/config.mjs';import {JevClient} from '../src/jev.mjs';
-import {profileCatalog} from '../src/catalog.mjs';import {assertInstalledProfile} from '../src/profiles.mjs';
+import {profileCatalog} from '../src/catalog.mjs';import {evidenceReadiness} from '../src/feedback.mjs';import {assertInstalledProfile} from '../src/profiles.mjs';
 const args=options(process.argv.slice(2));const home=path.resolve(args.home||os.homedir());
 const result={native:{},config:null,profiles:{},jev:'not_tested',nativeEndToEnd:'not_tested',effectiveModelAndEffort:'not_observed',performanceSuperiority:'not_established'};
 let runtimes=['claude','codex'];
@@ -9,6 +9,8 @@ try{
  const file=path.resolve(args.config||path.join(home,'.config','jev-hooks','config.json'));
  const {config,apiKey}=await loadConfig(file);runtimes=config.enabledRuntimes;
  result.config={valid:true,mode:config.mode,hasKey:!!apiKey,allowedProjects:config.allowedProjects,evaluationContext:config.optimization.evaluationContext};
+ // Per enabled registry entry: the declared resolved ids and whether evaluation evidence could be imported for it.
+ result.evidence=evidenceReadiness(config);
  const manifest=await readJSON(path.join(home,'.config','jev-hooks','installation.json'),null);result.registeredRuntimes=manifest?.runtimes||[];
  for(const rt of runtimes){
   const ps=profileCatalog(config.registry,rt);let checked=0;const errors=[];

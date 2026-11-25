@@ -1,0 +1,180 @@
+{"id":"ho-001","gold":["probation-review-template"],"rationale":"수습 평가서 양식과 기준이 필요합니다.","difficulty":"easy"}
+{"id":"ho-002","gold":["jtag-flash-recovery"],"rationale":"A previously working unit bricked by an update with a dead console needs flash recovery over the debug probe.","difficulty":"hard"}
+{"id":"ho-003","gold":["feature-flag-cleanup"],"rationale":"완전히 배포된 flag 제거이며 onboarding은 flag 이름일 뿐입니다.","difficulty":"hard"}
+{"id":"ho-004","gold":["crs-reprojection","geojson-topology-repair"],"rationale":"The layer needs both reprojection and geometry repair.","difficulty":"hard"}
+{"id":"ho-005","gold":[],"rationale":"Customer signup UI bug; unrelated to employee onboarding documents.","difficulty":"hard"}
+{"id":"ho-006","gold":["appstore-phased-rollout","play-console-staged-release"],"rationale":"A gradual production release on each store uses each store's own staged-release procedure.","difficulty":"medium"}
+{"id":"ho-007","gold":[],"rationale":"단순 설정 변경입니다.","difficulty":"easy"}
+{"id":"ho-008","gold":[],"rationale":"HTTP 헤더 인코딩 버그이며 스프레드시트 모델 작업이 아닙니다.","difficulty":"medium"}
+{"id":"ho-009","gold":["changelog-from-commits"],"rationale":"Release notes in the house format depend on the team's conventions.","difficulty":"medium"}
+{"id":"ho-010","gold":[],"rationale":"A small focused code review a capable agent does unaided; catch-all quality skills add nothing.","difficulty":"easy"}
+{"id":"ho-011","gold":["month-end-accrual-journal"],"rationale":"청구서가 오지 않은 비용을 마감 월에 인식하는 미지급비용 분개입니다.","difficulty":"medium"}
+{"id":"ho-012","gold":[],"rationale":"Testing a display formatter; signature verification is not involved.","difficulty":"medium"}
+{"id":"ho-013","gold":["pg-logical-replication-cutover"],"rationale":"A major-version upgrade with minimal downtime is a replication cutover, not an in-place schema change.","difficulty":"medium"}
+{"id":"ho-014","gold":["bounce-complaint-triage"],"rationale":"An established, authenticated domain with a sudden deliverability drop needs triage, not DNS setup or warm-up.","difficulty":"hard"}
+{"id":"ho-015","gold":[],"rationale":"Common knowledge task; the generic best-practices skill would not change how it is done.","difficulty":"medium"}
+{"id":"ho-016","gold":["terraform-state-surgery"],"rationale":"수동 생성 리소스를 재생성 없이 state로 들여오는 작업입니다.","difficulty":"medium"}
+{"id":"ho-017","gold":["po-three-way-match"],"rationale":"발주와 청구 금액 차이를 지급 전에 해소하는 일이며 홈택스 대사가 아닙니다.","difficulty":"hard"}
+{"id":"ho-018","gold":[],"rationale":"Read-only text parsing; no state manipulation is asked for.","difficulty":"medium"}
+{"id":"ho-019","gold":["airflow-dag-backfill"],"rationale":"Reprocessing a historical date range of a scheduled pipeline with load limits is a backfill.","difficulty":"hard"}
+{"id":"ho-020","gold":["hparam-sweep-launch"],"rationale":"예산과 가지치기를 둔 하이퍼파라미터 탐색 실행입니다.","difficulty":"medium"}
+{"id":"ho-021","gold":[],"rationale":"JSON 문법 오류 찾기입니다.","difficulty":"easy"}
+{"id":"ho-022","gold":[],"rationale":"기본 git 지식입니다.","difficulty":"easy"}
+{"id":"ho-023","gold":["play-console-staged-release"],"rationale":"The action is halting an Android production staged rollout; the beta mention is a distractor.","difficulty":"hard"}
+{"id":"ho-024","gold":["qr-label-print-batch"],"rationale":"Bulk bin labels for thermal printers need the ZPL presets and batching rules.","difficulty":"medium"}
+{"id":"ho-025","gold":[],"rationale":"권한 조건 한 줄 수정이며 수습 평가서 작성이 아닙니다.","difficulty":"medium"}
+{"id":"ho-026","gold":[],"rationale":"Ordinary small coding task.","difficulty":"easy"}
+{"id":"ho-027","gold":["mlflow-run-logging"],"rationale":"학습 스크립트에 실험 추적을 팀 규칙대로 넣는 일입니다.","difficulty":"hard"}
+{"id":"ho-028","gold":["raster-tile-pyramid"],"rationale":"대용량 래스터를 웹 지도로 제공하려면 COG나 타일 피라미드가 필요합니다.","difficulty":"hard"}
+{"id":"ho-029","gold":[],"rationale":"A short message; no tokens are being exported.","difficulty":"easy"}
+{"id":"ho-030","gold":["privacy-policy-gap-check"],"rationale":"수집 항목 변경에 따른 처리방침 점검이며 계약서 검토는 범위 밖입니다.","difficulty":"medium"}
+{"id":"ho-031","gold":[],"rationale":"Routine tidy-up.","difficulty":"easy"}
+{"id":"ho-032","gold":["slo-burn-alerting"],"rationale":"Replacing a raw threshold page with objective-based alerting is the SLO skill; tracing and logging are fine.","difficulty":"medium"}
+{"id":"ho-033","gold":["po-three-way-match"],"rationale":"발주, 입고, 청구 세 문서의 차이를 처리하는 대사입니다.","difficulty":"medium"}
+{"id":"ho-034","gold":["load-test-k6-scenario"],"rationale":"A capacity check with rate and latency thresholds is a load-test scenario.","difficulty":"medium"}
+{"id":"ho-035","gold":["board-bringup-checklist","uart-console-debug"],"rationale":"첫 전원 인가 절차와 시리얼 콘솔 디버깅이 함께 요청됐습니다.","difficulty":"medium"}
+{"id":"ho-036","gold":["fbx-import-normalize","texture-atlas-pack"],"rationale":"FBX 임포트 정규화와 텍스처 아틀라스 작업 두 가지입니다.","difficulty":"easy"}
+{"id":"ho-037","gold":["mlflow-run-logging"],"rationale":"부족한 것은 실험 기록 규칙 준수이며 sweep 실행은 이미 끝났습니다.","difficulty":"hard"}
+{"id":"ho-038","gold":["ip-warmup-schedule"],"rationale":"새 IP의 발송량 증가 계획이 요청이며 인증 설정은 이미 끝났습니다.","difficulty":"medium"}
+{"id":"ho-039","gold":[],"rationale":"작업 내용이 구체적으로 정해져 있어 범용 체크리스트가 방법을 바꾸지 않습니다.","difficulty":"medium"}
+{"id":"ho-040","gold":["terraform-state-surgery"],"rationale":"Moving resource addresses without recreate is state surgery, even though state is never mentioned.","difficulty":"hard"}
+{"id":"ho-041","gold":["webhook-signature-verify"],"rationale":"Adding verification to a webhook receiver needs the raw-body, timing and replay rules.","difficulty":"hard"}
+{"id":"ho-042","gold":["figma-token-export"],"rationale":"Design-system values must be regenerated from the design source rather than hand-edited.","difficulty":"hard"}
+{"id":"ho-043","gold":[],"rationale":"Debugging a frontend test race; the phased rollout is only the name of a UI banner.","difficulty":"hard"}
+{"id":"ho-044","gold":["probation-review-template"],"rationale":"정규직 전환 판단 문서는 수습 평가서이며 신입이라는 단어가 온보딩을 뜻하지 않습니다.","difficulty":"hard"}
+{"id":"ho-045","gold":["query-rewrite-rules"],"rationale":"특정 검색어의 리다이렉트와 상단 고정은 검색어 규칙 작업이며 사전이나 평가가 아닙니다.","difficulty":"medium"}
+{"id":"ho-046","gold":["log-pipeline-parsing-rules"],"rationale":"The gap is field extraction in log ingestion; tracing is explicitly already working.","difficulty":"hard"}
+{"id":"ho-047","gold":["datasheet-register-map"],"rationale":"Turning datasheet register tables into a C header is the skill's exact purpose.","difficulty":"medium"}
+{"id":"ho-048","gold":["onboarding-doc-pack"],"rationale":"The pre-arrival document bundle is the onboarding pack.","difficulty":"medium"}
+{"id":"ho-049","gold":["dmarc-spf-dkim-setup","ip-warmup-schedule"],"rationale":"Both authentication records for the new domain and a volume ramp plan are requested.","difficulty":"medium"}
+{"id":"ho-050","gold":[],"rationale":"Ordinary scripting.","difficulty":"easy"}
+{"id":"ho-051","gold":["survey-weighting-rake"],"rationale":"Making a skewed sample match population margins is raking.","difficulty":"hard"}
+{"id":"ho-052","gold":["incident-postmortem-draft"],"rationale":"A post-incident review document must follow the company postmortem format.","difficulty":"medium"}
+{"id":"ho-053","gold":["otel-trace-instrumentation","slo-burn-alerting"],"rationale":"추적 계측과 SLO 기반 알림 재설계가 모두 필요합니다.","difficulty":"medium"}
+{"id":"ho-054","gold":[],"rationale":"오타 수정이며 알림 규칙은 범위 밖이라고 명시돼 있습니다.","difficulty":"medium"}
+{"id":"ho-055","gold":[],"rationale":"A config typo fix; no migration, query tuning or cutover is involved.","difficulty":"medium"}
+{"id":"ho-056","gold":[],"rationale":"일반적인 셸 스크립트 정리입니다.","difficulty":"easy"}
+{"id":"ho-057","gold":[],"rationale":"수정 대상과 값이 이미 정해진 단일 스타일 변경이라 전체 접근성 점검 절차가 필요하지 않습니다.","difficulty":"hard"}
+{"id":"ho-058","gold":[],"rationale":"지정된 두 가지 코드 수정입니다.","difficulty":"easy"}
+{"id":"ho-059","gold":["incident-postmortem-draft","runbook-oncall-handover"],"rationale":"A postmortem and an on-call handover note are two separate documents with their own formats.","difficulty":"medium"}
+{"id":"ho-060","gold":["ranking-judgment-eval"],"rationale":"analyzer는 이미 바뀌었고 필요한 것은 judgment 기반 오프라인 평가입니다.","difficulty":"hard"}
+{"id":"ho-061","gold":["ranking-judgment-eval"],"rationale":"사전은 이미 수정됐고 요청은 변경 전후의 오프라인 품질 평가입니다.","difficulty":"hard"}
+{"id":"ho-062","gold":["subtitle-burnin-sync","hls-ladder-encode"],"rationale":"자막 싱크 보정 및 번인과 화질별 스트리밍 인코딩이 모두 필요합니다.","difficulty":"medium"}
+{"id":"ho-063","gold":["vendor-quote-compare"],"rationale":"여러 업체 견적을 같은 기준으로 맞춰 비교하는 작업입니다.","difficulty":"medium"}
+{"id":"ho-064","gold":["shader-variant-strip"],"rationale":"쓰지 않는 셰이더 variant를 제거하는 작업입니다.","difficulty":"medium"}
+{"id":"ho-065","gold":["gsheet-pivot-report"],"rationale":"원본 탭에서 자동 갱신되는 요약 보고서를 만드는 일입니다.","difficulty":"medium"}
+{"id":"ho-066","gold":[],"rationale":"A library swap in a date helper; the word invoice is incidental.","difficulty":"medium"}
+{"id":"ho-067","gold":[],"rationale":"널리 알려진 Docker 작업입니다.","difficulty":"easy"}
+{"id":"ho-068","gold":[],"rationale":"The strings are already externalised and have no plurals, so this is plain translation rather than extraction.","difficulty":"hard"}
+{"id":"ho-069","gold":[],"rationale":"Trivial coding; no CRS or geometry repair involved.","difficulty":"easy"}
+{"id":"ho-070","gold":[],"rationale":"Conceptual explanation; nothing is being sized or autoscaled.","difficulty":"easy"}
+{"id":"ho-071","gold":["shader-variant-strip"],"rationale":"셰이더 컴파일 시간 문제는 variant 정리이며 텍스처 작업은 제외됐습니다.","difficulty":"medium"}
+{"id":"ho-072","gold":["po-three-way-match"],"rationale":"Order, receipt and invoice disagree, which is a three-way match rather than a tax invoice reconciliation or accrual.","difficulty":"medium"}
+{"id":"ho-073","gold":[],"rationale":"General knowledge explanation; not about webhook signatures.","difficulty":"easy"}
+{"id":"ho-074","gold":["notion-meeting-minutes"],"rationale":"Minutes must follow the team's Notion template, which is described in Korean.","difficulty":"hard"}
+{"id":"ho-075","gold":["subtitle-burnin-sync"],"rationale":"Frame-rate drift correction and hard-subbing are the subtitle skill, not ladder encoding or loudness.","difficulty":"medium"}
+{"id":"ho-076","gold":["i18n-string-extract"],"rationale":"하드코딩된 문구를 복수형 처리와 함께 메시지 카탈로그로 추출하는 일입니다.","difficulty":"medium"}
+{"id":"ho-077","gold":[],"rationale":"일반 리팩터링입니다.","difficulty":"easy"}
+{"id":"ho-078","gold":["load-test-k6-scenario"],"rationale":"엔드포인트 용량 검증을 위한 부하 테스트 시나리오이며 검색 품질과는 무관합니다.","difficulty":"medium"}
+{"id":"ho-079","gold":["kakao-alimtalk-template"],"rationale":"반려된 알림톡 템플릿을 검수 기준에 맞게 고치는 일입니다.","difficulty":"easy"}
+{"id":"ho-080","gold":["pg-logical-replication-cutover","load-test-k6-scenario"],"rationale":"논리 복제 cutover 계획과 부하 테스트 시나리오가 모두 필요합니다.","difficulty":"medium"}
+{"id":"ho-081","gold":[],"rationale":"A shell one-liner over a local file, not a change to the ingestion pipeline.","difficulty":"easy"}
+{"id":"ho-082","gold":["xlsx-financial-model-audit"],"rationale":"순환 참조와 하드코딩 점검은 모델 감사이며 시나리오 추가는 명시적으로 미뤄졌습니다.","difficulty":"medium"}
+{"id":"ho-083","gold":["crs-reprojection"],"rationale":"일정한 수백 미터 편차는 좌표계/측지계 변환 문제입니다.","difficulty":"hard"}
+{"id":"ho-084","gold":[],"rationale":"Prose editing; no video is being encoded.","difficulty":"medium"}
+{"id":"ho-085","gold":["openapi-contract-diff"],"rationale":"Classifying spec changes as breaking for existing clients is the contract diff.","difficulty":"medium"}
+{"id":"ho-086","gold":["video-loudness-normalize"],"rationale":"클립 간 음량 차이를 맞추는 라우드니스 정규화만 필요합니다.","difficulty":"medium"}
+{"id":"ho-087","gold":["xlsx-financial-model-audit","scenario-sensitivity-table"],"rationale":"The brief asks for a model audit and for a two-variable sensitivity table.","difficulty":"medium"}
+{"id":"ho-088","gold":["mlflow-run-logging","hparam-sweep-launch"],"rationale":"Tracking conventions and a budgeted sweep launch are both needed.","difficulty":"medium"}
+{"id":"ho-089","gold":["incident-postmortem-draft"],"rationale":"사내 양식의 장애 회고 문서 작성입니다.","difficulty":"easy"}
+{"id":"ho-090","gold":[],"rationale":"A frontend bug; no spreadsheet model or report is being built.","difficulty":"medium"}
+{"id":"ho-091","gold":["synonym-dictionary-tuning"],"rationale":"동의어 누락과 복합명사 분해 문제는 사전 관리로 해결합니다.","difficulty":"medium"}
+{"id":"ho-092","gold":[],"rationale":"입력 검증 정규식 수정이며 메일 발송 인프라와 무관합니다.","difficulty":"medium"}
+{"id":"ho-093","gold":["otel-trace-instrumentation"],"rationale":"구간별 지연을 보려면 분산 추적 계측이 필요합니다.","difficulty":"hard"}
+{"id":"ho-094","gold":["zendesk-macro-authoring"],"rationale":"A canned reply for a recurring ticket type is a support macro with house rules.","difficulty":"hard"}
+{"id":"ho-095","gold":["xlsx-financial-model-audit"],"rationale":"투자자 제출 전 재무 모델 오류 점검입니다.","difficulty":"medium"}
+{"id":"ho-096","gold":["a11y-contrast-audit"],"rationale":"가독성 민원에 대한 화면 점검은 대비와 터치 영역 감사에 해당합니다.","difficulty":"hard"}
+{"id":"ho-097","gold":["texture-atlas-pack"],"rationale":"Many separate sprites causing draw calls is solved by atlasing.","difficulty":"hard"}
+{"id":"ho-098","gold":["scenario-sensitivity-table"],"rationale":"두 변수에 대한 민감도 표를 모델에 추가하는 작업입니다.","difficulty":"medium"}
+{"id":"ho-099","gold":[],"rationale":"Simple code summarisation needs no specialised procedure.","difficulty":"easy"}
+{"id":"ho-100","gold":["cve-dependency-triage"],"rationale":"새 CVE의 영향 여부와 조치 기한을 판단하는 분류 작업입니다.","difficulty":"medium"}
+{"id":"ho-101","gold":[],"rationale":"A mechanical rename in frontend code; 'burn rate' here is a cash metric and has nothing to do with alerting.","difficulty":"medium"}
+{"id":"ho-102","gold":[],"rationale":"한 줄 버전 변경이며 workflow 구조 점검은 요청되지 않았습니다.","difficulty":"medium"}
+{"id":"ho-103","gold":["purchase-request-draft"],"rationale":"An internal purchase approval document follows the company form; the quotes are only attachments.","difficulty":"hard"}
+{"id":"ho-104","gold":["vat-invoice-reconcile","ledger-export-douzone"],"rationale":"세금계산서 대사와 더존 업로드 파일 생성 두 가지입니다.","difficulty":"medium"}
+{"id":"ho-105","gold":["vendor-quote-compare","purchase-request-draft"],"rationale":"견적 비교와 품의서 작성이 모두 요청됐습니다.","difficulty":"easy"}
+{"id":"ho-106","gold":[],"rationale":"A one-line documentation correction; logging conventions are irrelevant.","difficulty":"medium"}
+{"id":"ho-107","gold":["board-bringup-checklist"],"rationale":"처음 전원을 넣는 새 기판은 브링업 절차를 따라야 합니다.","difficulty":"medium"}
+{"id":"ho-108","gold":["yaml-ci-matrix-lint"],"rationale":"Matrix explosion and missing concurrency cancellation are the workflow lint's targets.","difficulty":"hard"}
+{"id":"ho-109","gold":[],"rationale":"Standard coding exercise.","difficulty":"easy"}
+{"id":"ho-110","gold":["msa-redline-playbook"],"rationale":"Liability caps and SLAs in a service contract belong to the MSA playbook despite the confidentiality mention.","difficulty":"hard"}
+{"id":"ho-111","gold":[],"rationale":"Only a version bump is requested and release notes are explicitly excluded.","difficulty":"medium"}
+{"id":"ho-112","gold":["offboarding-access-revoke","onboarding-doc-pack"],"rationale":"One person leaving needs access revocation and one person joining needs the onboarding pack.","difficulty":"hard"}
+{"id":"ho-113","gold":[],"rationale":"도움말 문구 정리이며 실험 기록이나 탐색 실행과 무관합니다.","difficulty":"medium"}
+{"id":"ho-114","gold":["appstore-phased-rollout"],"rationale":"진행 중인 iOS 단계적 출시를 전체로 확대하는 조작입니다.","difficulty":"medium"}
+{"id":"ho-115","gold":["geojson-topology-repair"],"rationale":"위치는 맞고 경계 사이 틈과 겹침이 문제이므로 좌표 변환이 아니라 위상 정리입니다.","difficulty":"hard"}
+{"id":"ho-116","gold":[],"rationale":"흔한 에러 해석입니다.","difficulty":"easy"}
+{"id":"ho-117","gold":["ledger-export-douzone"],"rationale":"더존 업로드 양식과 코드 매핑 규칙이 필요합니다.","difficulty":"easy"}
+{"id":"ho-118","gold":[],"rationale":"입력 마스크 UI 작업이며 세금계산서 대사와 무관합니다.","difficulty":"medium"}
+{"id":"ho-119","gold":[],"rationale":"Reading a stack trace; no subtitle timing or encoding work is needed.","difficulty":"medium"}
+{"id":"ho-120","gold":[],"rationale":"테이블 정렬 기능 구현이며 온보딩 문서 작성이 아닙니다.","difficulty":"medium"}
+{"id":"ho-121","gold":[],"rationale":"flag를 쓰는 조건문의 버그 수정이며 flag 제거 작업이 아닙니다.","difficulty":"medium"}
+{"id":"ho-122","gold":["mlflow-run-logging","eval-leaderboard-update"],"rationale":"실험 추적 서버 기록 규칙과 리더보드 등록 규칙이 모두 적용됩니다.","difficulty":"hard"}
+{"id":"ho-123","gold":[],"rationale":"프론트엔드 계산 버그이며 검색 품질이나 사전과 무관합니다.","difficulty":"medium"}
+{"id":"ho-124","gold":["hls-ladder-encode"],"rationale":"Playback across poor networks requires an adaptive bitrate ladder.","difficulty":"hard"}
+{"id":"ho-125","gold":["nda-clause-review"],"rationale":"A counterparty NDA with term and residuals questions is the NDA review.","difficulty":"easy"}
+{"id":"ho-126","gold":[],"rationale":"Plain unit testing of a maths function; no dataset is being reprojected or repaired.","difficulty":"medium"}
+{"id":"ho-127","gold":["vat-invoice-reconcile"],"rationale":"홈택스 내역과 장부의 차이를 찾는 대사 작업입니다.","difficulty":"easy"}
+{"id":"ho-128","gold":["runbook-oncall-handover"],"rationale":"A rotation-change note follows the handover format.","difficulty":"medium"}
+{"id":"ho-129","gold":["geojson-topology-repair"],"rationale":"Alignment is fine, so this is invalid geometry and overlaps, not a projection problem.","difficulty":"medium"}
+{"id":"ho-130","gold":["airflow-dag-backfill"],"rationale":"과거 기간 DAG 재실행을 부하 제한과 함께 수행하는 backfill입니다.","difficulty":"medium"}
+{"id":"ho-131","gold":["cve-dependency-triage"],"rationale":"Deciding reachability and fix-or-exception per finding is the triage procedure.","difficulty":"medium"}
+{"id":"ho-132","gold":["openapi-contract-diff"],"rationale":"두 spec 버전의 breaking change 분류입니다.","difficulty":"easy"}
+{"id":"ho-133","gold":[],"rationale":"타임존 버그 수정이며 구매 품의나 견적과 무관합니다.","difficulty":"medium"}
+{"id":"ho-134","gold":["kakao-alimtalk-template"],"rationale":"Template review rules are specific and described by the Korean-language skill.","difficulty":"medium"}
+{"id":"ho-135","gold":[],"rationale":"에러 응답 코드만 바꾸는 작업이고 서명 검증은 명시적으로 제외됐습니다.","difficulty":"hard"}
+{"id":"ho-136","gold":[],"rationale":"문자열 헬퍼 구현이며 회고 문서나 알림 기준 설계가 아닙니다.","difficulty":"medium"}
+{"id":"ho-137","gold":[],"rationale":"라벨 문구 한 줄 수정이며 자막 싱크 작업이 아닙니다.","difficulty":"medium"}
+{"id":"ho-138","gold":[],"rationale":"Simple repository query.","difficulty":"easy"}
+{"id":"ho-139","gold":[],"rationale":"git 설정 작업이며 에셋 파이프라인과 무관합니다.","difficulty":"easy"}
+{"id":"ho-140","gold":[],"rationale":"일반 유틸 함수 작성입니다.","difficulty":"easy"}
+{"id":"ho-141","gold":["privacy-policy-gap-check"],"rationale":"A change in collected items triggers the statutory privacy notice gap check.","difficulty":"medium"}
+{"id":"ho-142","gold":["offboarding-access-revoke"],"rationale":"퇴사자 접근 권한 회수 체크리스트가 필요합니다.","difficulty":"medium"}
+{"id":"ho-143","gold":["i18n-string-extract"],"rationale":"Hard-coded strings need extracting into message catalogs before translation.","difficulty":"hard"}
+{"id":"ho-144","gold":["changelog-from-commits"],"rationale":"사내 형식의 릴리스 노트 작성입니다.","difficulty":"easy"}
+{"id":"ho-145","gold":[],"rationale":"A copy typo fix; no beta build is being distributed.","difficulty":"easy"}
+{"id":"ho-146","gold":[],"rationale":"값이 지정된 한 줄 수정이며 회의록 작성이나 토큰 내보내기, 접근성 점검이 아닙니다.","difficulty":"medium"}
+{"id":"ho-147","gold":["uart-console-debug"],"rationale":"부팅은 되는 보드의 동작을 시리얼 콘솔로 확인하는 일이며 첫 전원 인가나 벽돌 복구가 아닙니다.","difficulty":"medium"}
+{"id":"ho-148","gold":["payroll-yearend-settlement"],"rationale":"Duplicate dependant deductions are a named check in the year-end settlement review.","difficulty":"hard"}
+{"id":"ho-149","gold":[],"rationale":"노출 조건 구현이며 연말정산 자료 검토가 아닙니다.","difficulty":"medium"}
+{"id":"ho-150","gold":["video-loudness-normalize"],"rationale":"방송 음량 기준에 맞추는 라우드니스 정규화가 필요합니다.","difficulty":"hard"}
+{"id":"ho-151","gold":["a11y-contrast-audit"],"rationale":"A pre-release accessibility review of screens is exactly what the audit procedure covers, though the brief never says accessibility or WCAG.","difficulty":"hard"}
+{"id":"ho-152","gold":["eval-leaderboard-update"],"rationale":"Publishing a checkpoint score to the shared comparison board follows the leaderboard rules, not run logging or sweeps.","difficulty":"hard"}
+{"id":"ho-153","gold":[],"rationale":"주석 추가 작업이고 성능 진단이 필요 없다고 명시돼 있습니다.","difficulty":"medium"}
+{"id":"ho-154","gold":["webhook-signature-verify"],"rationale":"raw body 기준 HMAC 검증 규칙이 직접 적용되는 서명 불일치 디버깅입니다.","difficulty":"hard"}
+{"id":"ho-155","gold":["ranking-judgment-eval","query-rewrite-rules"],"rationale":"랭킹 변경의 오프라인 평가와 특정 검색어 고정 규칙 작성 두 가지입니다.","difficulty":"hard"}
+{"id":"ho-156","gold":["dmarc-spf-dkim-setup"],"rationale":"새 발송 도메인의 DNS 인증 레코드 설정입니다.","difficulty":"medium"}
+{"id":"ho-157","gold":["fbx-import-normalize"],"rationale":"단위와 축이 틀어진 모델은 임포트 정규화로 해결합니다.","difficulty":"hard"}
+{"id":"ho-158","gold":["pg-slow-query-plan"],"rationale":"실행 계획을 근거로 한 느린 쿼리 진단입니다.","difficulty":"medium"}
+{"id":"ho-159","gold":["testflight-beta-distribution"],"rationale":"A pre-submission build for testers is beta distribution, not a phased production release.","difficulty":"medium"}
+{"id":"ho-160","gold":[],"rationale":"jq 한 줄 작성이며 부하 테스트 시나리오 설계가 아닙니다.","difficulty":"medium"}
+{"id":"ho-161","gold":["slo-burn-alerting"],"rationale":"사용자 영향에 기반한 호출 기준으로 바꾸는 일은 SLO 소진율 알림 설계입니다.","difficulty":"hard"}
+{"id":"ho-162","gold":["pg-online-migration","pg-slow-query-plan"],"rationale":"One part is a non-blocking schema change on a huge table, the other a plan-based query diagnosis.","difficulty":"medium"}
+{"id":"ho-163","gold":["log-pipeline-parsing-rules"],"rationale":"로그 형식 변경으로 깨진 필드 추출 규칙을 고치는 일이며 trace_id는 필드 이름일 뿐입니다.","difficulty":"medium"}
+{"id":"ho-164","gold":["gsheet-pivot-report"],"rationale":"A self-updating roll-up tab is the pivot report; scenarios are explicitly deferred.","difficulty":"medium"}
+{"id":"ho-165","gold":[],"rationale":"일반적인 스크립트 작성입니다.","difficulty":"easy"}
+{"id":"ho-166","gold":["onboarding-doc-pack"],"rationale":"합류 전에 보내는 자료 묶음은 온보딩 문서 패키지입니다.","difficulty":"easy"}
+{"id":"ho-167","gold":["feature-flag-cleanup"],"rationale":"Removing a fully rolled-out flag and its dead branch follows the cleanup procedure.","difficulty":"medium"}
+{"id":"ho-168","gold":["appstore-phased-rollout"],"rationale":"Pausing an in-progress production phase on iOS is the phased-release control, not beta or Android.","difficulty":"medium"}
+{"id":"ho-169","gold":["msa-redline-playbook","nda-clause-review"],"rationale":"서비스 계약서와 NDA는 각각 다른 검토 기준을 따릅니다.","difficulty":"medium"}
+{"id":"ho-170","gold":["pg-online-migration"],"rationale":"대형 테이블의 무중단 스키마 변경입니다.","difficulty":"medium"}
+{"id":"ho-171","gold":[],"rationale":"단순 manifest 수정이며 리소스 튜닝이나 로그 파싱과 무관합니다.","difficulty":"easy"}
+{"id":"ho-172","gold":["k8s-hpa-right-sizing"],"rationale":"OOM kills at peak plus idle cost is a requests/limits/autoscaler tuning problem.","difficulty":"hard"}
+{"id":"ho-173","gold":["month-end-accrual-journal"],"rationale":"Unbilled and prepaid costs at close need accrual and deferral entries, not invoice matching or reconciliation.","difficulty":"hard"}
+{"id":"ho-174","gold":["otel-trace-instrumentation"],"rationale":"Attributing latency to hops needs tracing; logs and dashboards already exist.","difficulty":"hard"}
+{"id":"ho-175","gold":[],"rationale":"일반 지식 설명입니다.","difficulty":"easy"}
+{"id":"ho-176","gold":["pg-online-migration"],"rationale":"쓰기를 막지 않는 인덱스 생성은 온라인 마이그레이션이며 쿼리 진단은 끝난 상태입니다.","difficulty":"medium"}
+{"id":"ho-177","gold":["datasheet-register-map"],"rationale":"datasheet의 register table을 C header로 옮기는 작업입니다.","difficulty":"easy"}
+{"id":"ho-178","gold":[],"rationale":"단순 포매팅 버그 수정입니다.","difficulty":"easy"}
+{"id":"ho-179","gold":["customs-hs-code-lookup"],"rationale":"Tariff classification for a new export item is the HS code procedure, described in Korean.","difficulty":"hard"}
+{"id":"ho-180","gold":[],"rationale":"문서 번역은 별도 절차 없이 가능합니다.","difficulty":"easy"}

@@ -67,7 +67,7 @@ test('installed matchers observe Workflow boundaries and Codex collaboration spa
  }
 });
 test('extension production path never imports child_process or an external worker engine',async()=>{
- for(const name of await fs.readdir('src')){const text=await fs.readFile(path.join('src',name),'utf8');assert.ok(!text.includes('node:child_process'),name);}
+ for(const name of await fs.readdir('src',{recursive:true})){if(!name.endsWith('.mjs'))continue;const text=await fs.readFile(path.join('src',name),'utf8');assert.ok(!text.includes('node:child_process'),name);}
  await assert.rejects(fs.stat('src/worker.mjs'),e=>e.code==='ENOENT');await assert.rejects(fs.stat('src/engine.mjs'),e=>e.code==='ENOENT');await assert.rejects(fs.stat('skills'),e=>e.code==='ENOENT');
 });
 test('Codex managed profiles omit model to prevent overriding a Jev spawn-time decision',()=>{

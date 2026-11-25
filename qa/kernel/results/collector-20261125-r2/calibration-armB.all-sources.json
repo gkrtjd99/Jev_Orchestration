@@ -1,0 +1,610 @@
+{
+  "generatedFrom": {
+    "decisions": 32,
+    "labels": 384
+  },
+  "labels": {
+    "filter": {
+      "sources": null,
+      "excludeSources": []
+    },
+    "excludedByFilter": 0,
+    "retracted": 0,
+    "retractionMarkers": 0,
+    "bySource": [
+      {
+        "source": "external-verification-with-load",
+        "strength": "weak",
+        "oneSided": true,
+        "decisionInfluenced": false,
+        "labels": 3
+      },
+      {
+        "source": "external-verification-with-load-after-injection",
+        "strength": "weak",
+        "oneSided": true,
+        "decisionInfluenced": true,
+        "labels": 9
+      },
+      {
+        "source": "observed-load",
+        "strength": "weak",
+        "oneSided": false,
+        "decisionInfluenced": false,
+        "labels": 124
+      },
+      {
+        "source": "observed-load-after-injection",
+        "strength": "weak",
+        "oneSided": false,
+        "decisionInfluenced": true,
+        "labels": 248
+      }
+    ],
+    "weakSources": [
+      "external-verification-with-load",
+      "external-verification-with-load-after-injection",
+      "observed-load",
+      "observed-load-after-injection"
+    ],
+    "decisionInfluencedSources": [
+      "external-verification-with-load-after-injection",
+      "observed-load-after-injection"
+    ],
+    "oneSidedSources": [
+      "external-verification-with-load",
+      "external-verification-with-load-after-injection"
+    ],
+    "unclassifiedSources": [],
+    "note": "Metrics are only as strong as their labels. A \"weak\" source records behaviour (for example that a subagent loaded a skill), not ground truth, and is never \"sufficient\"; a \"decision-influenced\" source was written after the decision itself told the subagent what to do, so it must not be used to tune that decision; labels exist only for decisions that could be joined to a finished, readable run, so every metric is conditional on that subset; a \"one-sided\" source only ever writes one outcome, so rates over it are not accuracy; \"unclassified\" sources were attached by hand and are not vouched for here. Read each group's labelSources before its metrics."
+  },
+  "invalidLabels": 0,
+  "usage": {
+    "reported": 0,
+    "input_tokens": null,
+    "output_tokens": null,
+    "providers": [
+      {
+        "provider": "jev",
+        "decisions": 32,
+        "reported": 0,
+        "input_tokens": null,
+        "output_tokens": null
+      }
+    ]
+  },
+  "points": [
+    {
+      "pointId": "delegation.skills",
+      "decisions": 32,
+      "failed": 0,
+      "failureRate": 0,
+      "escalated": 0,
+      "escalationRate": 0,
+      "usage": {
+        "reported": 0,
+        "input_tokens": null,
+        "output_tokens": null,
+        "providers": [
+          {
+            "provider": "jev",
+            "decisions": 32,
+            "reported": 0,
+            "input_tokens": null,
+            "output_tokens": null
+          }
+        ]
+      },
+      "judges": [
+        {
+          "provider": "jev",
+          "attempts": 32,
+          "failures": 0,
+          "lowConfidence": 0,
+          "failureRate": 0
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "pointId": "delegation.skills",
+      "provider": "jev",
+      "type": "noul",
+      "models": [
+        "jev-1.14.0"
+      ],
+      "counts": {
+        "decisions": 32,
+        "answers": 992,
+        "labeled": 372,
+        "labeledDecisions": 12
+      },
+      "invalidLabels": 0,
+      "sufficient": false,
+      "sufficientReason": "weak_labels",
+      "operational": {
+        "cachedRate": 0,
+        "latencyMs": {
+          "p50": 301.956458,
+          "p95": 1122.761541
+        },
+        "meanConfidence": 0.5437500000000002,
+        "usage": {
+          "reported": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        }
+      },
+      "metricsLabelStrength": "weak",
+      "metrics": {
+        "brier": 0.00785537634408602,
+        "ece": 0.03623655913978479,
+        "baseRate": 0.03225806451612903,
+        "threshold": 0.5,
+        "precision": 1,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091,
+        "tp": 10,
+        "fp": 0,
+        "tn": 360,
+        "fn": 2,
+        "reliability": [
+          {
+            "lower": 0,
+            "upper": 0.1,
+            "count": 346,
+            "meanPredicted": 0.0264739884393062,
+            "observedRate": 0.002890173410404624
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 10,
+            "meanPredicted": 0.132,
+            "observedRate": 0
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.3,
+            "count": 3,
+            "meanPredicted": 0.23666666666666666,
+            "observedRate": 0
+          },
+          {
+            "lower": 0.3,
+            "upper": 0.4,
+            "count": 1,
+            "meanPredicted": 0.32,
+            "observedRate": 1
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 2,
+            "meanPredicted": 0.42,
+            "observedRate": 0
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 0,
+            "meanPredicted": null,
+            "observedRate": null
+          },
+          {
+            "lower": 0.6,
+            "upper": 0.7,
+            "count": 4,
+            "meanPredicted": 0.66,
+            "observedRate": 1
+          },
+          {
+            "lower": 0.7,
+            "upper": 0.8,
+            "count": 1,
+            "meanPredicted": 0.71,
+            "observedRate": 1
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 0,
+            "meanPredicted": null,
+            "observedRate": null
+          },
+          {
+            "lower": 0.9,
+            "upper": 1,
+            "count": 5,
+            "meanPredicted": 0.976,
+            "observedRate": 1
+          }
+        ]
+      },
+      "labelSources": [
+        {
+          "source": "external-verification-with-load",
+          "strength": "weak",
+          "oneSided": true,
+          "decisionInfluenced": false,
+          "labeled": 3,
+          "labeledDecisions": 1,
+          "sufficient": false,
+          "sufficientReason": "weak_labels",
+          "metrics": {
+            "brier": 0.4371,
+            "ece": 0.5499999999999999,
+            "baseRate": 1,
+            "threshold": 0.5,
+            "precision": 1,
+            "recall": 0.3333333333333333,
+            "f1": 0.5,
+            "tp": 1,
+            "fp": 0,
+            "tn": 0,
+            "fn": 2,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 1,
+                "meanPredicted": 0.08,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 1,
+                "meanPredicted": 0.32,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 1,
+                "meanPredicted": 0.95,
+                "observedRate": 1
+              }
+            ]
+          }
+        },
+        {
+          "source": "external-verification-with-load-after-injection",
+          "strength": "weak",
+          "oneSided": true,
+          "decisionInfluenced": true,
+          "labeled": 9,
+          "labeledDecisions": 4,
+          "sufficient": false,
+          "sufficientReason": "weak_labels",
+          "metrics": {
+            "brier": 0.061222222222222226,
+            "ece": 0.1911111111111111,
+            "baseRate": 1,
+            "threshold": 0.5,
+            "precision": 1,
+            "recall": 1,
+            "f1": 1,
+            "tp": 9,
+            "fp": 0,
+            "tn": 0,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 4,
+                "meanPredicted": 0.66,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 1,
+                "meanPredicted": 0.71,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 4,
+                "meanPredicted": 0.9824999999999999,
+                "observedRate": 1
+              }
+            ]
+          }
+        },
+        {
+          "source": "observed-load",
+          "strength": "weak",
+          "oneSided": false,
+          "decisionInfluenced": false,
+          "labeled": 124,
+          "labeledDecisions": 4,
+          "sufficient": false,
+          "sufficientReason": "weak_labels",
+          "metrics": {
+            "brier": 0.011655645161290288,
+            "ece": 0.02491935483870967,
+            "baseRate": 0.024193548387096774,
+            "threshold": 0.5,
+            "precision": 1,
+            "recall": 0.3333333333333333,
+            "f1": 0.5,
+            "tp": 1,
+            "fp": 0,
+            "tn": 121,
+            "fn": 2,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 121,
+                "meanPredicted": 0.026859504132231392,
+                "observedRate": 0.008264462809917356
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 1,
+                "meanPredicted": 0.11,
+                "observedRate": 0
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 1,
+                "meanPredicted": 0.32,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 1,
+                "meanPredicted": 0.95,
+                "observedRate": 1
+              }
+            ]
+          }
+        },
+        {
+          "source": "observed-load-after-injection",
+          "strength": "weak",
+          "oneSided": false,
+          "decisionInfluenced": true,
+          "labeled": 248,
+          "labeledDecisions": 8,
+          "sufficient": false,
+          "sufficientReason": "weak_labels",
+          "metrics": {
+            "brier": 0.005955241935483853,
+            "ece": 0.04189516129032249,
+            "baseRate": 0.036290322580645164,
+            "threshold": 0.5,
+            "precision": 1,
+            "recall": 1,
+            "f1": 1,
+            "tp": 9,
+            "fp": 0,
+            "tn": 239,
+            "fn": 0,
+            "reliability": [
+              {
+                "lower": 0,
+                "upper": 0.1,
+                "count": 225,
+                "meanPredicted": 0.026266666666666563,
+                "observedRate": 0
+              },
+              {
+                "lower": 0.1,
+                "upper": 0.2,
+                "count": 9,
+                "meanPredicted": 0.13444444444444445,
+                "observedRate": 0
+              },
+              {
+                "lower": 0.2,
+                "upper": 0.3,
+                "count": 3,
+                "meanPredicted": 0.23666666666666666,
+                "observedRate": 0
+              },
+              {
+                "lower": 0.3,
+                "upper": 0.4,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.4,
+                "upper": 0.5,
+                "count": 2,
+                "meanPredicted": 0.42,
+                "observedRate": 0
+              },
+              {
+                "lower": 0.5,
+                "upper": 0.6,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.6,
+                "upper": 0.7,
+                "count": 4,
+                "meanPredicted": 0.66,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.7,
+                "upper": 0.8,
+                "count": 1,
+                "meanPredicted": 0.71,
+                "observedRate": 1
+              },
+              {
+                "lower": 0.8,
+                "upper": 0.9,
+                "count": 0,
+                "meanPredicted": null,
+                "observedRate": null
+              },
+              {
+                "lower": 0.9,
+                "upper": 1,
+                "count": 4,
+                "meanPredicted": 0.9824999999999999,
+                "observedRate": 1
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "corruptLines": 0
+}

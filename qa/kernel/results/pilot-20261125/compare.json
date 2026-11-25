@@ -1,0 +1,3234 @@
+{
+  "arms": {
+    "a": "baseline",
+    "b": "assisted"
+  },
+  "armDifferences": [
+    {
+      "id": "t04",
+      "a": "general-purpose / claude-fable-5-2 / effort medium (route deferred: selector_abstained)",
+      "b": "jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5 / effort xhigh"
+    }
+  ],
+  "pairs": [
+    {
+      "id": "t01",
+      "kind": "skill",
+      "lang": "en",
+      "targetSkill": "partner-file-exports",
+      "a": {
+        "done": true,
+        "convention": true,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "partner-file-exports"
+        ],
+        "toolCalls": 13,
+        "tokens": 788750,
+        "wallMs": 96468,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_light_xhigh_ff567b09c6",
+        "model": "claude-sonnet-5-5",
+        "effort": "xhigh",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 11,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_light_xhigh_ff567b09c6"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 1,
+        "firstWriteIndex": 6,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 22,
+          "output": 13318,
+          "cacheRead": 694174,
+          "cacheCreation": 81236
+        },
+        "toolCallsWithoutHandback": 12,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": true,
+        "injected": false,
+        "injectedLoad": [],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "partner-file-exports",
+          "report-figure-reconciliation"
+        ],
+        "toolCalls": 12,
+        "tokens": 728254,
+        "wallMs": 97307,
+        "outOfScopeWrites": [],
+        "warnings": 4,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_light_xhigh_ff567b09c6",
+        "model": "claude-sonnet-5-5",
+        "effort": "xhigh",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 10,
+        "sentInjected": false,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.46,
+        "load": [],
+        "suggest": [],
+        "top": [
+          {
+            "name": "partner-file-exports",
+            "probability": 0.92,
+            "stage": "need_gate"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.24,
+            "stage": "need_gate"
+          },
+          {
+            "name": "dashboard-summary-columns",
+            "probability": 0.09,
+            "stage": "need_gate"
+          }
+        ],
+        "targetJudged": {
+          "probability": 0.92,
+          "stage": "need_gate"
+        },
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 589,
+          "latencyMsMax": 301,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.32,
+            "injected": false,
+            "target": {
+              "probability": 0.95,
+              "stage": "need_gate"
+            },
+            "load": [],
+            "suggest": [],
+            "profile": "jev4_implement_light_xhigh_ff567b09c6"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.46,
+            "injected": false,
+            "target": {
+              "probability": 0.92,
+              "stage": "need_gate"
+            },
+            "load": [],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 1,
+        "firstWriteIndex": 5,
+        "firstBashWriteIndex": 10,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 20,
+          "output": 13132,
+          "cacheRead": 633530,
+          "cacheCreation": 81572
+        },
+        "toolCallsWithoutHandback": 11,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t02",
+      "kind": "skill",
+      "lang": "ko",
+      "targetSkill": "runtime-settings",
+      "a": {
+        "done": true,
+        "convention": true,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "runtime-settings"
+        ],
+        "toolCalls": 11,
+        "tokens": 462055,
+        "wallMs": 60919,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 7,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 0,
+        "firstWriteIndex": 5,
+        "firstBashWriteIndex": 9,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 14,
+          "output": 6750,
+          "cacheRead": 381197,
+          "cacheCreation": 74094
+        },
+        "toolCallsWithoutHandback": 10,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": true,
+        "injected": true,
+        "injectedLoad": [
+          "runtime-settings"
+        ],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "runtime-settings"
+        ],
+        "toolCalls": 11,
+        "tokens": 648398,
+        "wallMs": 69768,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 10,
+        "sentInjected": true,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.76,
+        "load": [
+          {
+            "name": "runtime-settings",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "runtime-settings",
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          {
+            "name": "settings-load-debugging",
+            "probability": 0.19,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "settings-doc-wording",
+            "probability": 0.1,
+            "stage": "below_threshold"
+          }
+        ],
+        "targetJudged": {
+          "probability": 0.98,
+          "stage": "loaded"
+        },
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 617,
+          "latencyMsMax": 317,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.62,
+            "injected": true,
+            "target": {
+              "probability": 0.99,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "runtime-settings",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.76,
+            "injected": true,
+            "target": {
+              "probability": 0.98,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "runtime-settings",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": true,
+        "blockLoad": [
+          "runtime-settings"
+        ],
+        "blockConsider": [],
+        "loadIndex": 0,
+        "firstWriteIndex": 5,
+        "firstBashWriteIndex": 8,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 20,
+          "output": 7112,
+          "cacheRead": 605258,
+          "cacheCreation": 36008
+        },
+        "toolCallsWithoutHandback": 10,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t03",
+      "kind": "control",
+      "lang": "en",
+      "targetSkill": null,
+      "a": {
+        "done": true,
+        "convention": null,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": null,
+        "targetSkillLoadedVia": null,
+        "targetListedToSubagent": null,
+        "loadedSkills": [],
+        "toolCalls": 7,
+        "tokens": 298640,
+        "wallMs": 33029,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 5,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": null,
+        "firstWriteIndex": 3,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": null,
+        "beforeAnyWrite": null,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 10,
+          "output": 3618,
+          "cacheRead": 267244,
+          "cacheCreation": 27768
+        },
+        "toolCallsWithoutHandback": 6,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": null,
+        "injected": false,
+        "injectedLoad": [],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": null,
+        "targetSkillLoadedVia": null,
+        "targetListedToSubagent": null,
+        "loadedSkills": [],
+        "toolCalls": 7,
+        "tokens": 369347,
+        "wallMs": 35077,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 6,
+        "sentInjected": false,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.08,
+        "load": [],
+        "suggest": [],
+        "top": [
+          {
+            "name": "repo-tour",
+            "probability": 0.14,
+            "stage": "need_gate"
+          },
+          {
+            "name": "flaky-test-quarantine",
+            "probability": 0.07,
+            "stage": "need_gate"
+          },
+          {
+            "name": "commit-message-style",
+            "probability": 0.07,
+            "stage": "need_gate"
+          }
+        ],
+        "targetJudged": null,
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 602,
+          "latencyMsMax": 303,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.09,
+            "injected": false,
+            "target": null,
+            "load": [],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.08,
+            "injected": false,
+            "target": null,
+            "load": [],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": null,
+        "firstWriteIndex": 3,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": null,
+        "beforeAnyWrite": null,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 12,
+          "output": 3624,
+          "cacheRead": 336570,
+          "cacheCreation": 29141
+        },
+        "toolCallsWithoutHandback": 6,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t04",
+      "kind": "skill",
+      "lang": "ko",
+      "targetSkill": "periodic-job-contract",
+      "a": {
+        "done": true,
+        "convention": true,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 1,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "periodic-job-contract"
+        ],
+        "toolCalls": 5,
+        "tokens": 241661,
+        "wallMs": 40664,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 0,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": null,
+        "firstCallPromptVerbatim": true,
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "effort": "medium",
+        "asPreRegistered": true,
+        "routingBlocksInPrompt": 0,
+        "apiTurns": 4,
+        "sentInjected": null,
+        "appliedSource": "scored_call",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": "selector_abstained",
+        "routeProfile": null,
+        "routeDeferred": "selector_abstained",
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": null
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 0,
+        "firstWriteIndex": null,
+        "firstBashWriteIndex": 3,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 8,
+          "output": 4143,
+          "cacheRead": 173079,
+          "cacheCreation": 64431
+        },
+        "toolCallsWithoutHandback": 4,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": true,
+        "injected": true,
+        "injectedLoad": [
+          "periodic-job-contract"
+        ],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "periodic-job-contract",
+          "job-interval-changes"
+        ],
+        "toolCalls": 16,
+        "tokens": 1019249,
+        "wallMs": 136179,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "effort": "xhigh",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 13,
+        "sentInjected": true,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_xhigh_e9747b20fc",
+        "routeDeferred": null,
+        "need": 0.89,
+        "load": [
+          {
+            "name": "periodic-job-contract",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "periodic-job-contract",
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.24,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "crontab-expressions",
+            "probability": 0.19,
+            "stage": "below_threshold"
+          }
+        ],
+        "targetJudged": {
+          "probability": 0.98,
+          "stage": "loaded"
+        },
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 608,
+          "latencyMsMax": 306,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.83,
+            "injected": true,
+            "target": {
+              "probability": 0.99,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_xhigh_e9747b20fc"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.89,
+            "injected": true,
+            "target": {
+              "probability": 0.98,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_xhigh_e9747b20fc"
+          }
+        ],
+        "blockInPrompt": true,
+        "blockLoad": [
+          "periodic-job-contract"
+        ],
+        "blockConsider": [],
+        "loadIndex": 0,
+        "firstWriteIndex": 7,
+        "firstBashWriteIndex": 13,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 26,
+          "output": 13622,
+          "cacheRead": 952043,
+          "cacheCreation": 53558
+        },
+        "toolCallsWithoutHandback": 15,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t05",
+      "kind": "skill",
+      "lang": "en",
+      "targetSkill": "domain-failure-types",
+      "a": {
+        "done": true,
+        "convention": true,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "domain-failure-types"
+        ],
+        "toolCalls": 12,
+        "tokens": 451217,
+        "wallMs": 48944,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 7,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 0,
+        "firstWriteIndex": 5,
+        "firstBashWriteIndex": 10,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 14,
+          "output": 5248,
+          "cacheRead": 413801,
+          "cacheCreation": 32154
+        },
+        "toolCallsWithoutHandback": 11,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": true,
+        "injected": true,
+        "injectedLoad": [
+          "domain-failure-types"
+        ],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "domain-failure-types"
+        ],
+        "toolCalls": 7,
+        "tokens": 381086,
+        "wallMs": 39492,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 6,
+        "sentInjected": true,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.77,
+        "load": [
+          {
+            "name": "domain-failure-types",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "domain-failure-types",
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.14,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "error-message-wording",
+            "probability": 0.09,
+            "stage": "below_threshold"
+          }
+        ],
+        "targetJudged": {
+          "probability": 0.99,
+          "stage": "loaded"
+        },
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 949,
+          "latencyMsMax": 480,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.71,
+            "injected": true,
+            "target": {
+              "probability": 0.98,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "domain-failure-types",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.77,
+            "injected": true,
+            "target": {
+              "probability": 0.99,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "domain-failure-types",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": true,
+        "blockLoad": [
+          "domain-failure-types"
+        ],
+        "blockConsider": [],
+        "loadIndex": 0,
+        "firstWriteIndex": null,
+        "firstBashWriteIndex": 4,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 12,
+          "output": 4203,
+          "cacheRead": 346401,
+          "cacheCreation": 30470
+        },
+        "toolCallsWithoutHandback": 6,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t06",
+      "kind": "skill",
+      "lang": "ko",
+      "targetSkill": "read-endpoints",
+      "a": {
+        "done": true,
+        "convention": true,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "read-endpoints"
+        ],
+        "toolCalls": 9,
+        "tokens": 393969,
+        "wallMs": 43655,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 6,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 0,
+        "firstWriteIndex": 4,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 12,
+          "output": 4801,
+          "cacheRead": 354929,
+          "cacheCreation": 34227
+        },
+        "toolCallsWithoutHandback": 8,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": true,
+        "injected": true,
+        "injectedLoad": [
+          "read-endpoints"
+        ],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "read-endpoints"
+        ],
+        "toolCalls": 10,
+        "tokens": 376395,
+        "wallMs": 45546,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 6,
+        "sentInjected": true,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.71,
+        "load": [
+          {
+            "name": "read-endpoints",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "read-endpoints",
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          {
+            "name": "handler-error-mapping",
+            "probability": 0.35,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "api-doc-entries",
+            "probability": 0.28,
+            "stage": "below_threshold"
+          }
+        ],
+        "targetJudged": {
+          "probability": 0.99,
+          "stage": "loaded"
+        },
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 563,
+          "latencyMsMax": 285,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.65,
+            "injected": true,
+            "target": {
+              "probability": 0.99,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "read-endpoints",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.71,
+            "injected": true,
+            "target": {
+              "probability": 0.99,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "read-endpoints",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": true,
+        "blockLoad": [
+          "read-endpoints"
+        ],
+        "blockConsider": [],
+        "loadIndex": 0,
+        "firstWriteIndex": 4,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 12,
+          "output": 5158,
+          "cacheRead": 340842,
+          "cacheCreation": 30383
+        },
+        "toolCallsWithoutHandback": 9,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t07",
+      "kind": "control",
+      "lang": "ko",
+      "targetSkill": null,
+      "a": {
+        "done": true,
+        "convention": null,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": null,
+        "targetSkillLoadedVia": null,
+        "targetListedToSubagent": null,
+        "loadedSkills": [],
+        "toolCalls": 6,
+        "tokens": 303936,
+        "wallMs": 32809,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 5,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": null,
+        "firstWriteIndex": 2,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": null,
+        "beforeAnyWrite": null,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 10,
+          "output": 3299,
+          "cacheRead": 273509,
+          "cacheCreation": 27118
+        },
+        "toolCallsWithoutHandback": 5,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": null,
+        "injected": false,
+        "injectedLoad": [],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": null,
+        "targetSkillLoadedVia": null,
+        "targetListedToSubagent": null,
+        "loadedSkills": [],
+        "toolCalls": 6,
+        "tokens": 308989,
+        "wallMs": 32358,
+        "outOfScopeWrites": [],
+        "warnings": 2,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 5,
+        "sentInjected": false,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.1,
+        "load": [],
+        "suggest": [],
+        "top": [
+          {
+            "name": "repo-tour",
+            "probability": 0.14,
+            "stage": "need_gate"
+          },
+          {
+            "name": "flaky-test-quarantine",
+            "probability": 0.1,
+            "stage": "need_gate"
+          },
+          {
+            "name": "who-owns-what",
+            "probability": 0.09,
+            "stage": "need_gate"
+          }
+        ],
+        "targetJudged": null,
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 586,
+          "latencyMsMax": 303,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.07,
+            "injected": false,
+            "target": null,
+            "load": [],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.1,
+            "injected": false,
+            "target": null,
+            "load": [],
+            "suggest": [],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": null,
+        "firstWriteIndex": 2,
+        "firstBashWriteIndex": null,
+        "beforeFirstWrite": null,
+        "beforeAnyWrite": null,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 10,
+          "output": 3394,
+          "cacheRead": 277093,
+          "cacheCreation": 28492
+        },
+        "toolCallsWithoutHandback": 5,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    },
+    {
+      "id": "t08",
+      "kind": "skill",
+      "lang": "en",
+      "targetSkill": "customer-text-messages",
+      "a": {
+        "done": true,
+        "convention": true,
+        "injected": null,
+        "injectedLoad": null,
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "customer-text-messages"
+        ],
+        "toolCalls": 11,
+        "tokens": 448201,
+        "wallMs": 47480,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 7,
+        "sentInjected": null,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": null,
+        "load": null,
+        "suggest": null,
+        "top": null,
+        "targetJudged": null,
+        "judge": null,
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": null,
+            "injected": null,
+            "target": null,
+            "load": null,
+            "suggest": null,
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": false,
+        "blockLoad": null,
+        "blockConsider": null,
+        "loadIndex": 0,
+        "firstWriteIndex": 5,
+        "firstBashWriteIndex": 9,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 14,
+          "output": 4746,
+          "cacheRead": 410745,
+          "cacheCreation": 32696
+        },
+        "toolCallsWithoutHandback": 10,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      },
+      "b": {
+        "done": true,
+        "convention": true,
+        "injected": true,
+        "injectedLoad": [
+          "customer-text-messages"
+        ],
+        "blockedBy": [],
+        "delegated": true,
+        "agentCalls": 2,
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetListedToSubagent": true,
+        "loadedSkills": [
+          "customer-text-messages",
+          "notification-placeholder-data"
+        ],
+        "toolCalls": 9,
+        "tokens": 428843,
+        "wallMs": 43886,
+        "outOfScopeWrites": [],
+        "warnings": 3,
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredPromptIsHookRewrite": true,
+        "firstCallPromptVerbatim": true,
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "effort": "high",
+        "asPreRegistered": false,
+        "routingBlocksInPrompt": 1,
+        "apiTurns": 7,
+        "sentInjected": true,
+        "appliedSource": "refused_attempt",
+        "appliedAttemptIndex": 0,
+        "appliedRouteDeferred": null,
+        "routeProfile": "jev4_implement_standard_high_e71cff8bbd",
+        "routeDeferred": null,
+        "need": 0.79,
+        "load": [
+          {
+            "name": "customer-text-messages",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [
+          {
+            "name": "notification-placeholder-data",
+            "probability": 0.64
+          }
+        ],
+        "top": [
+          {
+            "name": "customer-text-messages",
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          {
+            "name": "notification-placeholder-data",
+            "probability": 0.64,
+            "stage": "suggested"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.12,
+            "stage": "below_threshold"
+          }
+        ],
+        "targetJudged": {
+          "probability": 0.98,
+          "stage": "loaded"
+        },
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 606,
+          "latencyMsMax": 309,
+          "cached": false
+        },
+        "attemptsJudged": [
+          {
+            "outcome": "refused",
+            "need": 0.69,
+            "injected": true,
+            "target": {
+              "probability": 0.97,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "customer-text-messages",
+                "probability": 0.97
+              }
+            ],
+            "suggest": [
+              {
+                "name": "notification-placeholder-data",
+                "probability": 0.68
+              }
+            ],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          },
+          {
+            "outcome": "launched",
+            "need": 0.79,
+            "injected": true,
+            "target": {
+              "probability": 0.98,
+              "stage": "loaded"
+            },
+            "load": [
+              {
+                "name": "customer-text-messages",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [
+              {
+                "name": "notification-placeholder-data",
+                "probability": 0.64
+              }
+            ],
+            "profile": "jev4_implement_standard_high_e71cff8bbd"
+          }
+        ],
+        "blockInPrompt": true,
+        "blockLoad": [
+          "customer-text-messages"
+        ],
+        "blockConsider": [
+          "notification-placeholder-data"
+        ],
+        "loadIndex": 0,
+        "firstWriteIndex": 5,
+        "firstBashWriteIndex": 7,
+        "beforeFirstWrite": true,
+        "beforeAnyWrite": true,
+        "listedCatalog": 60,
+        "listedTotal": 101,
+        "listedWithDescription": 60,
+        "tokenParts": {
+          "input": 14,
+          "output": 4617,
+          "cacheRead": 395540,
+          "cacheCreation": 28672
+        },
+        "toolCallsWithoutHandback": 8,
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        }
+      }
+    }
+  ],
+  "paired": {
+    "pairsMeasured": 6,
+    "bothPass": 6,
+    "onlyA": 0,
+    "onlyB": 0,
+    "neither": 0
+  },
+  "differences": {
+    "toolCalls": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 13,
+          "b": 12,
+          "sameSetup": true,
+          "diff": -1
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 11,
+          "b": 11,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 7,
+          "b": 7,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 5,
+          "b": 16,
+          "sameSetup": false,
+          "diff": 11
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 12,
+          "b": 7,
+          "sameSetup": true,
+          "diff": -5
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 9,
+          "b": 10,
+          "sameSetup": true,
+          "diff": 1
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 6,
+          "b": 6,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 11,
+          "b": 9,
+          "sameSetup": true,
+          "diff": -2
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 74,
+        "b": 78,
+        "diff": 4,
+        "bLower": 3,
+        "bHigher": 2
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 61,
+        "b": 65,
+        "diff": 4,
+        "bLower": 3,
+        "bHigher": 2
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 13,
+        "b": 13,
+        "diff": 0,
+        "bLower": 0,
+        "bHigher": 0
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 69,
+        "b": 62,
+        "diff": -7,
+        "bLower": 3,
+        "bHigher": 1
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 56,
+        "b": 49,
+        "diff": -7,
+        "bLower": 3,
+        "bHigher": 1
+      }
+    },
+    "apiTurns": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 11,
+          "b": 10,
+          "sameSetup": true,
+          "diff": -1
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 7,
+          "b": 10,
+          "sameSetup": true,
+          "diff": 3
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 5,
+          "b": 6,
+          "sameSetup": true,
+          "diff": 1
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 4,
+          "b": 13,
+          "sameSetup": false,
+          "diff": 9
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 7,
+          "b": 6,
+          "sameSetup": true,
+          "diff": -1
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 6,
+          "b": 6,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 5,
+          "b": 5,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 7,
+          "b": 7,
+          "sameSetup": true,
+          "diff": 0
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 52,
+        "b": 63,
+        "diff": 11,
+        "bLower": 2,
+        "bHigher": 3
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 42,
+        "b": 52,
+        "diff": 10,
+        "bLower": 2,
+        "bHigher": 2
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 10,
+        "b": 11,
+        "diff": 1,
+        "bLower": 0,
+        "bHigher": 1
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 48,
+        "b": 50,
+        "diff": 2,
+        "bLower": 2,
+        "bHigher": 2
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 38,
+        "b": 39,
+        "diff": 1,
+        "bLower": 2,
+        "bHigher": 1
+      }
+    },
+    "tokens": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 788750,
+          "b": 728254,
+          "sameSetup": true,
+          "diff": -60496
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 462055,
+          "b": 648398,
+          "sameSetup": true,
+          "diff": 186343
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 298640,
+          "b": 369347,
+          "sameSetup": true,
+          "diff": 70707
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 241661,
+          "b": 1019249,
+          "sameSetup": false,
+          "diff": 777588
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 451217,
+          "b": 381086,
+          "sameSetup": true,
+          "diff": -70131
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 393969,
+          "b": 376395,
+          "sameSetup": true,
+          "diff": -17574
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 303936,
+          "b": 308989,
+          "sameSetup": true,
+          "diff": 5053
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 448201,
+          "b": 428843,
+          "sameSetup": true,
+          "diff": -19358
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 3388429,
+        "b": 4260561,
+        "diff": 872132,
+        "bLower": 4,
+        "bHigher": 4
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 2785853,
+        "b": 3582225,
+        "diff": 796372,
+        "bLower": 4,
+        "bHigher": 2
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 602576,
+        "b": 678336,
+        "diff": 75760,
+        "bLower": 0,
+        "bHigher": 2
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 3146768,
+        "b": 3241312,
+        "diff": 94544,
+        "bLower": 4,
+        "bHigher": 3
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 2544192,
+        "b": 2562976,
+        "diff": 18784,
+        "bLower": 4,
+        "bHigher": 1
+      }
+    },
+    "outputTokens": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 13318,
+          "b": 13132,
+          "sameSetup": true,
+          "diff": -186
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 6750,
+          "b": 7112,
+          "sameSetup": true,
+          "diff": 362
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 3618,
+          "b": 3624,
+          "sameSetup": true,
+          "diff": 6
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 4143,
+          "b": 13622,
+          "sameSetup": false,
+          "diff": 9479
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 5248,
+          "b": 4203,
+          "sameSetup": true,
+          "diff": -1045
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 4801,
+          "b": 5158,
+          "sameSetup": true,
+          "diff": 357
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 3299,
+          "b": 3394,
+          "sameSetup": true,
+          "diff": 95
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 4746,
+          "b": 4617,
+          "sameSetup": true,
+          "diff": -129
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 45923,
+        "b": 54862,
+        "diff": 8939,
+        "bLower": 3,
+        "bHigher": 5
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 39006,
+        "b": 47844,
+        "diff": 8838,
+        "bLower": 3,
+        "bHigher": 3
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 6917,
+        "b": 7018,
+        "diff": 101,
+        "bLower": 0,
+        "bHigher": 2
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 41780,
+        "b": 41240,
+        "diff": -540,
+        "bLower": 3,
+        "bHigher": 4
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 34863,
+        "b": 34222,
+        "diff": -641,
+        "bLower": 3,
+        "bHigher": 2
+      }
+    },
+    "inputTokens": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 22,
+          "b": 20,
+          "sameSetup": true,
+          "diff": -2
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 14,
+          "b": 20,
+          "sameSetup": true,
+          "diff": 6
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 10,
+          "b": 12,
+          "sameSetup": true,
+          "diff": 2
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 8,
+          "b": 26,
+          "sameSetup": false,
+          "diff": 18
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 14,
+          "b": 12,
+          "sameSetup": true,
+          "diff": -2
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 12,
+          "b": 12,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 10,
+          "b": 10,
+          "sameSetup": true,
+          "diff": 0
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 14,
+          "b": 14,
+          "sameSetup": true,
+          "diff": 0
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 104,
+        "b": 126,
+        "diff": 22,
+        "bLower": 2,
+        "bHigher": 3
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 84,
+        "b": 104,
+        "diff": 20,
+        "bLower": 2,
+        "bHigher": 2
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 20,
+        "b": 22,
+        "diff": 2,
+        "bLower": 0,
+        "bHigher": 1
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 96,
+        "b": 100,
+        "diff": 4,
+        "bLower": 2,
+        "bHigher": 2
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 76,
+        "b": 78,
+        "diff": 2,
+        "bLower": 2,
+        "bHigher": 1
+      }
+    },
+    "cacheReadTokens": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 694174,
+          "b": 633530,
+          "sameSetup": true,
+          "diff": -60644
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 381197,
+          "b": 605258,
+          "sameSetup": true,
+          "diff": 224061
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 267244,
+          "b": 336570,
+          "sameSetup": true,
+          "diff": 69326
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 173079,
+          "b": 952043,
+          "sameSetup": false,
+          "diff": 778964
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 413801,
+          "b": 346401,
+          "sameSetup": true,
+          "diff": -67400
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 354929,
+          "b": 340842,
+          "sameSetup": true,
+          "diff": -14087
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 273509,
+          "b": 277093,
+          "sameSetup": true,
+          "diff": 3584
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 410745,
+          "b": 395540,
+          "sameSetup": true,
+          "diff": -15205
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 2968678,
+        "b": 3887277,
+        "diff": 918599,
+        "bLower": 4,
+        "bHigher": 4
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 2427925,
+        "b": 3273614,
+        "diff": 845689,
+        "bLower": 4,
+        "bHigher": 2
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 540753,
+        "b": 613663,
+        "diff": 72910,
+        "bLower": 0,
+        "bHigher": 2
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 2795599,
+        "b": 2935234,
+        "diff": 139635,
+        "bLower": 4,
+        "bHigher": 3
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 2254846,
+        "b": 2321571,
+        "diff": 66725,
+        "bLower": 4,
+        "bHigher": 1
+      }
+    },
+    "cacheCreationTokens": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 81236,
+          "b": 81572,
+          "sameSetup": true,
+          "diff": 336
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 74094,
+          "b": 36008,
+          "sameSetup": true,
+          "diff": -38086
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 27768,
+          "b": 29141,
+          "sameSetup": true,
+          "diff": 1373
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 64431,
+          "b": 53558,
+          "sameSetup": false,
+          "diff": -10873
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 32154,
+          "b": 30470,
+          "sameSetup": true,
+          "diff": -1684
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 34227,
+          "b": 30383,
+          "sameSetup": true,
+          "diff": -3844
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 27118,
+          "b": 28492,
+          "sameSetup": true,
+          "diff": 1374
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 32696,
+          "b": 28672,
+          "sameSetup": true,
+          "diff": -4024
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 373724,
+        "b": 318296,
+        "diff": -55428,
+        "bLower": 5,
+        "bHigher": 3
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 318838,
+        "b": 260663,
+        "diff": -58175,
+        "bLower": 5,
+        "bHigher": 1
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 54886,
+        "b": 57633,
+        "diff": 2747,
+        "bLower": 0,
+        "bHigher": 2
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 309293,
+        "b": 264738,
+        "diff": -44555,
+        "bLower": 4,
+        "bHigher": 3
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 254407,
+        "b": 207105,
+        "diff": -47302,
+        "bLower": 4,
+        "bHigher": 1
+      }
+    },
+    "wallMs": {
+      "perTask": [
+        {
+          "id": "t01",
+          "kind": "skill",
+          "a": 96468,
+          "b": 97307,
+          "sameSetup": true,
+          "diff": 839
+        },
+        {
+          "id": "t02",
+          "kind": "skill",
+          "a": 60919,
+          "b": 69768,
+          "sameSetup": true,
+          "diff": 8849
+        },
+        {
+          "id": "t03",
+          "kind": "control",
+          "a": 33029,
+          "b": 35077,
+          "sameSetup": true,
+          "diff": 2048
+        },
+        {
+          "id": "t04",
+          "kind": "skill",
+          "a": 40664,
+          "b": 136179,
+          "sameSetup": false,
+          "diff": 95515
+        },
+        {
+          "id": "t05",
+          "kind": "skill",
+          "a": 48944,
+          "b": 39492,
+          "sameSetup": true,
+          "diff": -9452
+        },
+        {
+          "id": "t06",
+          "kind": "skill",
+          "a": 43655,
+          "b": 45546,
+          "sameSetup": true,
+          "diff": 1891
+        },
+        {
+          "id": "t07",
+          "kind": "control",
+          "a": 32809,
+          "b": 32358,
+          "sameSetup": true,
+          "diff": -451
+        },
+        {
+          "id": "t08",
+          "kind": "skill",
+          "a": 47480,
+          "b": 43886,
+          "sameSetup": true,
+          "diff": -3594
+        }
+      ],
+      "all": {
+        "pairsMeasured": 8,
+        "of": 8,
+        "a": 403968,
+        "b": 499613,
+        "diff": 95645,
+        "bLower": 3,
+        "bHigher": 5
+      },
+      "skillTasks": {
+        "pairsMeasured": 6,
+        "of": 6,
+        "a": 338130,
+        "b": 432178,
+        "diff": 94048,
+        "bLower": 2,
+        "bHigher": 4
+      },
+      "controls": {
+        "pairsMeasured": 2,
+        "of": 2,
+        "a": 65838,
+        "b": 67435,
+        "diff": 1597,
+        "bLower": 1,
+        "bHigher": 1
+      },
+      "sameSetup": {
+        "pairsMeasured": 7,
+        "of": 7,
+        "a": 363304,
+        "b": 363434,
+        "diff": 130,
+        "bLower": 3,
+        "bHigher": 4
+      },
+      "sameSetupSkillTasks": {
+        "pairsMeasured": 5,
+        "of": 5,
+        "a": 297466,
+        "b": 295999,
+        "diff": -1467,
+        "bLower": 2,
+        "bHigher": 3
+      }
+    }
+  },
+  "totals": {
+    "a": {
+      "primary_conventionPassed": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "skillTasksDone": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "controlsDone": {
+        "yes": 2,
+        "measured": 2,
+        "of": 2
+      },
+      "skillTasksDelegated": {
+        "yes": 6,
+        "of": 6
+      },
+      "targetSkillLoaded": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetSkillLoadedVia": {
+        "Skill": 6,
+        "Read": 0,
+        "Bash": 0
+      },
+      "targetListedToSubagent": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetInInjectedLoad": {
+        "yes": 0,
+        "measured": 0,
+        "of": 6
+      },
+      "blockedByOtherTask": [],
+      "injectedOnSkillTasks": {
+        "yes": 0,
+        "measured": 0,
+        "of": 6
+      },
+      "injectedOnControls": {
+        "yes": 0,
+        "measured": 0,
+        "of": 2
+      },
+      "appliedInjectedOnSkillTasks": {
+        "yes": 0,
+        "measured": 0,
+        "of": 6
+      },
+      "appliedInjectedOnControls": {
+        "yes": 0,
+        "measured": 0,
+        "of": 2
+      },
+      "targetInAppliedLoad": {
+        "yes": 0,
+        "measured": 0,
+        "of": 6
+      },
+      "subagentApiTurns": {
+        "sum": 52,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentToolCalls": {
+        "sum": 74,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentTokens": {
+        "sum": 3388429,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentWallMs": {
+        "sum": 403968,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentTokenParts": {
+        "input": {
+          "sum": 104,
+          "measured": 8,
+          "of": 8
+        },
+        "output": {
+          "sum": 45923,
+          "measured": 8,
+          "of": 8
+        },
+        "cacheRead": {
+          "sum": 2968678,
+          "measured": 8,
+          "of": 8
+        },
+        "cacheCreation": {
+          "sum": 373724,
+          "measured": 8,
+          "of": 8
+        }
+      },
+      "subagentToolCallsWithoutHandback": {
+        "sum": 66,
+        "measured": 8,
+        "of": 8
+      },
+      "agentCalls": {
+        "all": 15,
+        "refusedBeforeRunning": 7,
+        "launched": 8,
+        "tasksWithSeveralLaunchedCalls": []
+      },
+      "blockInSubagentPrompt": {
+        "skillTasks": {
+          "yes": 0,
+          "measured": 6,
+          "of": 6
+        },
+        "controls": {
+          "yes": 0,
+          "measured": 2,
+          "of": 2
+        }
+      },
+      "targetInSubagentPromptBlock": {
+        "yes": 0,
+        "measured": 6,
+        "of": 6
+      },
+      "targetLoadedBeforeFirstWrite": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetLoadedBeforeAnyWrite": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetLoadedAsFirstToolCall": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "skillSearch": {
+        "tasksMeasured": 8,
+        "tasksUsingMcpSkillTool": [],
+        "tasksUsingToolSearchForSkill": [],
+        "tasksCallingNonCatalogSkill": []
+      },
+      "effectiveProfiles": {
+        "jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5": [
+          "t01"
+        ],
+        "jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5": [
+          "t02",
+          "t03",
+          "t05",
+          "t06",
+          "t07",
+          "t08"
+        ],
+        "general-purpose / claude-fable-5-2": [
+          "t04"
+        ]
+      },
+      "effectiveSettings": {
+        "jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5 / effort xhigh": [
+          "t01"
+        ],
+        "jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / effort high": [
+          "t02",
+          "t03",
+          "t05",
+          "t06",
+          "t07",
+          "t08"
+        ],
+        "general-purpose / claude-fable-5-2 / effort medium": [
+          "t04"
+        ]
+      }
+    },
+    "b": {
+      "primary_conventionPassed": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "skillTasksDone": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "controlsDone": {
+        "yes": 2,
+        "measured": 2,
+        "of": 2
+      },
+      "skillTasksDelegated": {
+        "yes": 6,
+        "of": 6
+      },
+      "targetSkillLoaded": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetSkillLoadedVia": {
+        "Skill": 6,
+        "Read": 0,
+        "Bash": 0
+      },
+      "targetListedToSubagent": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetInInjectedLoad": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "blockedByOtherTask": [],
+      "injectedOnSkillTasks": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "injectedOnControls": {
+        "yes": 0,
+        "measured": 2,
+        "of": 2
+      },
+      "appliedInjectedOnSkillTasks": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "appliedInjectedOnControls": {
+        "yes": 0,
+        "measured": 2,
+        "of": 2
+      },
+      "targetInAppliedLoad": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "subagentApiTurns": {
+        "sum": 63,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentToolCalls": {
+        "sum": 78,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentTokens": {
+        "sum": 4260561,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentWallMs": {
+        "sum": 499613,
+        "measured": 8,
+        "of": 8
+      },
+      "subagentTokenParts": {
+        "input": {
+          "sum": 126,
+          "measured": 8,
+          "of": 8
+        },
+        "output": {
+          "sum": 54862,
+          "measured": 8,
+          "of": 8
+        },
+        "cacheRead": {
+          "sum": 3887277,
+          "measured": 8,
+          "of": 8
+        },
+        "cacheCreation": {
+          "sum": 318296,
+          "measured": 8,
+          "of": 8
+        }
+      },
+      "subagentToolCallsWithoutHandback": {
+        "sum": 70,
+        "measured": 8,
+        "of": 8
+      },
+      "agentCalls": {
+        "all": 16,
+        "refusedBeforeRunning": 8,
+        "launched": 8,
+        "tasksWithSeveralLaunchedCalls": []
+      },
+      "blockInSubagentPrompt": {
+        "skillTasks": {
+          "yes": 5,
+          "measured": 6,
+          "of": 6
+        },
+        "controls": {
+          "yes": 0,
+          "measured": 2,
+          "of": 2
+        }
+      },
+      "targetInSubagentPromptBlock": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "targetLoadedBeforeFirstWrite": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetLoadedBeforeAnyWrite": {
+        "yes": 6,
+        "measured": 6,
+        "of": 6
+      },
+      "targetLoadedAsFirstToolCall": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "skillSearch": {
+        "tasksMeasured": 8,
+        "tasksUsingMcpSkillTool": [],
+        "tasksUsingToolSearchForSkill": [],
+        "tasksCallingNonCatalogSkill": []
+      },
+      "effectiveProfiles": {
+        "jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5": [
+          "t01"
+        ],
+        "jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5": [
+          "t02",
+          "t03",
+          "t05",
+          "t06",
+          "t07",
+          "t08"
+        ],
+        "jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5": [
+          "t04"
+        ]
+      },
+      "effectiveSettings": {
+        "jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5 / effort xhigh": [
+          "t01"
+        ],
+        "jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / effort high": [
+          "t02",
+          "t03",
+          "t05",
+          "t06",
+          "t07",
+          "t08"
+        ],
+        "jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5 / effort xhigh": [
+          "t04"
+        ]
+      }
+    }
+  },
+  "judge": {
+    "a": {
+      "decisionLogFound": true,
+      "byPoint": {
+        "delegation.classify": {
+          "decisions": 15,
+          "cached": 0,
+          "latencyMsSum": 4691,
+          "latencyMsMax": 429,
+          "providers": {
+            "jev": 15
+          }
+        },
+        "delegation.profile": {
+          "decisions": 15,
+          "cached": 0,
+          "latencyMsSum": 3537,
+          "latencyMsMax": 791,
+          "providers": {
+            "jev": 15
+          }
+        }
+      },
+      "skills": {
+        "events": 0,
+        "requests": 0,
+        "latencyMsSum": null,
+        "scoredCalls": {
+          "events": 0,
+          "requests": 0,
+          "latencyMsSum": null
+        }
+      },
+      "tokens": null,
+      "hookMsPerAgentCall": {
+        "sum": 8365,
+        "measured": 14,
+        "of": 15
+      }
+    },
+    "b": {
+      "decisionLogFound": true,
+      "byPoint": {
+        "delegation.classify": {
+          "decisions": 16,
+          "cached": 0,
+          "latencyMsSum": 6177,
+          "latencyMsMax": 1158,
+          "providers": {
+            "jev": 16
+          }
+        },
+        "delegation.skills": {
+          "decisions": 32,
+          "cached": 0,
+          "latencyMsSum": 12008,
+          "latencyMsMax": 1133,
+          "providers": {
+            "jev": 32
+          }
+        },
+        "delegation.profile": {
+          "decisions": 16,
+          "cached": 0,
+          "latencyMsSum": 3997,
+          "latencyMsMax": 1206,
+          "providers": {
+            "none": 1,
+            "jev": 15
+          }
+        }
+      },
+      "skills": {
+        "events": 16,
+        "requests": 32,
+        "latencyMsSum": 12008,
+        "scoredCalls": {
+          "events": 8,
+          "requests": 16,
+          "latencyMsSum": 5120
+        }
+      },
+      "tokens": null,
+      "hookMsPerAgentCall": {
+        "sum": 10968,
+        "measured": 16,
+        "of": 16
+      }
+    }
+  },
+  "mainSession": {
+    "a": {
+      "userPrompts": 1,
+      "firstPromptEqualsMainPromptFile": false,
+      "firstPromptContainsMainPromptFile": true,
+      "firstPromptExtraChars": 689,
+      "toolNames": {
+        "mcp__ccd_turn__update_plan": 8,
+        "Agent": 15,
+        "mcp__ccd_turn__wrap_up": 1
+      },
+      "models": [
+        "claude-fable-5-2"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "permissionModes": [
+        "auto"
+      ],
+      "tokens": {
+        "input": 50,
+        "output": 8229,
+        "cacheRead": 2400779,
+        "cacheCreation": 68500,
+        "messages": 25,
+        "assistantMessages": 25,
+        "total": 2477558
+      },
+      "wallMs": 508551,
+      "wallMsAllRows": 512057,
+      "requestLogRowsIgnored": 56
+    },
+    "b": {
+      "userPrompts": 1,
+      "firstPromptEqualsMainPromptFile": false,
+      "firstPromptContainsMainPromptFile": true,
+      "firstPromptExtraChars": 963,
+      "toolNames": {
+        "mcp__ccd_turn__update_plan": 8,
+        "Agent": 16,
+        "mcp__ccd_turn__wrap_up": 1
+      },
+      "models": [
+        "claude-fable-5-2"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "permissionModes": [
+        "auto"
+      ],
+      "tokens": {
+        "input": 52,
+        "output": 9450,
+        "cacheRead": 2549559,
+        "cacheCreation": 72810,
+        "messages": 26,
+        "assistantMessages": 26,
+        "total": 2631871
+      },
+      "wallMs": 616202,
+      "wallMsAllRows": 618758,
+      "requestLogRowsIgnored": 56
+    }
+  },
+  "warnings": {
+    "a": [
+      "state dir holds 2 sessions; events of all of them were read",
+      "the hook state holds no skills event at all (expected when the delegation.skills point is off); \"injected\" is unmeasured for every task, not false",
+      "the decision log has no token or usage field; judge tokens are unmeasured (null), only request counts and latency are known",
+      "the Main prompt contains main-prompt.txt word for word but is not equal to it: 689 extra characters around it",
+      "Main used tools other than Agent: mcp__ccd_turn__update_plan x8, mcp__ccd_turn__wrap_up x1"
+    ],
+    "b": [
+      "state dir holds 2 sessions; events of all of them were read",
+      "the decision log has no token or usage field; judge tokens are unmeasured (null), only request counts and latency are known",
+      "the Main prompt contains main-prompt.txt word for word but is not equal to it: 963 extra characters around it",
+      "Main used tools other than Agent: mcp__ccd_turn__update_plan x8, mcp__ccd_turn__wrap_up x1"
+    ]
+  },
+  "problems": []
+}

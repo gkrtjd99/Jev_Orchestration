@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "what": "Real Claude Code desktop sessions (logged-in app, not the CLI) run in a disposable synthetic project with project-level hooks only (.claude/settings.json in that project) pointing at a disposable install of the hook runtime. The real ~/.claude was not modified. Global mode advisory, delegation.skills active, supervisor.outcome active, judge = live Jev. One delegation per session: Main delegates a changelog task to one general-purpose subagent.",
+  "notCovered": [
+    "active global mode (prompt rewrite into the subagent): needs jev4_* agent profiles at user level (~/.claude/agents); project-level copies are refused by design (PROJECT_AGENT_SHADOWS_PROFILE)",
+    "effect of skill injection on task outcome: in every run the subagent loaded the right skill by itself from a 4-skill project",
+    "the hand-back prompt shape WITH the harness notice line after the binding fix (observed once before the fix; covered by fixtures only)",
+    "Codex runtime"
+  ],
+  "sessions": [
+    {
+      "n": 1, "product": "2a162d8", "purpose": "first end-to-end run",
+      "preToolUseOnRealAgentCall": true, "routeJudgedLive": true, "skillsJudgedLive": true,
+      "skillSelected": "changelog-hollowbrook (p 0.98)", "skillsBlockShownToMain": true, "subagentPromptRewritten": false,
+      "subagentLoadedSkillItself": true, "outputFollowedConvention": true,
+      "supervisorFired": false, "why": "Agent PostToolUse is async_launched; report arrives via SubagentHandback, which this build only hashed"
+    },
+    {
+      "n": 2, "product": "2a162d8", "purpose": "capture raw hook event shapes (29 events)",
+      "finding": "Agent PostToolUse {isAsync:true,status:'async_launched',agentId}; report in PostToolUse SubagentHandback (subagent context, tool_input.message); Main UserPromptSubmit with <agent-message from=\"id\"> about 70 ms later"
+    },
+    {
+      "n": 3, "product": "8f7c976 (supervisor hand-back path, exact report-hash binding)", "purpose": "re-check supervisor",
+      "supervisorFired": true, "source": "handback", "judgeLatencyMs": 274, "outcome": "complete", "confidence": 0.44,
+      "adviceDelivered": false, "why": "confidence below 0.65 (intended suppression)",
+      "promptRecordedAs": "unverified_prompt",
+      "finding": "the harness inserted an indented '[harness: ...]' notice line inside the agent-message element, so exact hash binding could never match; fixed in 7fb4ff2 / 31e1c26",
+      "reportTextInSessionState": false
+    },
+    {
+      "n": 4, "product": "31e1c26 (line-hash binding)", "purpose": "verify delivery to Main",
+      "qaOnlyOverride": "supervisor confidence threshold 0.3 in the disposable config (product default 0.65 unchanged); the observed confidence 0.75 would also have passed the default",
+      "supervisorFired": true, "source": "handback", "outcome": "complete", "confidence": 0.75, "evidenceScore": 1.46,
+      "promptRecordedAs": "handback_prompt", "adviceDelivered": true, "deliveryEvent": "UserPromptSubmit",
+      "handbackToPromptMs": 60, "promptToDeliveryMs": 238,
+      "adviceSeenInMainTranscript": true, "harnessNoticeLinePresent": false,
+      "stateFilesMode": "0600", "reportTextInSessionState": false
+    }
+  ],
+  "evidenceLocation": "raw hook state and captured events were kept only in a temporary directory outside the repository (they contain local paths and session metadata); this file is the reviewed summary"
+}

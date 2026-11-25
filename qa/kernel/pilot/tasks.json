@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "note": "Fixed order. Model-authored synthetic tasks for the paired skill-injection pilot; see PROTOCOL.md. Do not edit after the first session starts.",
+  "tasks": [
+    {
+      "id": "t01",
+      "lang": "en",
+      "kind": "skill",
+      "targetSkill": "partner-file-exports",
+      "text": "Operations wants a weekly list of parcels that have been sitting in a locker too long. Add src/reports/overdue-parcels.mjs with a function overdueParcelsCsv(parcels, now) (parcels is an array of parcel records, now is a Date) that returns the list as CSV text. Include only parcels whose status is 'stored' and whose arrivedAt is more than 7 days before now, one line per parcel, with these columns in this order: parcel id, locker id, recipient, arrival time, whole days waiting. Add a test for it."
+    },
+    {
+      "id": "t02",
+      "lang": "ko",
+      "kind": "skill",
+      "targetSkill": "runtime-settings",
+      "text": "보관함 문이 열린 채로 방치됐을 때 경고를 내기까지 기다리는 시간이 src/lockers/door-watch.mjs에 120초로 고정되어 있습니다. 이 값을 환경 변수로 바꿀 수 있도록 src/config/settings.mjs의 loadSettings가 읽는 항목으로 빼 주세요. 환경 변수를 주지 않으면 지금과 똑같이 120초여야 하고, door-watch가 그 값을 쓰도록 바꿔 주세요. 테스트도 추가해 주세요."
+    },
+    {
+      "id": "t03",
+      "lang": "en",
+      "kind": "control",
+      "targetSkill": null,
+      "text": "normalizeTracking in src/util/tracking.mjs only trims its input, so ' pd-12 34ab ' and 'PD1234AB' are treated as two different tracking numbers. Make it also remove inner spaces and hyphens and upper-case the result, and add test cases for that."
+    },
+    {
+      "id": "t04",
+      "lang": "ko",
+      "kind": "skill",
+      "targetSkill": "periodic-job-contract",
+      "text": "수령이 끝난 지 오래된 택배 기록이 저장소에 계속 쌓이고 있습니다. status가 'collected'이고 collectedAt이 30일보다 더 지난 택배 기록을 저장소에서 지우는 정리 작업을 하루에 한 번(everyMinutes 1440) 돌도록 추가해 주세요. src/jobs 아래에 새 파일로 만들고, src/jobs/index.mjs의 jobs 목록에 등록해 주세요. 테스트도 추가해 주세요."
+    },
+    {
+      "id": "t05",
+      "lang": "en",
+      "kind": "skill",
+      "targetSkill": "domain-failure-types",
+      "text": "In src/lockers/assign.mjs, assignCompartment throws a bare Error when the requested compartment already holds a parcel, so callers cannot tell that case apart from other errors. Introduce a dedicated error type for 'compartment already occupied' and throw that instead, and cover it with a test."
+    },
+    {
+      "id": "t06",
+      "lang": "ko",
+      "kind": "skill",
+      "targetSkill": "read-endpoints",
+      "text": "보관함 하나에 지금 택배가 몇 개 들어 있는지 알려 주는 API가 필요합니다. GET /lockers/:id/occupancy 를 src/http에 추가해 주세요. 그 보관함(lockerId)에 있는 status가 'stored'인 택배의 개수를 돌려주고, 없는 보관함 id면 404로 응답하면 됩니다. src/http/routes.mjs에 등록하고 테스트도 추가해 주세요."
+    },
+    {
+      "id": "t07",
+      "lang": "ko",
+      "kind": "control",
+      "targetSkill": null,
+      "text": "src/util/phone.mjs의 maskPhone은 '010-1234-5678'처럼 하이픈이 있는 번호만 가려 주고, '01012345678'처럼 하이픈 없이 들어오면 그대로 돌려줍니다. 하이픈이 있든 없든 '010-****-5678' 형태로 돌려주도록 고치고 테스트 케이스를 추가해 주세요."
+    },
+    {
+      "id": "t08",
+      "lang": "en",
+      "kind": "skill",
+      "targetSkill": "customer-text-messages",
+      "text": "When an uncollected parcel is sent back to its sender, the recipient currently hears nothing. Add a notification for 'parcel returned to sender' to src/notify/templates.mjs, in English and Korean. It should address the recipient by name (the {name} placeholder) and say which sender the parcel went back to. Add a test that renders it."
+    }
+  ]
+}

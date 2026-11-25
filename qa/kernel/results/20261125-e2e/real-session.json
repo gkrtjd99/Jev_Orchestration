@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "tool": "qa/kernel/e2e-real-session.mjs",
+    "date": "2026-11-25T04:36:07.584Z",
+    "claudeCode": "2.1.332 (Claude Code)",
+    "isolation": "HOME and CLAUDE_CONFIG_DIR = disposable install; environment rebuilt from scratch"
+  },
+  "status": "BLOCKED",
+  "blockedReason": "no CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY in the environment: Not logged in · Please run /login",
+  "credentialSource": null,
+  "exitCode": 1,
+  "init": {
+    "model": "claude-sonnet-5-5",
+    "sessionId": "<redacted>",
+    "jevAgentsListed": 27,
+    "projectSkillsListed": [
+      "changelog-hollowbrook",
+      "k6-load-test",
+      "pdf-table-extract",
+      "sql-migration-safety"
+    ]
+  },
+  "hookEvents": [
+    {
+      "event": "SessionStart",
+      "exit": 0
+    },
+    {
+      "event": "UserPromptSubmit",
+      "exit": 0
+    }
+  ],
+  "hookStateEvents": [
+    "session_started",
+    "user_prompt",
+    "session_ended"
+  ],
+  "result": {
+    "isError": true,
+    "numTurns": 1,
+    "totalCostUsd": 0,
+    "usage": {
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 0,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {},
+    "text": "Not logged in · Please run /login"
+  },
+  "checks": null,
+  "evidence": null,
+  "setup": {
+    "root": "<tmp>/real2",
+    "home": "<tmp>/real2/home",
+    "project": "<tmp>/real2/project",
+    "envFile": "<tmp>/real2/private-setup.env",
+    "registryFile": "<tmp>/real2/models.confirmed.json",
+    "confFile": "<tmp>/real2/home/.config/jev-hooks/config.json",
+    "settingsFile": "<tmp>/real2/home/.claude/settings.json",
+    "entry": "<tmp>/real2/home/.local/share/jev-hooks/3.2.0/bin/jev-hook.mjs",
+    "stateDir": "<tmp>/real2/home/.local/state/jev-hooks",
+    "aliasModels": true
+  }
+}

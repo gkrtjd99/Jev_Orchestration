@@ -18,10 +18,36 @@ Claude/Codex의 기존 로그인은 native Main/worker 실행용입니다. **Jev
 - `effortByIntent`: brief/balanced/deep/exhaustive를 지원 effort에 명시적으로 대응.
 - `availability`: 확인 전 `declared`; 계정 접근/지원 설정을 확인한 것만 `confirmed`. 사용 불가는 `unavailable`.
 - `capabilitySource`: 누가 언제 무엇으로 확인했는지. 이것은 실제 worker 실행 증거와 다릅니다.
+- `resolvesTo`(선택): 이 항목이 host에서 **어떤 구체 모델 id로 기록되는지** 사용자가 확인해 적는 목록입니다. `model`/`backend`에 별칭(`opus`, `sonnet`)을 쓰면 host는 대화 기록에 자기가 풀어 낸 id를 적기 때문에, 이 선언이 없으면 그 항목의 평가 자료는 가져올 수 없습니다. 항목의 다른 키와 같은 층에 적습니다.
+
+  ```json
+  { "id": "claude-standard", "runtime": "claude", "slot": "standard", "model": "opus", "backend": "opus",
+    "resolvesTo": ["<host가 기록한 id를 확인해서 적기>"], "...": "나머지 키는 그대로" }
+  ```
+
+  예제 파일에는 비활성 항목 `claude-micro`에 자리 표시 값(`EXAMPLE-ONLY.replace-with-the-id-your-host-records`)만 들어 있습니다. **실제 id가 아니므로 그대로 쓰지 말고**, 필요 없으면 줄을 지우세요. 넣을 값은 세션을 한 번 돌린 뒤 결과 수집기의 `--dry-run` 요약(`modelMatch.undeclared`)에서 확인합니다. 1~8개, 와일드카드 불가, 완전히 같은 문자열만 인정됩니다. `backend`가 구체 id이고 host가 같은 id를 기록하면 필요 없습니다. 이 필드를 추가·변경·삭제하면 그 항목의 프로필 fingerprint가 바뀌므로 **다시 설치**해야 하고, 그 전에 가져온 평가 자료는 세지 않게 됩니다. 순서와 규칙 전체는 [KERNEL의 "평가 행이 만들어지려면"](KERNEL.ko.md#평가-행이-만들어지려면)에 있습니다.
 
 초기 role 정책은 light=Sonnet/Luna, standard=Opus/Sol, strategic=Fable/Astra입니다. 선택적 Haiku/micro는 비활성이고 없는 Codex micro 모델은 만들지 않습니다. 실제로 xhigh를 지원하지 않으면 그 값을 제거하고 모든 intent mapping도 일치하게 수정하세요. 조용히 effort를 낮추는 보정은 하지 않습니다.
 
 가용성 확인이 없으면 자동 후보가 생기지 않습니다. 이름을 공식 문서에서 보았다는 사실만으로 모든 항목을 confirmed로 바꾸지 마세요.
+
+### 품질 우선 모델×effort 후보 (기존 Jev 선택 경로)
+
+아래는 `delegation.profile`이 고르는 후보의 기본 방향입니다. `controller`의 고정 정책표가 아닙니다(그 대응과 보류 규칙은 [controller 문서](CONTROLLER.ko.md)에 있습니다).
+
+| 작업 | 정상 후보 |
+|---|---|
+| 기계적 조회·정형 변환 | Sonnet/Luna high; 원래 Main 직접 처리 가능 |
+| 실질적인 읽기·문서·범위 제한 구현 | Sonnet/Luna xhigh와 max, 필요하면 Opus/Sol high·xhigh |
+| 여러 모듈의 계약·복합 구현 | Opus/Sol high·xhigh·max |
+| 깊은 원인 추적·민감한 변경 검토 | Opus/Sol xhigh·max 또는 승인된 frontier |
+| 계획·새로운 구조 | Fable/Astra high·xhigh |
+
+실제 모델명과 지원 effort는 사용자가 확인한 registry를 따릅니다. 동일 effort 이름을 모델 간 동일 성능으로 간주하지 않습니다. `max`를 고르기 위해 이전 설정으로 먼저 실패할 의무가 없고, max로 실패해야 상위 모델을 고를 수 있는 것도 아닙니다. 가격·성공률을 만들어 넣지 않았습니다.
+
+### 지원 운영체제
+
+macOS/Linux/WSL 대상입니다. Windows native shell 설치는 검증하지 않았습니다. 런타임 외부 npm 패키지 의존성은 없습니다.
 
 ## 3. env 준비
 
@@ -47,7 +73,7 @@ JEV_OBJECTIVE=balanced
 JEV_EVALUATION_CONTEXT=native-default-unvalidated
 ```
 
-`TYPESAFE_API_KEY` 이외는 이 확장의 설정입니다. `JEV_OBJECTIVE`는 비교 가능한 실제 자료가 없으면 가격/속도 최적화를 증명하지 않습니다. `JEV_EVALUATION_CONTEXT`는 평가 환경 식별자이며 기본 상태에서는 학습 자료를 사용하지 않습니다.
+`TYPESAFE_API_KEY` 이외는 이 확장의 설정입니다. `JEV_OBJECTIVE`는 비교 가능한 실제 자료가 없으면 가격/속도 최적화를 증명하지 않습니다. `JEV_EVALUATION_CONTEXT`는 평가 환경 식별자이며 기본 상태에서는 학습 자료를 사용하지 않습니다. 평가 자료를 모으려면 **세션을 돌리기 전에** 기본값이 아닌 이름으로 바꿔야 합니다. 기본값으로 돌린 세션은 나중에 이름을 붙여도 자료가 되지 않습니다.
 
 이 설치기는 입력 env를 **`~/.config/jev-hooks/.env`로 복사**합니다. v2.3처럼 원래 외부 파일을 계속 참조하는 방식이 아닙니다. 설치 후에는 설치된 env를 바꾸거나, 원본 env를 변경한 뒤 재설치하세요. 셸 환경 변수가 같은 이름으로 설정돼 있으면 설치된 파일보다 우선합니다. `source`는 불필요합니다.
 
@@ -73,7 +99,7 @@ node orchestration/scripts/install.mjs \
 ~/.config/jev-hooks/config.json        # 프로젝트 allowlist, registry, 검증 조건
 ~/.config/jev-hooks/.env               # 비밀키, 동작 모드: owner-only
 ~/.config/jev-hooks/installation.json  # 소유 파일·hash
-~/.local/share/jev-hooks/3.1.0/        # 작고 단일한 JS hook runtime
+~/.local/share/jev-hooks/3.2.0/        # 작고 단일한 JS hook runtime
 ~/.local/state/jev-hooks/             # 캐시·메타데이터·명시적 평가 자료
 ~/.claude/settings.json + agents/    # 선택한 호스트만
 ~/.codex/hooks.json + agents/        # 선택한 호스트만

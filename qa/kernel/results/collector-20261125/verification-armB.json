@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "results": [
+    {
+      "taskHash": "6e431fa2dfc664cd66465340610300e31dbd51056e59770d93966beee46469f2",
+      "passed": true,
+      "conventionPassed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "4b39ffb543386e14eb60a885934447b7d678c4bbddfdc0d348c20f2b37b29506",
+      "passed": true,
+      "conventionPassed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "a295882ce3b11bf24517cf4656cc03b65443ce9cbf5ecbdabffe416f2e8df019",
+      "passed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "82280f6186d52aecc34eaf6f2201499d0fe163f44ebe8b11e4267120fb406902",
+      "passed": true,
+      "conventionPassed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "a9cea8fc67f5f34f5bf033029ebd8c817952e6132ca867340813d8fc7de7ae9f",
+      "passed": true,
+      "conventionPassed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "9508a69da53fa2c6d1964dd99462b7bb403f0c903fa2e2cc9bcc5b9782013f79",
+      "passed": true,
+      "conventionPassed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "4a8a67ea4b276f73372aa6bc7f0431d9c9f78e79c8a053ab383c3d7e5cf8e4ba",
+      "passed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    },
+    {
+      "taskHash": "506f835cbb59a1b8b3e466198f9a1030f21f4797bbe296943f08db306d6d24b8",
+      "passed": true,
+      "conventionPassed": true,
+      "validator": {
+        "name": "pilot-checker",
+        "version": "b69840104ac3a4eaa88363ae32e6e8dfc18f73a9d501bc019ed90a2f240de24a"
+      },
+      "artifactSha256": "87582473da2565b853592e44dd36e22e37f5feb466edaa2d64189c942269b53a"
+    }
+  ]
+}

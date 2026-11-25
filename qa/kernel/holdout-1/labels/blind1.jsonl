@@ -1,0 +1,180 @@
+{"id": "ho-001", "gold": ["probation-review-template"], "confidence": "high", "doubt": ""}
+{"id": "ho-002", "gold": ["jtag-flash-recovery"], "confidence": "medium", "doubt": "No serial output suggests JTAG; UART debugging could arguably be tried first"}
+{"id": "ho-003", "gold": ["feature-flag-cleanup"], "confidence": "high", "doubt": ""}
+{"id": "ho-004", "gold": ["crs-reprojection", "geojson-topology-repair"], "confidence": "high", "doubt": ""}
+{"id": "ho-005", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-006", "gold": ["appstore-phased-rollout", "play-console-staged-release"], "confidence": "high", "doubt": ""}
+{"id": "ho-007", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-008", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-009", "gold": ["changelog-from-commits"], "confidence": "high", "doubt": ""}
+{"id": "ho-010", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-011", "gold": ["month-end-accrual-journal"], "confidence": "high", "doubt": ""}
+{"id": "ho-012", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-013", "gold": ["pg-logical-replication-cutover"], "confidence": "high", "doubt": ""}
+{"id": "ho-014", "gold": ["bounce-complaint-triage"], "confidence": "high", "doubt": ""}
+{"id": "ho-015", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-016", "gold": ["terraform-state-surgery"], "confidence": "high", "doubt": ""}
+{"id": "ho-017", "gold": ["po-three-way-match"], "confidence": "high", "doubt": ""}
+{"id": "ho-018", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-019", "gold": ["airflow-dag-backfill"], "confidence": "high", "doubt": ""}
+{"id": "ho-020", "gold": ["hparam-sweep-launch"], "confidence": "high", "doubt": ""}
+{"id": "ho-021", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-022", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-023", "gold": ["play-console-staged-release"], "confidence": "high", "doubt": ""}
+{"id": "ho-024", "gold": ["qr-label-print-batch"], "confidence": "high", "doubt": ""}
+{"id": "ho-025", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-026", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-027", "gold": ["mlflow-run-logging"], "confidence": "medium", "doubt": "Tracking tool unnamed; MLflow conventions assumed to be the team standard"}
+{"id": "ho-028", "gold": ["raster-tile-pyramid"], "confidence": "high", "doubt": ""}
+{"id": "ho-029", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-030", "gold": ["privacy-policy-gap-check"], "confidence": "medium", "doubt": "Contract review excluded explicitly; only policy check applies"}
+{"id": "ho-031", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-032", "gold": ["slo-burn-alerting"], "confidence": "high", "doubt": ""}
+{"id": "ho-033", "gold": ["po-three-way-match"], "confidence": "high", "doubt": ""}
+{"id": "ho-034", "gold": ["load-test-k6-scenario"], "confidence": "high", "doubt": ""}
+{"id": "ho-035", "gold": ["board-bringup-checklist", "uart-console-debug"], "confidence": "high", "doubt": ""}
+{"id": "ho-036", "gold": ["fbx-import-normalize", "texture-atlas-pack"], "confidence": "high", "doubt": ""}
+{"id": "ho-037", "gold": ["mlflow-run-logging"], "confidence": "high", "doubt": ""}
+{"id": "ho-038", "gold": ["ip-warmup-schedule"], "confidence": "high", "doubt": ""}
+{"id": "ho-039", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-040", "gold": ["terraform-state-surgery"], "confidence": "high", "doubt": ""}
+{"id": "ho-041", "gold": ["webhook-signature-verify"], "confidence": "high", "doubt": ""}
+{"id": "ho-042", "gold": ["figma-token-export"], "confidence": "high", "doubt": ""}
+{"id": "ho-043", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-044", "gold": ["probation-review-template"], "confidence": "medium", "doubt": "Called regular-conversion decision, not explicitly a probation review form"}
+{"id": "ho-045", "gold": ["query-rewrite-rules"], "confidence": "high", "doubt": ""}
+{"id": "ho-046", "gold": ["log-pipeline-parsing-rules"], "confidence": "high", "doubt": ""}
+{"id": "ho-047", "gold": ["datasheet-register-map"], "confidence": "high", "doubt": ""}
+{"id": "ho-048", "gold": ["onboarding-doc-pack"], "confidence": "high", "doubt": ""}
+{"id": "ho-049", "gold": ["dmarc-spf-dkim-setup", "ip-warmup-schedule"], "confidence": "high", "doubt": ""}
+{"id": "ho-050", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-051", "gold": ["survey-weighting-rake"], "confidence": "high", "doubt": ""}
+{"id": "ho-052", "gold": ["incident-postmortem-draft"], "confidence": "high", "doubt": ""}
+{"id": "ho-053", "gold": ["otel-trace-instrumentation", "slo-burn-alerting"], "confidence": "high", "doubt": ""}
+{"id": "ho-054", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-055", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-056", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-057", "gold": [], "confidence": "medium", "doubt": "Single touch-target fix; accessibility audit skill arguably unnecessary"}
+{"id": "ho-058", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-059", "gold": ["incident-postmortem-draft", "runbook-oncall-handover"], "confidence": "high", "doubt": ""}
+{"id": "ho-060", "gold": ["ranking-judgment-eval"], "confidence": "high", "doubt": ""}
+{"id": "ho-061", "gold": ["ranking-judgment-eval"], "confidence": "medium", "doubt": "Evaluation only; synonym dictionary skill might help explain losses"}
+{"id": "ho-062", "gold": ["subtitle-burnin-sync", "hls-ladder-encode"], "confidence": "high", "doubt": ""}
+{"id": "ho-063", "gold": ["vendor-quote-compare"], "confidence": "high", "doubt": ""}
+{"id": "ho-064", "gold": ["shader-variant-strip"], "confidence": "high", "doubt": ""}
+{"id": "ho-065", "gold": ["gsheet-pivot-report"], "confidence": "high", "doubt": ""}
+{"id": "ho-066", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-067", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-068", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-069", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-070", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-071", "gold": ["shader-variant-strip"], "confidence": "high", "doubt": ""}
+{"id": "ho-072", "gold": ["po-three-way-match"], "confidence": "high", "doubt": ""}
+{"id": "ho-073", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-074", "gold": ["notion-meeting-minutes"], "confidence": "high", "doubt": ""}
+{"id": "ho-075", "gold": ["subtitle-burnin-sync"], "confidence": "high", "doubt": ""}
+{"id": "ho-076", "gold": ["i18n-string-extract"], "confidence": "high", "doubt": ""}
+{"id": "ho-077", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-078", "gold": ["load-test-k6-scenario"], "confidence": "high", "doubt": ""}
+{"id": "ho-079", "gold": ["kakao-alimtalk-template"], "confidence": "high", "doubt": ""}
+{"id": "ho-080", "gold": ["pg-logical-replication-cutover", "load-test-k6-scenario"], "confidence": "high", "doubt": ""}
+{"id": "ho-081", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-082", "gold": ["xlsx-financial-model-audit"], "confidence": "high", "doubt": ""}
+{"id": "ho-083", "gold": ["crs-reprojection"], "confidence": "high", "doubt": ""}
+{"id": "ho-084", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-085", "gold": ["openapi-contract-diff"], "confidence": "high", "doubt": ""}
+{"id": "ho-086", "gold": ["video-loudness-normalize"], "confidence": "high", "doubt": ""}
+{"id": "ho-087", "gold": ["xlsx-financial-model-audit", "scenario-sensitivity-table"], "confidence": "high", "doubt": ""}
+{"id": "ho-088", "gold": ["mlflow-run-logging", "hparam-sweep-launch"], "confidence": "high", "doubt": ""}
+{"id": "ho-089", "gold": ["incident-postmortem-draft"], "confidence": "high", "doubt": ""}
+{"id": "ho-090", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-091", "gold": ["synonym-dictionary-tuning"], "confidence": "high", "doubt": ""}
+{"id": "ho-092", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-093", "gold": ["otel-trace-instrumentation"], "confidence": "high", "doubt": ""}
+{"id": "ho-094", "gold": ["zendesk-macro-authoring"], "confidence": "high", "doubt": ""}
+{"id": "ho-095", "gold": ["xlsx-financial-model-audit"], "confidence": "high", "doubt": ""}
+{"id": "ho-096", "gold": ["a11y-contrast-audit"], "confidence": "high", "doubt": ""}
+{"id": "ho-097", "gold": ["texture-atlas-pack"], "confidence": "high", "doubt": ""}
+{"id": "ho-098", "gold": ["scenario-sensitivity-table"], "confidence": "high", "doubt": ""}
+{"id": "ho-099", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-100", "gold": ["cve-dependency-triage"], "confidence": "high", "doubt": ""}
+{"id": "ho-101", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-102", "gold": [], "confidence": "medium", "doubt": "One-line workflow edit; CI lint skill explicitly out of scope"}
+{"id": "ho-103", "gold": ["purchase-request-draft"], "confidence": "medium", "doubt": "Quotes already exist; comparison skill may still be wanted for attachment"}
+{"id": "ho-104", "gold": ["vat-invoice-reconcile", "ledger-export-douzone"], "confidence": "high", "doubt": ""}
+{"id": "ho-105", "gold": ["vendor-quote-compare", "purchase-request-draft"], "confidence": "high", "doubt": ""}
+{"id": "ho-106", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-107", "gold": ["board-bringup-checklist"], "confidence": "high", "doubt": ""}
+{"id": "ho-108", "gold": ["yaml-ci-matrix-lint"], "confidence": "high", "doubt": ""}
+{"id": "ho-109", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-110", "gold": ["msa-redline-playbook"], "confidence": "high", "doubt": ""}
+{"id": "ho-111", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-112", "gold": ["offboarding-access-revoke", "onboarding-doc-pack"], "confidence": "low", "doubt": "'Paperwork and access on both sides' vague; onboarding pack fit uncertain"}
+{"id": "ho-113", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-114", "gold": ["appstore-phased-rollout"], "confidence": "high", "doubt": ""}
+{"id": "ho-115", "gold": ["geojson-topology-repair"], "confidence": "high", "doubt": ""}
+{"id": "ho-116", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-117", "gold": ["ledger-export-douzone"], "confidence": "high", "doubt": ""}
+{"id": "ho-118", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-119", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-120", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-121", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-122", "gold": ["mlflow-run-logging", "eval-leaderboard-update"], "confidence": "medium", "doubt": "MLflow skill targets training scripts; eval-result logging is a looser fit"}
+{"id": "ho-123", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-124", "gold": ["hls-ladder-encode"], "confidence": "high", "doubt": ""}
+{"id": "ho-125", "gold": ["nda-clause-review"], "confidence": "high", "doubt": ""}
+{"id": "ho-126", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-127", "gold": ["vat-invoice-reconcile"], "confidence": "high", "doubt": ""}
+{"id": "ho-128", "gold": ["runbook-oncall-handover"], "confidence": "high", "doubt": ""}
+{"id": "ho-129", "gold": ["geojson-topology-repair"], "confidence": "high", "doubt": ""}
+{"id": "ho-130", "gold": ["airflow-dag-backfill"], "confidence": "high", "doubt": ""}
+{"id": "ho-131", "gold": ["cve-dependency-triage"], "confidence": "high", "doubt": ""}
+{"id": "ho-132", "gold": ["openapi-contract-diff"], "confidence": "high", "doubt": ""}
+{"id": "ho-133", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-134", "gold": ["kakao-alimtalk-template"], "confidence": "high", "doubt": ""}
+{"id": "ho-135", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-136", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-137", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-138", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-139", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-140", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-141", "gold": ["privacy-policy-gap-check"], "confidence": "high", "doubt": ""}
+{"id": "ho-142", "gold": ["offboarding-access-revoke"], "confidence": "high", "doubt": ""}
+{"id": "ho-143", "gold": ["i18n-string-extract"], "confidence": "high", "doubt": ""}
+{"id": "ho-144", "gold": ["changelog-from-commits"], "confidence": "high", "doubt": ""}
+{"id": "ho-145", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-146", "gold": [], "confidence": "medium", "doubt": "Direct colour edit; token-export skill would say change source tokens instead"}
+{"id": "ho-147", "gold": ["uart-console-debug"], "confidence": "high", "doubt": ""}
+{"id": "ho-148", "gold": ["payroll-yearend-settlement"], "confidence": "high", "doubt": ""}
+{"id": "ho-149", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-150", "gold": ["video-loudness-normalize"], "confidence": "high", "doubt": ""}
+{"id": "ho-151", "gold": ["a11y-contrast-audit"], "confidence": "high", "doubt": ""}
+{"id": "ho-152", "gold": ["eval-leaderboard-update"], "confidence": "high", "doubt": ""}
+{"id": "ho-153", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-154", "gold": ["webhook-signature-verify"], "confidence": "high", "doubt": ""}
+{"id": "ho-155", "gold": ["ranking-judgment-eval", "query-rewrite-rules"], "confidence": "high", "doubt": ""}
+{"id": "ho-156", "gold": ["dmarc-spf-dkim-setup"], "confidence": "medium", "doubt": "Only DNS requested; warm-up for a new domain arguably relevant too"}
+{"id": "ho-157", "gold": ["fbx-import-normalize"], "confidence": "high", "doubt": ""}
+{"id": "ho-158", "gold": ["pg-slow-query-plan"], "confidence": "high", "doubt": ""}
+{"id": "ho-159", "gold": ["testflight-beta-distribution"], "confidence": "medium", "doubt": "TestFlight implied by iOS QA build, not named"}
+{"id": "ho-160", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-161", "gold": ["slo-burn-alerting"], "confidence": "high", "doubt": ""}
+{"id": "ho-162", "gold": ["pg-online-migration", "pg-slow-query-plan"], "confidence": "high", "doubt": ""}
+{"id": "ho-163", "gold": ["log-pipeline-parsing-rules"], "confidence": "high", "doubt": ""}
+{"id": "ho-164", "gold": ["gsheet-pivot-report"], "confidence": "high", "doubt": ""}
+{"id": "ho-165", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-166", "gold": ["onboarding-doc-pack"], "confidence": "high", "doubt": ""}
+{"id": "ho-167", "gold": ["feature-flag-cleanup"], "confidence": "high", "doubt": ""}
+{"id": "ho-168", "gold": ["appstore-phased-rollout"], "confidence": "high", "doubt": ""}
+{"id": "ho-169", "gold": ["msa-redline-playbook", "nda-clause-review"], "confidence": "high", "doubt": ""}
+{"id": "ho-170", "gold": ["pg-online-migration"], "confidence": "high", "doubt": ""}
+{"id": "ho-171", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-172", "gold": ["k8s-hpa-right-sizing"], "confidence": "high", "doubt": ""}
+{"id": "ho-173", "gold": ["month-end-accrual-journal"], "confidence": "high", "doubt": ""}
+{"id": "ho-174", "gold": ["otel-trace-instrumentation"], "confidence": "high", "doubt": ""}
+{"id": "ho-175", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-176", "gold": ["pg-online-migration"], "confidence": "high", "doubt": ""}
+{"id": "ho-177", "gold": ["datasheet-register-map"], "confidence": "high", "doubt": ""}
+{"id": "ho-178", "gold": [], "confidence": "high", "doubt": ""}
+{"id": "ho-179", "gold": ["customs-hs-code-lookup"], "confidence": "high", "doubt": ""}
+{"id": "ho-180", "gold": [], "confidence": "high", "doubt": ""}

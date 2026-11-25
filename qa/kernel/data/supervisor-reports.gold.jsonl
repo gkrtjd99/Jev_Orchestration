@@ -1,0 +1,120 @@
+{"id":"sr-001","gold":"complete","evidence":2,"rationale":"변경 파일과 실행한 테스트 결과(통과 수)가 모두 명시되어 있다."}
+{"id":"sr-002","gold":"retry","evidence":0,"rationale":"일시적 도구 오류로 작업이 시작되지 못했으며 다시 시도하면 된다."}
+{"id":"sr-003","gold":"complete","evidence":2,"rationale":"조사 과제에 대해 실행한 검색 명령과 확인한 파일·행이 결과와 함께 제시되어 있다."}
+{"id":"sr-004","gold":"replan","evidence":2,"rationale":"Three attempts at the framed approach all failed for the same structural reason, with results shown."}
+{"id":"sr-005","gold":"escalate","evidence":2,"rationale":"Worker found evidence of a possible ongoing incident that exceeds the task."}
+{"id":"sr-006","gold":"replan","evidence":1,"rationale":"Scope is far larger than the single task assumed and needs decomposition."}
+{"id":"sr-007","gold":"retry","evidence":2,"rationale":"Snapshot tests fail only because snapshots were not regenerated after an intended change."}
+{"id":"sr-008","gold":"complete","evidence":2,"rationale":"Research answer backed by named sources, a measured benchmark and its numbers."}
+{"id":"sr-009","gold":"escalate","evidence":2,"rationale":"라이선스 문제는 작업자가 결정할 수 없는 법적 판단이다."}
+{"id":"sr-010","gold":"replan","evidence":1,"rationale":"조사 범위가 주어진 시간·자료로는 불가능하여 범위를 좁혀야 한다."}
+{"id":"sr-011","gold":"replan","evidence":1,"rationale":"요구된 방식이 플랫폼 제약과 맞지 않아 범위 조정이 필요하다."}
+{"id":"sr-012","gold":"escalate","evidence":1,"rationale":"Missing production access; only a person can grant it."}
+{"id":"sr-013","gold":"replan","evidence":1,"rationale":"The test-writing task cannot proceed because the code under test is untestable as structured."}
+{"id":"sr-014","gold":"replan","evidence":2,"rationale":"The spec's target file format cannot carry the required data, shown with a concrete round-trip test."}
+{"id":"sr-015","gold":"retry","evidence":1,"rationale":"요청 범위 중 한 항목을 빠뜨렸고 실행 결과 없이 파일만 나열했다."}
+{"id":"sr-016","gold":"complete","evidence":2,"rationale":"Bug fix shown with a failing-then-passing regression test and full suite count."}
+{"id":"sr-017","gold":"complete","evidence":1,"rationale":"변경 파일과 일부 검사 결과는 있으나 요청된 검증의 절반만 수행된 완료 보고이다."}
+{"id":"sr-018","gold":"replan","evidence":1,"rationale":"The task depends on a prerequisite that is itself broken, so sequencing must change."}
+{"id":"sr-019","gold":"replan","evidence":2,"rationale":"The acceptance criterion is unreachable with the mandated library version, shown by the library's own limits."}
+{"id":"sr-020","gold":"replan","evidence":1,"rationale":"요청된 단일 작업이 실제로는 서로 다른 세 문제임을 확인해 분리를 요청한다."}
+{"id":"sr-021","gold":"escalate","evidence":2,"rationale":"The fix requires a destructive production data change beyond the worker's remit."}
+{"id":"sr-022","gold":"complete","evidence":2,"rationale":"Migration applied and verified in both directions with observed row counts."}
+{"id":"sr-023","gold":"escalate","evidence":0,"rationale":"Worker defers entirely with a generic risk statement."}
+{"id":"sr-024","gold":"escalate","evidence":2,"rationale":"Two written requirements contradict each other and the worker shows exactly where."}
+{"id":"sr-025","gold":"complete","evidence":2,"rationale":"조사 결과가 읽은 로그 구간과 확인한 수치로 뒷받침된다."}
+{"id":"sr-026","gold":"replan","evidence":2,"rationale":"Partial success plus proof that the remaining part needs a different decomposition."}
+{"id":"sr-027","gold":"replan","evidence":2,"rationale":"The assigned fix location is wrong; evidence shows the defect lives in another component, so the task must be reframed."}
+{"id":"sr-028","gold":"retry","evidence":2,"rationale":"Flaky browser test passed on a local rerun once but evidence for stability is thin and the suite was not rerun in full."}
+{"id":"sr-029","gold":"escalate","evidence":1,"rationale":"Worker hit a consent gate and correctly did not bypass it."}
+{"id":"sr-030","gold":"complete","evidence":2,"rationale":"Accessibility fix with the audit tool's before/after counts and tests."}
+{"id":"sr-031","gold":"retry","evidence":2,"rationale":"Verbose mostly-green log with a buried lint failure caused by the change."}
+{"id":"sr-032","gold":"retry","evidence":2,"rationale":"전체 스위트 중 1건이 타이밍성으로 실패했고 재실행하지 않았다."}
+{"id":"sr-033","gold":"complete","evidence":2,"rationale":"설정 변경과 그 효과를 확인한 명령·관측 결과가 포함되어 있다."}
+{"id":"sr-034","gold":"retry","evidence":2,"rationale":"Output was produced but fails the stated acceptance threshold by a small margin."}
+{"id":"sr-035","gold":"complete","evidence":2,"rationale":"Logging change with files and an executed check that shows the redaction working."}
+{"id":"sr-036","gold":"escalate","evidence":2,"rationale":"The spec and the existing public behaviour disagree; a human must choose which is authoritative."}
+{"id":"sr-037","gold":"retry","evidence":2,"rationale":"A flaky network failure in an otherwise passing run; same task should be rerun."}
+{"id":"sr-038","gold":"retry","evidence":2,"rationale":"Build fails on a trivial missing import introduced by the worker."}
+{"id":"sr-039","gold":"retry","evidence":0,"rationale":"완료를 주장하지만 실행한 검사나 변경 파일이 전혀 없다."}
+{"id":"sr-040","gold":"retry","evidence":1,"rationale":"결과물 형식이 요구와 다르지만 같은 작업을 약간 고쳐 다시 하면 된다."}
+{"id":"sr-041","gold":"retry","evidence":1,"rationale":"작업의 일부만 끝났고 남은 부분은 같은 방식으로 이어서 하면 된다."}
+{"id":"sr-042","gold":"complete","evidence":1,"rationale":"Outcome and files are named and a typecheck result is given, but the behavioural check is only partial."}
+{"id":"sr-043","gold":"complete","evidence":2,"rationale":"테스트 추가 작업의 파일, 케이스 수, 커버리지 수치가 실행 결과로 제시되었다."}
+{"id":"sr-044","gold":"complete","evidence":2,"rationale":"Security fix with the changed files, a negative test and the scanner result."}
+{"id":"sr-045","gold":"complete","evidence":2,"rationale":"Cleanup task with a named dead-code check and passing build and tests."}
+{"id":"sr-046","gold":"replan","evidence":1,"rationale":"Mobile build task blocked by an architectural mismatch, not a transient error."}
+{"id":"sr-047","gold":"complete","evidence":2,"rationale":"Names the changed file and an executed test run with a passing count."}
+{"id":"sr-048","gold":"complete","evidence":2,"rationale":"Infrastructure change validated with plan output and applied in the sandbox with observed state."}
+{"id":"sr-049","gold":"replan","evidence":2,"rationale":"재현 결과로 과제의 원인 가정이 틀렸음을 보였고 과제를 다시 정의해야 한다."}
+{"id":"sr-050","gold":"retry","evidence":0,"rationale":"Environment hiccup stopped the task before any work happened."}
+{"id":"sr-051","gold":"complete","evidence":2,"rationale":"짧지만 변경 내용과 실행한 검사 결과가 들어 있다."}
+{"id":"sr-052","gold":"retry","evidence":1,"rationale":"Report is cut off mid-way with no verification stated."}
+{"id":"sr-053","gold":"replan","evidence":1,"rationale":"Research question as posed has no answer in the available material and needs to be re-scoped."}
+{"id":"sr-054","gold":"replan","evidence":1,"rationale":"The fix as requested would only mask a deeper design issue the worker found."}
+{"id":"sr-055","gold":"escalate","evidence":1,"rationale":"보안 취약 가능성을 발견했고 작업 범위를 넘는 위험이라 사람의 판단이 필요하다."}
+{"id":"sr-056","gold":"retry","evidence":1,"rationale":"Half-finished code with a known TODO left in the main path."}
+{"id":"sr-057","gold":"complete","evidence":2,"rationale":"리팩터링 범위와 실행한 검사(타입, 테스트, 스냅샷) 결과가 모두 보고되었다."}
+{"id":"sr-058","gold":"escalate","evidence":2,"rationale":"수정안 두 가지의 측정된 장단점을 제시하고 선택을 요청한다."}
+{"id":"sr-059","gold":"replan","evidence":0,"rationale":"범위가 과도하다는 판단만 있고 구체적 확인 없이 분해를 제안한다."}
+{"id":"sr-060","gold":"replan","evidence":2,"rationale":"The worker demonstrates the specified algorithm gives wrong results on the provided data."}
+{"id":"sr-061","gold":"replan","evidence":0,"rationale":"Vague statement that the task does not make sense, with no specifics or checks."}
+{"id":"sr-062","gold":"escalate","evidence":1,"rationale":"Completing the task would require disabling a safety check, which the worker declines to do alone."}
+{"id":"sr-063","gold":"escalate","evidence":0,"rationale":"Worker asks for a decision without any concrete detail."}
+{"id":"sr-064","gold":"complete","evidence":2,"rationale":"Reports that no change was needed, with the reproduction steps and observed output as evidence."}
+{"id":"sr-065","gold":"complete","evidence":2,"rationale":"변경 파일, 재현 테스트, 수정 전후 실행 결과가 구체적으로 적혀 있다."}
+{"id":"sr-066","gold":"escalate","evidence":1,"rationale":"운영 권한이 없어 진행할 수 없으며 사람의 승인이 필요하다."}
+{"id":"sr-067","gold":"replan","evidence":2,"rationale":"두 요구 사항이 현재 구조에서는 동시에 달성 불가능함을 수치로 보였고 설계 변경이 필요하다."}
+{"id":"sr-068","gold":"retry","evidence":2,"rationale":"린트 자동 수정만 빠진 사소한 실패로, 같은 작업을 다시 하면 해결된다."}
+{"id":"sr-069","gold":"complete","evidence":2,"rationale":"CI config change verified by an actual pipeline run with observed job results."}
+{"id":"sr-070","gold":"replan","evidence":1,"rationale":"The worker found the task duplicates in-flight work and the decomposition should be revised."}
+{"id":"sr-071","gold":"complete","evidence":2,"rationale":"Performance task with before/after measurements and the test suite result."}
+{"id":"sr-072","gold":"escalate","evidence":1,"rationale":"공유 자원에 영향을 주는 작업이라 실행 전 승인이 필요하다."}
+{"id":"sr-073","gold":"escalate","evidence":1,"rationale":"요구 사항 자체가 모호해 두 해석 중 하나를 사람이 골라야 한다."}
+{"id":"sr-074","gold":"replan","evidence":0,"rationale":"Worker reports the task is ill-posed for the codebase without having verified anything concretely."}
+{"id":"sr-075","gold":"replan","evidence":2,"rationale":"과제가 전제한 API가 존재하지 않음을 확인했으며 접근 방식을 바꿔야 한다."}
+{"id":"sr-076","gold":"retry","evidence":1,"rationale":"The worker answered a different, narrower question than the one asked."}
+{"id":"sr-077","gold":"retry","evidence":2,"rationale":"A resource-exhaustion failure in the test runner, not a code failure."}
+{"id":"sr-078","gold":"escalate","evidence":0,"rationale":"Terse statement of a missing credential with nothing else."}
+{"id":"sr-079","gold":"complete","evidence":2,"rationale":"Research summary cites which documents were read and quotes the specific finding."}
+{"id":"sr-080","gold":"replan","evidence":2,"rationale":"주어진 제약(스키마 변경 금지) 아래에서는 목표 성능이 불가능함을 실행 계획으로 보였다."}
+{"id":"sr-081","gold":"retry","evidence":0,"rationale":"Verification is asserted from reading code rather than executing anything."}
+{"id":"sr-082","gold":"complete","evidence":2,"rationale":"Feature flag wiring with files, unit tests and a manual check with observed output."}
+{"id":"sr-083","gold":"replan","evidence":1,"rationale":"과제 정의가 틀린 대상(폐기 예정 모듈)을 가리키고 있어 재정의가 필요하다."}
+{"id":"sr-084","gold":"retry","evidence":0,"rationale":"Claims success confidently but names no executed check at all."}
+{"id":"sr-085","gold":"complete","evidence":2,"rationale":"의존성 제거 작업의 변경 파일과 빌드·테스트·번들 크기 결과가 모두 명시되었다."}
+{"id":"sr-086","gold":"escalate","evidence":1,"rationale":"작업 지시와 저장소 규칙이 충돌하여 부모의 결정이 필요하다."}
+{"id":"sr-087","gold":"complete","evidence":1,"rationale":"Docs task done with files named, but only one of the two relevant checks was run."}
+{"id":"sr-088","gold":"escalate","evidence":2,"rationale":"데이터 마이그레이션 검증에서 불일치를 발견했고 운영 반영 여부는 사람이 결정해야 한다."}
+{"id":"sr-089","gold":"escalate","evidence":2,"rationale":"두 요구 사항이 충돌함을 구체적으로 확인했고 결정권자의 판단이 필요하다."}
+{"id":"sr-090","gold":"replan","evidence":1,"rationale":"The requested approach cannot meet the requirement for a structural reason the worker identified."}
+{"id":"sr-091","gold":"retry","evidence":2,"rationale":"긴 로그 속에 타입 오류 1건이 묻혀 있으며 요약은 성공이라고 잘못 말한다."}
+{"id":"sr-092","gold":"retry","evidence":1,"rationale":"Only half of the assigned items are done and the rest is the same kind of work."}
+{"id":"sr-093","gold":"retry","evidence":1,"rationale":"Says tests pass but gives no command or count, and admits one requested item was skipped."}
+{"id":"sr-094","gold":"complete","evidence":2,"rationale":"Long log but every stage is reported as passing and the changed files are listed."}
+{"id":"sr-095","gold":"escalate","evidence":1,"rationale":"Needs a paid third-party purchase and a vendor choice only the owner can make."}
+{"id":"sr-096","gold":"escalate","evidence":1,"rationale":"Two stakeholders gave conflicting instructions in the task materials."}
+{"id":"sr-097","gold":"replan","evidence":0,"rationale":"근거 없이 과제 전체를 다시 계획하자는 주장만 있다."}
+{"id":"sr-098","gold":"escalate","evidence":2,"rationale":"테스트는 통과했지만 변경이 다른 팀 소유 코드에 걸쳐 있어 부모의 결정이 필요하다."}
+{"id":"sr-099","gold":"escalate","evidence":2,"rationale":"Legal/PII exposure found during research; concrete findings but the remediation decision is not the worker's."}
+{"id":"sr-100","gold":"complete","evidence":1,"rationale":"문서 번역 작업으로 변경 파일은 명시했으나 검증은 일부(용어 검색)만 수행했다."}
+{"id":"sr-101","gold":"escalate","evidence":1,"rationale":"Hardware/device access the worker cannot obtain."}
+{"id":"sr-102","gold":"retry","evidence":0,"rationale":"무엇을 했는지 구체성이 없고 검증 언급도 없는 짧은 완료 주장이다."}
+{"id":"sr-103","gold":"escalate","evidence":0,"rationale":"무엇이 막혔는지 구체적 내용 없이 확인만 요청한다."}
+{"id":"sr-104","gold":"escalate","evidence":2,"rationale":"Tests pass but the change has a risky side effect requiring a product decision."}
+{"id":"sr-105","gold":"replan","evidence":1,"rationale":"작업 분해가 잘못되어 선행 작업 없이는 진행할 수 없다."}
+{"id":"sr-106","gold":"replan","evidence":2,"rationale":"Confident worker shows by experiment that the chosen library cannot do what the plan assumes."}
+{"id":"sr-107","gold":"replan","evidence":2,"rationale":"지시된 수정이 다른 요구(하위 호환)를 깨뜨림을 테스트로 확인했고 과제 분해를 바꿔야 한다."}
+{"id":"sr-108","gold":"escalate","evidence":1,"rationale":"The task instructions embedded in a fetched page asked for something outside the brief; worker flags it."}
+{"id":"sr-109","gold":"retry","evidence":2,"rationale":"수정 후 회귀 테스트 2건이 실패했고 원인이 작업자의 변경으로 특정되어 있다."}
+{"id":"sr-110","gold":"escalate","evidence":1,"rationale":"External dependency outage outside the worker's control with unclear duration; the parent must decide to wait or change course."}
+{"id":"sr-111","gold":"retry","evidence":2,"rationale":"Tests reveal a small concrete defect in the worker's own change that a second pass can fix."}
+{"id":"sr-112","gold":"escalate","evidence":1,"rationale":"An irreversible operation was requested and the worker asks for explicit confirmation."}
+{"id":"sr-113","gold":"retry","evidence":1,"rationale":"Commit and tests are claimed, but the report itself shows the work was done on the wrong branch state."}
+{"id":"sr-114","gold":"escalate","evidence":2,"rationale":"Budget overrun risk discovered with numbers; the spend decision belongs to a person."}
+{"id":"sr-115","gold":"retry","evidence":1,"rationale":"변경 파일은 적었지만 테스트는 \"통과할 것\"이라는 추정뿐이다."}
+{"id":"sr-116","gold":"complete","evidence":2,"rationale":"Terse but states the change, the command and the observed result."}
+{"id":"sr-117","gold":"complete","evidence":2,"rationale":"API 엔드포인트 추가와 관련 테스트·수동 호출 결과가 구체적으로 보고되었다."}
+{"id":"sr-118","gold":"replan","evidence":1,"rationale":"The work completed so far shows the estimate and breakdown were wrong by an order of magnitude."}
+{"id":"sr-119","gold":"retry","evidence":1,"rationale":"The worker edited the wrong file for the requested behaviour; a small redirect fixes it."}
+{"id":"sr-120","gold":"retry","evidence":1,"rationale":"Names the changed files but explicitly says tests were not run."}

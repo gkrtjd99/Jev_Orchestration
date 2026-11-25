@@ -1,0 +1,277 @@
+{
+  "schema": 1,
+  "note": "Descriptive only. A loaded skill is what a subagent did, not proof the skill was needed; a pass rate exists only where an external verification result was supplied; nothing in this report changes routing.",
+  "delegations": 8,
+  "routed": 8,
+  "requestedVsEffective": {
+    "profile": {
+      "compared": 8,
+      "matched": 8,
+      "rate": 1
+    },
+    "model": {
+      "compared": 8,
+      "exact": 0,
+      "declared": 0,
+      "aliasUndeclared": 8,
+      "alias": 8,
+      "mismatch": 0,
+      "exactRate": 0,
+      "acceptedRate": 0,
+      "exactOrAliasRate": 1
+    },
+    "effort": {
+      "compared": 8,
+      "matched": 8,
+      "rate": 1
+    }
+  },
+  "byProfile": [
+    {
+      "profile": "jev4_implement_light_xhigh_ff567b09c6",
+      "delegations": 1,
+      "verified": 1,
+      "passed": 1,
+      "passRate": 1,
+      "conventionChecked": 1,
+      "conventionPassRate": 1,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 20,
+            "measured": 1
+          },
+          "output": {
+            "mean": 13132,
+            "measured": 1
+          },
+          "cacheRead": {
+            "mean": 633530,
+            "measured": 1
+          },
+          "cacheCreation": {
+            "mean": 81572,
+            "measured": 1
+          },
+          "total": {
+            "mean": 728254,
+            "measured": 1
+          }
+        },
+        "apiTurns": {
+          "mean": 10,
+          "measured": 1
+        },
+        "toolCalls": {
+          "mean": 12,
+          "measured": 1
+        },
+        "wallMs": {
+          "mean": 97307,
+          "measured": 1
+        },
+        "endToEndMs": {
+          "mean": 110510,
+          "measured": 1
+        }
+      }
+    },
+    {
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "delegations": 6,
+      "verified": 6,
+      "passed": 6,
+      "passRate": 1,
+      "conventionChecked": 4,
+      "conventionPassRate": 1,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 13.333333333333334,
+            "measured": 6
+          },
+          "output": {
+            "mean": 4684.666666666667,
+            "measured": 6
+          },
+          "cacheRead": {
+            "mean": 383617.3333333333,
+            "measured": 6
+          },
+          "cacheCreation": {
+            "mean": 30527.666666666668,
+            "measured": 6
+          },
+          "total": {
+            "mean": 418843,
+            "measured": 6
+          }
+        },
+        "apiTurns": {
+          "mean": 6.666666666666667,
+          "measured": 6
+        },
+        "toolCalls": {
+          "mean": 8.333333333333334,
+          "measured": 6
+        },
+        "wallMs": {
+          "mean": 44354.5,
+          "measured": 6
+        },
+        "endToEndMs": {
+          "mean": 52028.666666666664,
+          "measured": 6
+        }
+      }
+    },
+    {
+      "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+      "delegations": 1,
+      "verified": 1,
+      "passed": 1,
+      "passRate": 1,
+      "conventionChecked": 1,
+      "conventionPassRate": 1,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 26,
+            "measured": 1
+          },
+          "output": {
+            "mean": 13622,
+            "measured": 1
+          },
+          "cacheRead": {
+            "mean": 952043,
+            "measured": 1
+          },
+          "cacheCreation": {
+            "mean": 53558,
+            "measured": 1
+          },
+          "total": {
+            "mean": 1019249,
+            "measured": 1
+          }
+        },
+        "apiTurns": {
+          "mean": 13,
+          "measured": 1
+        },
+        "toolCalls": {
+          "mean": 16,
+          "measured": 1
+        },
+        "wallMs": {
+          "mean": 136179,
+          "measured": 1
+        },
+        "endToEndMs": {
+          "mean": 145063,
+          "measured": 1
+        }
+      }
+    }
+  ],
+  "all": {
+    "delegations": 8,
+    "verified": 8,
+    "passed": 8,
+    "passRate": 1,
+    "conventionChecked": 6,
+    "conventionPassRate": 1,
+    "perDelegation": {
+      "tokens": {
+        "input": {
+          "mean": 15.75,
+          "measured": 8
+        },
+        "output": {
+          "mean": 6857.75,
+          "measured": 8
+        },
+        "cacheRead": {
+          "mean": 485909.625,
+          "measured": 8
+        },
+        "cacheCreation": {
+          "mean": 39787,
+          "measured": 8
+        },
+        "total": {
+          "mean": 532570.125,
+          "measured": 8
+        }
+      },
+      "apiTurns": {
+        "mean": 7.875,
+        "measured": 8
+      },
+      "toolCalls": {
+        "mean": 9.75,
+        "measured": 8
+      },
+      "wallMs": {
+        "mean": 62451.625,
+        "measured": 8
+      },
+      "endToEndMs": {
+        "mean": 70968.125,
+        "measured": 8
+      }
+    }
+  },
+  "judge": {
+    "requests": {
+      "total": 64,
+      "perDelegation": {
+        "mean": 8,
+        "measured": 8
+      }
+    },
+    "tokens": {
+      "reportedDecisions": 0,
+      "judge": null,
+      "workers": 4260561,
+      "judgeShare": null
+    },
+    "time": {
+      "measured": 8,
+      "routerMs": 10966.723707000001,
+      "endToEndMs": 567745,
+      "routerShare": 0.019316284083523413
+    }
+  },
+  "skills": {
+    "crossTab": {
+      "blockPresent": {
+        "loadedAny": 4,
+        "loadedNone": 0
+      },
+      "blockAbsent": {
+        "loadedAny": 1,
+        "loadedNone": 1
+      },
+      "blockUnknown": 0,
+      "loadUnknown": 2
+    },
+    "blocksNamingALoadSkill": 4,
+    "blocksWhoseLoadSkillsWereAllLoaded": 4
+  },
+  "records": 8,
+  "corruptLines": 0,
+  "evidenceStore": {
+    "schema": 1,
+    "rows": 0,
+    "current": 0,
+    "stale": 0,
+    "byMatch": {
+      "exact": 0,
+      "declared": 0,
+      "unrecorded": 0
+    },
+    "byProfile": {}
+  }
+}

@@ -13,7 +13,9 @@ process.umask(0o077);
 for(const k of Object.keys(process.env))if(/^(?:JEV_|TYPESAFE_|ANTHROPIC_|CLAUDE_|CODEX_)/.test(k))delete process.env[k];
 export function confirmedConfig(home){const c=defaults(home);for(const m of c.registry.models)m.availability='confirmed';return c;}
 export async function fixture(t){
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'jev-hooks-test-'));
+ // The product resolves projects with realpath (projectFor) and compares canonical paths, so fixture paths
+ // must be canonical too. macOS's default TMPDIR is /var/folders/..., a symlink to /private/var/folders/...
+ const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'jev-hooks-test-')));
  const home=path.join(root,'home');const project=path.join(root,'project');
  await fs.mkdir(home);await fs.mkdir(project);await fs.mkdir(path.join(project,'docs'));
  await fs.writeFile(path.join(project,'AGENTS.md'),'Keep existing requirements.');

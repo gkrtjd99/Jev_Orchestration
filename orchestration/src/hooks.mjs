@@ -6,20 +6,51 @@ import { projectFor } from './config.mjs';
 import { SessionStore } from './state.mjs';
 import { inventory, revisionFingerprint, readDocumentMetadata } from './documents.mjs';
 import { routeQuestions, failureQuestions, readQuestions, QUESTION_VERSION } from './questions.mjs';
-import { routeContext, policyFingerprint } from './policy.mjs';
+import { routeContext, policyFingerprint, splitRoutingTail } from './policy.mjs';
 import { routeTask } from './router.mjs';
 import { assertInstalledProfile } from './profiles.mjs';
-import { profileCatalog } from './catalog.mjs';
-import { JevClient } from './jev.mjs';
+import { profileCatalog, isModelId } from './catalog.mjs';
+import { createKernel } from './kernel/kernel.mjs';
+import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
+import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
+import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, supervisorSentence, reportText } from './kernel/supervisor.mjs';
+import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptWellFormed, handbackPromptMatch, handbackPromptRecords, handbackReportBinding, validAgentId,
+  HANDBACK_WAIT_MS, HANDBACK_HOOK_BUDGET_MS, HANDBACK_GRACE_MS, HANDBACK_POLL_MS, HANDBACK_STALE_MS, HANDBACK_PROMPT_WINDOW_MS,
+  HANDBACK_DELIVERY_MAX_AGE_MS, HANDBACK_MAX_JUDGED_PER_TASK } from './kernel/handback.mjs';
 import { planContext } from './plan-context.mjs';
 import { handleControllerHook,controllerManagedTool } from './controller-hooks.mjs';
-import { hash, object, redact, withLock } from './util.mjs';
+import { hash, object, redact, sleep, withLock } from './util.mjs';
 
 function errorCode(error){return /^[A-Z0-9_]+$/.test(error.code||error.message||'')?(error.code||error.message):'JEV_UNAVAILABLE';}
 function warning(event,code){
   if(['PreToolUse','SessionStart','UserPromptSubmit','PostToolUse','PostToolUseFailure','SubagentStart'].includes(event))
     return contextOutput(event,`Jev hooks: ${code}. No worker was started by this extension. The native runtime retains control.`);
   return {};
+}
+// Covers the default kernel.skills.maxJudged; when more skills were judged, retrieval.judged still gives the total.
+const SKILL_EVENT_TRACE=64;
+/** Skill selection for one delegation. Never rejects and never outlives the route deadline. */
+async function routeSkills(kernel,cfg,project,task,scope){
+  const settings=kernel.kernel.skills;
+  let timer;
+  const deadline=new Promise(resolve=>{timer=setTimeout(()=>resolve({status:'unavailable',code:'SKILLS_DEADLINE'}),cfg.optimization.routeDeadlineMs);});
+  const work=(async()=>{
+    const catalog=await loadSkillCatalog({project,dirs:settings.dirs});
+    return selectSkills({task,catalog,judge:kernel.forPoint(SKILLS_POINT),scope,config:settings,
+      limits:{timeoutMs:kernel.budget(SKILLS_POINT,cfg.optimization.routeDeadlineMs)}});
+  })().catch(error=>({status:'unavailable',code:errorCode(error)}));
+  try{return await Promise.race([work,deadline]);}finally{clearTimeout(timer);}
+}
+// Names, stages and probabilities only: skill descriptions and the task text stay out of session state.
+function skillsEvent(taskId,mode,result,injected){
+  const slim=list=>(Array.isArray(list)?list:[]).map(s=>({name:s.name,probability:s.probability}));
+  // partial: some of a wide decision's requests failed and the rest answered (failedCode says how).
+  return {taskId,mode,status:result.status,code:result.code||null,...(result.partial===true?{partial:true,failedCode:result.failedCode||null}:{}),need:result.need??null,candidates:result.candidates??0,
+    decisionId:result.decisionId??null,decisionIds:Array.isArray(result.decisionIds)?result.decisionIds:[],
+    // Per logged decision, the ordered skill names its skill_<i> questions were about (names are validated identifiers).
+    asked:(Array.isArray(result.asked)?result.asked:[]).filter(a=>typeof a?.decisionId==='string'&&Array.isArray(a.names)).map(a=>({decisionId:a.decisionId,names:a.names.filter(n=>typeof n==='string')})),retrieval:result.retrieval??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
+    load:slim(result.load),suggest:slim(result.suggest),
+    trace:(result.trace||[]).filter(t=>t.stage!=='retrieval').slice(0,SKILL_EVENT_TRACE).map(t=>({name:t.name,stage:t.stage,probability:t.probability}))};
 }
 function failedResponse(e){return e.event==='PostToolUseFailure'||e.tool_response?.is_error===true||e.tool_response?.success===false;}
 export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,runtimeEnv=process.env}={}){
@@ -28,8 +59,188 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
   const project=await projectFor(cfg,e.cwd);if(!project)return {};
   const store=new SessionStore(cfg,project,runtime,e.session_id);
   const visible=['active','advisory'].includes(cfg.mode);const active=cfg.mode==='active';
-  const jev=client||new JevClient(cfg,apiKey);
+  // One kernel per hook call, built on first use so events that never judge pay nothing.
+  let built=null;
+  const kernel=()=>built??=createKernel(cfg,{apiKey,client,runtimeEnv,log:new DecisionLog(decisionLogDir(cfg)),
+    localResolvers:{[SKILLS_POINT]:localSkillResolver()}});
   const scope=hash({project,session:e.session_id,runtime});
+  // Advisory report check for a delegation this extension routed. Returns hook output or null; never retries, respawns or blocks.
+  const supervise=async response=>{
+    const mode=kernel().point(SUPERVISOR_POINT).mode;
+    if(mode==='off')return null;
+    // A background launch acknowledgement is not a worker report.
+    if(response.isAsync===true||response.status==='async_launched'||e.input?.run_in_background===true)return null;
+    const prior=e.tool_use_id?await store.getTask(e.tool_use_id):null;
+    if(!prior?.route)return null; // custom, nested and otherwise preserved delegations were never sent to a judge
+    const text=reportText(e.tool_response).trim();
+    if(!text)return null;
+    const note=async data=>{try{await store.record('supervisor',{taskId:e.tool_use_id,mode,...data},e.tool_use_id);}catch{/* advisory bookkeeping only */}};
+    if(secretLike(text,apiKey)||secretLike(text,runtimeEnv?.OPENAI_API_KEY||'')){await note({status:'skipped',reason:'secret_guard'});return null;}
+    try{
+      const decision=await kernel().decide(SUPERVISOR_POINT,{state:{report:redact(text,kernel().kernel.supervisor.maxReportChars)},
+        questions:supervisorQuestions(),scope,limits:{timeoutMs:kernel().budget(SUPERVISOR_POINT)},subject:prior.route.taskSignature||null});
+      const a=supervisorAdvice(decision.response.answers,kernel().kernel.supervisor);
+      await note({status:'judged',outcome:a.outcome,confidence:a.confidence,evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId});
+      return decision.apply&&visible&&a.advisory?contextOutput(e.event,a.text):null;
+    }catch(error){
+      await note({status:'unavailable',code:errorCode(error)});
+      return null;
+    }
+  };
+  // The same check for a report that arrives as a SubagentHandback PostToolUse (runtimes that launch every
+  // Agent call asynchronously). This event fires in the finishing subagent's context, so nothing is returned
+  // from it: the advice is parked in the session's private hand-back record and delivered to Main by
+  // promptHandback/deliverAdvice below. Never throws, never denies; every outcome is recorded.
+  const superviseHandback=async()=>{
+    let mode='off',id=null,agentId=null,taskId=null,ledger=null,base=null;
+    const note=async data=>{try{await store.record('supervisor',{taskId,mode,...data,source:'handback',agentId},'handback:'+id);}catch{/* advisory bookkeeping only */}};
+    try{
+      mode=kernel().point(SUPERVISOR_POINT).mode;
+      if(mode==='off')return;
+      const message=typeof e.input?.message==='string'?e.input.message:'';
+      agentId=validAgentId(e.agent_id)?e.agent_id:null;
+      id=handbackId(e.tool_use_id,agentId,message);
+      if(!agentId){await note({status:'skipped',reason:'missing_agent_id'});return;}
+      if(failedResponse(e)){await note({status:'skipped',reason:'handback_failed'});return;}
+      ledger=new HandbackLedger(store.dir);
+      // One judgment per hand-back: a replayed event finds the marker and changes nothing. The one exception is
+      // a hand-back whose hook process died after the marker and before a terminal record (no record, or still
+      // in_flight, longer than the hook watchdog allows): the first replay after that takes it over, once.
+      if(!await ledger.claim(id,'claim')){
+        // "Finished" is read from the file in any record format: a hand-back judged under an earlier format is final too.
+        if(await ledger.settled(agentId,id))return;
+        const left=await ledger.get(agentId,id);
+        if(left&&left.status!=='in_flight')return;
+        const since=left?left.seenAt:Number(await ledger.claimed(id,'claim'));
+        if(!Number.isFinite(since)||Date.now()-since<HANDBACK_STALE_MS||!await ledger.claim(id,'retry'))return;
+      }
+      // The in-flight record is written before any lookup or judge call: the hand-back prompt hook starts
+      // about 70 ms after this one and waits only while it can see this record. reportHash and the line
+      // hashes bind the record to the one prompt that carries this report (hashes only, no text).
+      base={schema:2,agentId,handbackId:id,...handbackReportBinding(message,agentId,id),seenAt:Date.now()};
+      await ledger.write(agentId,{...base,status:'in_flight'});
+      await ledger.prune(agentId);
+      const skip=async reason=>{await ledger.write(agentId,{...base,status:'skipped',reason});await note({status:'skipped',reason});};
+      if(!cfg.safety.allowEgress){await skip('egress_not_approved');return;}
+      const task=await store.taskForAgent(agentId);
+      if(!task){await skip('unknown_agent');return;}
+      // custom, nested, resumed and otherwise preserved delegations have no stored route and were never sent to a judge
+      const prior=await store.getTask(task.taskId);
+      if(!prior?.route){await skip('unrouted_delegation');return;}
+      taskId=task.taskId;
+      if(task.status==='spawn_failed'){await skip('spawn_failed');return;}
+      // A runtime that also returned this report inline was already judged on the Agent PostToolUse.
+      if((await store.getEvent('supervisor',taskId))?.status==='judged'){await skip('judged_inline');return;}
+      const text=message.trim();
+      if(!text){await skip('empty_report');return;}
+      if(secretLike(text,apiKey)||secretLike(text,runtimeEnv?.OPENAI_API_KEY||'')){await skip('secret_guard');return;}
+      // A continued agent can hand back many times; the judge requests they spend come out of the session
+      // budget routing depends on, so one routed delegation gets a fixed number of judged hand-backs.
+      if(!await ledger.slot(taskId,HANDBACK_MAX_JUDGED_PER_TASK)){await skip('handback_limit');return;}
+      const decision=await kernel().decide(SUPERVISOR_POINT,{state:{report:redact(text,kernel().kernel.supervisor.maxReportChars)},
+        questions:supervisorQuestions(),scope,limits:{timeoutMs:kernel().budget(SUPERVISOR_POINT)},subject:prior.route.taskSignature||null});
+      const a=supervisorAdvice(decision.response.answers,kernel().kernel.supervisor);
+      // The session event is written first: delivery requires it next to the record, so a prompt hook that
+      // sees the judged record must also be able to see the event.
+      await note({status:'judged',outcome:a.outcome,confidence:a.confidence,evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId});
+      // No advice text is stored; deliverAdvice rebuilds the sentence from these fields.
+      await ledger.write(agentId,{...base,status:'judged',taskId,mode,apply:decision.apply===true,outcome:a.outcome,confidence:a.confidence,
+        evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId,time:Date.now()});
+    }catch(error){
+      const code=errorCode(error);
+      // Ends the wait of a hand-back prompt hook that is polling the in-flight marker.
+      if(ledger&&base){try{await ledger.write(agentId,{...base,status:'unavailable',code});}catch{/* the waiter stops at its own cap */}}
+      await note({status:'unavailable',code});
+    }
+  };
+  // A Main prompt that is the harness's hand-back block for agent X, while supervisor.outcome is active.
+  // Returns the hand-back record this prompt belongs to, or null; null means "handle this prompt exactly as before".
+  // The agent id is taken from the header; the body is only hashed, line by line, and compared with the hashes
+  // of the report the runtime's SubagentHandback event carried (handbackPromptMatch: the report's lines in
+  // order, optionally behind one indented '[harness:' notice). A record belongs to this prompt when it is the same agent,
+  // the same report, the same session epoch (not from before a /clear) and it has not vouched for a
+  // different prompt. Another hand-back of the same agent (an earlier one, or one already used) is not this
+  // prompt's record: the hook then waits the same short grace as when there is no record at all, because the
+  // SubagentHandback hook process for this prompt may not have written its record yet. Never throws.
+  const promptHandback=async()=>{
+    try{
+      const agentId=handbackPromptAgent(e.prompt);
+      if(!agentId||kernel().point(SUPERVISOR_POINT).mode!=='active')return null;
+      if(!handbackPromptWellFormed(e.prompt))return null; // not exactly one agent-message element: no record can belong to it
+      const matched=new Map(); // a record's binding never changes, so each hand-back is compared with this prompt once
+      const carries=record=>{
+        if(!matched.has(record.handbackId))matched.set(record.handbackId,handbackPromptMatch(e.prompt,record));
+        return matched.get(record.handbackId);
+      };
+      const promptHash=hash(e.prompt);
+      const ledger=new HandbackLedger(store.dir);
+      const limit=began+HANDBACK_HOOK_BUDGET_MS;
+      const epoch=(await store.snapshot()).epoch||0;
+      const find=async()=>{
+        const all=[];
+        for(const record of await ledger.records(agentId)){
+          const match=record.seenAt<epoch?null:carries(record);
+          if(!match)continue;
+          const vouched=await ledger.claimed(record.handbackId,'prompt');
+          all.push({record,match,vouched,fresh:vouched===null&&await ledger.claimed(record.handbackId,'delivered')===null});
+        }
+        // One prompt can match two different reports of this agent through the notice / '<\' tolerances
+        // ('A' and '[harness: x]\nA'). The choice is made over EVERY record the prompt matches, used or not:
+        // an exact match wins, and tolerated matches of different forms bind nothing.
+        const mine=handbackPromptRecords(all).filter(x=>x.vouched===null||x.vouched===promptHash);
+        // What is left holds the same report: the oldest hand-back that is still unused goes first.
+        return (mine.filter(x=>x.fresh).at(-1)??mine[0])?.record??null;
+      };
+      let record=await find();
+      const grace=Math.min(limit,performance.now()+HANDBACK_GRACE_MS);
+      while(!record&&performance.now()<grace){await sleep(HANDBACK_POLL_MS);record=await find();}
+      return record?{agentId,ledger,record,limit,promptHash}:null;
+    }catch{return null;}
+  };
+  // True once per trusted SubagentHandback event: same session, same agent id, same report, processed by the
+  // hand-back hook (its claim marker exists), seen at most HANDBACK_PROMPT_WINDOW_MS ago.
+  // A replay of the very prompt that was corroborated (same hash) stays corroborated; any other prompt does not.
+  const corroborated=async h=>{
+    try{
+      const id=h.record.handbackId;
+      if(await h.ledger.claimed(id,'claim')===null)return false;
+      if(await h.ledger.claimed(id,'prompt')===h.promptHash)return true;
+      const age=Date.now()-h.record.seenAt;
+      if(age<0||age>HANDBACK_PROMPT_WINDOW_MS)return false;
+      // Losing the race for the marker to a concurrent delivery of the same prompt is still that prompt.
+      return await h.ledger.claim(id,'prompt',h.promptHash)||await h.ledger.claimed(id,'prompt')===h.promptHash;
+    }catch{return false;}
+  };
+  // The parked advice of this prompt's own hand-back, at most once. Waits a bounded time for a judgment that
+  // is still running; an expired wait, a quiet judgment (shadow at judgment time, low confidence), a record
+  // that is too old, or any error is null. The sentence is rebuilt from the record's validated option name
+  // and numbers (stored text is never returned), and only when the session's own 'supervisor' event for this
+  // hand-back says the same and the hand-back's claim marker exists: a lone ledger file delivers nothing.
+  const deliverAdvice=async h=>{
+    try{
+      if(!visible)return null;
+      const id=h.record.handbackId;
+      let record=h.record;
+      const until=Math.min(h.limit,performance.now()+HANDBACK_WAIT_MS);
+      while(record?.status==='in_flight'&&Date.now()-record.seenAt<HANDBACK_STALE_MS&&performance.now()<until){
+        await sleep(HANDBACK_POLL_MS);record=await h.ledger.get(h.agentId,id);
+      }
+      if(!record||record.status!=='judged'||record.apply!==true||record.advisory!==true||record.reportHash!==h.record.reportHash)return null;
+      const age=Date.now()-record.seenAt;
+      if(age<0||age>HANDBACK_DELIVERY_MAX_AGE_MS)return null;
+      const text=supervisorSentence(record.outcome,record.confidence,record.evidence);
+      if(!text||typeof record.decisionId!=='string'||!record.decisionId)return null;
+      if(await h.ledger.claimed(id,'claim')===null)return null;
+      const vouched=await h.ledger.claimed(id,'prompt');
+      if(vouched!==null&&vouched!==h.promptHash)return null;
+      const logged=await store.getEvent('supervisor','handback:'+id);
+      if(!object(logged)||logged.status!=='judged'||logged.source!=='handback'||logged.agentId!==h.agentId||logged.decisionId!==record.decisionId
+        ||logged.outcome!==record.outcome||logged.confidence!==record.confidence||logged.evidence!==record.evidence||logged.advisory!==true)return null;
+      if(!await h.ledger.claim(id,'delivered'))return null;
+      try{await store.record('supervisor_delivered',{taskId:record.taskId??null,agentId:h.agentId,decisionId:record.decisionId,event:e.event},'handback:'+id);}catch{/* advisory bookkeeping only */}
+      return text;
+    }catch{return null;}
+  };
   try{
     if(cfg.mode==='controller')return runtime==='claude'?await handleControllerHook(e,cfg,store,{project,apiKey,client,runtimeEnv}):{};
     if(e.event==='SessionStart'){
@@ -40,15 +251,31 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
     if(e.event==='UserPromptSubmit'){
       if(e.agent_id||e.agent_type)return {}; // Child prompts must not replace the parent goal.
       // Native child prompts may omit agent_id and share the parent's session_id.
-      const before=await store.snapshot();
-      if(before.goalHash){
-        if(before.goalHash!==hash(e.prompt||''))await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});
-        return visible?contextOutput(e.event,'Jev cannot prove whether a later prompt in this session came from Main or a worker. The original parent goal is preserved, but plan and stored goal text will not be sent to Jev for subsequent routes. Start a new native session to establish a new goal.'):{};
-      }
-      if(before.tasks.length||before.agents.length){await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});return {};}
-      await store.record('user_prompt',{prompt:cfg.safety.retainPromptText?redact(e.prompt,700):'',goalHash:hash(e.prompt||''),actor:e.agent_id||'first-prompt-unreported'});
-      const planHint=cfg.safety.sharePlanContext?` If safe and useful, Main may write a concise private .jev/routing-plan.json (schema=1, goalHash=${hash(e.prompt||'')}, summary, acceptance, delegations) before delegating. Do not include secrets. Jev reads it only for supported native Agent/Task or Codex spawn calls; Workflow's internal agents cannot be routed by these hooks.`:'';
-      return visible?contextOutput(e.event,'Use native delegation for substantial specialist work. Hooks evaluate supported calls. Active mode applies verified eligible profiles; advisory mode only advises and leaves the pending call unchanged. No Skill command is required. Parent Main owns sequencing, integration and real verification.'+planHint):{};
+      const submitted=async()=>{
+        const before=await store.snapshot();
+        if(before.goalHash){
+          if(before.goalHash!==hash(e.prompt||''))await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});
+          return visible?contextOutput(e.event,'Jev cannot prove whether a later prompt in this session came from Main or a worker. The original parent goal is preserved, but plan and stored goal text will not be sent to Jev for subsequent routes. Start a new native session to establish a new goal.'):{};
+        }
+        if(before.tasks.length||before.agents.length){await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});return {};}
+        await store.record('user_prompt',{prompt:cfg.safety.retainPromptText?redact(e.prompt,700):'',goalHash:hash(e.prompt||''),actor:e.agent_id||'first-prompt-unreported'});
+        const planHint=cfg.safety.sharePlanContext?` If safe and useful, Main may write a concise private .jev/routing-plan.json (schema=1, goalHash=${hash(e.prompt||'')}, summary, acceptance, delegations) before delegating. Do not include secrets. Jev reads it only for supported native Agent/Task or Codex spawn calls; Workflow's internal agents cannot be routed by these hooks.`:'';
+        return visible?contextOutput(e.event,'Use native delegation for substantial specialist work. Hooks evaluate supported calls. Active mode applies verified eligible profiles; advisory mode only advises and leaves the pending call unchanged. No Skill command is required. Parent Main owns sequencing, integration and real verification.'+planHint):{};
+      };
+      // null unless supervisor.outcome is active and this session holds the hand-back record of the report this prompt carries.
+      const handback=await promptHandback();
+      let output;
+      if(handback&&await corroborated(handback)){
+        // A hand-back the runtime itself just reported for this agent is a worker report being delivered, not a
+        // new instruction of unknown origin. It is recorded as such: it never becomes the goal, never changes
+        // goal or goalHash, and does not mark the session's prompt provenance unverified.
+        await store.record('handback_prompt',{promptHash:hash(e.prompt||''),agentId:handback.agentId});
+        output={};
+      }else output=await submitted();
+      const advice=handback?await deliverAdvice(handback):null;
+      if(!advice)return output;
+      const shown=output.hookSpecificOutput?.additionalContext||'';
+      return contextOutput(e.event,shown&&shown.length+2+advice.length<=cfg.maxContextChars?shown+'\n\n'+advice:advice);
     }
     if(e.event==='PreCompact'){
       await store.record('compaction_observed',{trigger:e.trigger||'unknown'});
@@ -91,6 +318,62 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       if(secretLike(d.text,apiKey)){await store.record('routing_skipped',{reason:'secret_guard'});return visible?warning(e.event,'SECRET_GUARD'):{};}
       if(typeof e.tool_use_id!=='string'||!e.tool_use_id){await store.record('unsupported_input',{tool:e.tool_name});return visible?warning(e.event,'MISSING_TOOL_USE_ID'):{};}
       const inputHash=hash(e.input);const policy=policyFingerprint(cfg);
+      // Permission mode auto: the host refuses a call whose input a hook changed after its review and Main
+      // issues the call again, under a new tool_use_id, with exactly the input this extension returned.
+      // That second call carries a decision that was already made. It is left as issued: no judge request,
+      // no rewrite, the output of a preserved call. Its id is linked to the original decision so the launch
+      // acknowledgement, the agent mapping and the report check apply to the call that actually runs.
+      const known=await store.getTask(e.tool_use_id);
+      // Replay of a call this extension already left as issued. Only the identical input is answered here;
+      // the same id with another input goes to the reuse check below, like any other stored id.
+      if(known&&(known.reissueOf||known.repeatOf||known.asIssued)&&known.inputHash===inputHash)
+        return visible&&known.message?contextOutput(e.event,known.message):{};
+      // True when the task text routed below is the prompt without a trailing routing packet nothing vouched for.
+      let stripped=false;
+      const strip=()=>{const tail=d.managed?splitRoutingTail(d.text):null;if(tail){d.text=tail.task;stripped=true;}};
+      if(!known){
+        // A problem with the rewrite index (a leftover lock, a damaged file) must not turn a call that needs
+        // no decision into a hook error: the lookup is skipped and the read-only check below still applies.
+        let original=null;
+        try{original=await store.claimReissue(inputHash,e.tool_use_id);}
+        catch(error){try{await store.record('reissue_lookup_failed',{taskId:e.tool_use_id,code:errorCode(error)});}catch{/* bookkeeping only */}}
+        if(original){
+          const {task}=original;
+          const skills=await store.getEvent('skills',original.taskId);
+          await store.putTask(e.tool_use_id,{inputHash,outputHash:inputHash,policy:task.policy,stamp:task.stamp,route:task.route,
+            ...(task.skillsText?{skillsText:task.skillsText}:{}),...(object(skills)?{skills}:{}),reissueOf:original.taskId});
+          await store.record('delegation_reissued',{taskId:e.tool_use_id,reissueOf:original.taskId,decisionId:task.route.decisionId||null,
+            profile:task.route.profile||null,skillsDecisionIds:Array.isArray(skills?.decisionIds)?skills.decisionIds:[],
+            skillsInjected:skills?.injected===true,inputHash,ageMs:original.ageMs},e.tool_use_id);
+          return {};
+        }
+        // Not a re-issue (the decision was already handed out, a Post hook already reported the original, the
+        // look-back passed), but the input is byte for byte one this extension returned in this session under
+        // the current policy: the task text, the profile and the packet are its own. The call is left as
+        // issued and linked to that stored route, so the launch mapping, the report check and failure
+        // attribution keep working. It is NOT routed again, so it gets no retry escalation; when a failure is
+        // on record for that task, Main is told so and how to get retry routing.
+        const earlier=await store.rewriteOrigin(inputHash);
+        if(earlier&&earlier.task.policy===policy){
+          const {task}=earlier;const route=task.route;
+          const skills=await store.getEvent('skills',earlier.taskId);
+          const failed=route.taskSignature?await store.failureFor(route.taskSignature):null;
+          const message=failed?`Jev: this delegation repeats an input this extension already routed (profile ${route.profile}), and a failure (${failed.category}, ${failed.count} recorded attempt${failed.count===1?'':'s'}) is on record for that task. The call is left exactly as issued and was NOT routed again, so no retry escalation was applied. To get retry routing, issue the delegation with the original task text (without the appended <jev-routing> block) and the original agent type. No worker was started by this extension.`:'';
+          await store.putTask(e.tool_use_id,{inputHash,outputHash:inputHash,policy:task.policy,stamp:task.stamp,route,
+            ...(task.skillsText?{skillsText:task.skillsText}:{}),...(object(skills)?{skills}:{}),repeatOf:earlier.taskId,...(message?{message}:{})});
+          await store.record('delegation_repeated',{taskId:e.tool_use_id,repeatOf:earlier.taskId,decisionId:route.decisionId||null,
+            profile:route.profile||null,role:route.role,tier:route.tier,model:route.model,effort:route.effort,inputHash,
+            priorFailure:failed?.category||null,priorAttempts:failed?.count||0},e.tool_use_id);
+          return visible&&message?contextOutput(e.event,message):{};
+        }
+        // Nothing in this session's state vouches for the call (state lost, another session, or a packet Main
+        // typed itself). A packet is a shape, not provenance, so it skips nothing: a managed call whose prompt
+        // ends in the appended tail is routed like any other call, on the task text in front of that tail.
+        // Classification, profile choice, skills, minimumConfidence and retry escalation all run, and the
+        // rewrite carries one packet, not two.
+        strip();
+        if(stripped){try{await store.record('routing_packet_unverified',{taskId:e.tool_use_id,inputHash});}catch{/* bookkeeping only */}}
+      }else if(known.stripped&&known.inputHash===inputHash)strip(); // replay: the same text the stored route was made for
       const docs=await inventory(project,cfg);const snap=await store.snapshot();
       const revision=await revisionFingerprint(project,docs);
       const plan=cfg.safety.sharePlanContext&&snap.goalEligible?await planContext(project,snap.goalHash,apiKey):null;
@@ -98,7 +381,11 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         goalEligible:snap.goalEligible,plan:plan?.revision||null,turn:e.turn_id||null});
       const canRewrite=active&&(runtime!=='codex'||(cfg.safety.codexRewriteApproved&&
         (e.tool_name!=='collaborationspawn_agent'||cfg.safety.codexCollaborationRewriteApproved)));
-      const advice=route=>contextOutput(e.event,'Jev advisory: consider native profile '+route.profile+' ('+route.model+', '+route.effort+'). The pending tool call is UNCHANGED; do not create a duplicate worker. '+routeContext(route,cfg));
+      // The skills block is optional context: it is dropped, never truncated, when the budget is exceeded.
+      const fits=(base,skills)=>typeof skills==='string'&&skills.length>0&&base.length+2+skills.length<=cfg.maxContextChars;
+      const withSkills=(base,skills)=>fits(base,skills)?base+'\n\n'+skills:base;
+      const adviceText=route=>'Jev advisory: consider native profile '+route.profile+' ('+route.model+', '+route.effort+'). The pending tool call is UNCHANGED; do not create a duplicate worker. '+routeContext(route,cfg);
+      const advice=(route,skills='')=>contextOutput(e.event,withSkills(adviceText(route),skills));
       return await withLock(store.taskFile(e.tool_use_id)+'.lock',async()=>{
         const previous=await store.getTask(e.tool_use_id);
         if(previous){
@@ -109,11 +396,17 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
             if(canRewrite){
               const p=profileCatalog(cfg.registry,runtime).find(x=>x.profileId===previous.route.profile);
               await assertInstalledProfile(cfg,p,project,e.cwd);
-              return rewrite(e,d,previous.route,routeContext(previous.route,cfg),cfg,inputHash===previous.outputHash);
+              return rewrite(e,d,previous.route,withSkills(routeContext(previous.route,cfg),previous.skillsText),cfg,inputHash===previous.outputHash);
             }
-            return visible?advice(previous.route):{};
+            return visible?advice(previous.route,previous.skillsText):{};
           }
           return visible?warning(e.event,'TOOL_ID_REUSED_WITH_DIFFERENT_INPUT'):{};
+        }
+        // A classification point that is off disables routing on purpose. It is not an outage:
+        // no judge (skills included) is called and failureMode 'block' does not apply.
+        if(kernel().point('delegation.classify').mode==='off'){
+          await store.record('routing_skipped',{reason:'classification_point_off'});
+          return {};
         }
         const routeGoal=snap.goalEligible?snap.goalHash:'';
         const retry=await store.failureFor(hash([routeGoal,plan?.revision||'',d.text]));
@@ -122,9 +415,29 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         const state={retry,task:redact(d.text,cfg.maxTaskChars),native_role:d.kind,documents:docs,revision,
           promptRevision:routeGoal,...(plan?{plan:plan.context,planRevision:plan.revision}:{}),
           ...(parentGoal?{parentGoal}:{})};
-        const decision=await routeTask({state,docs,delegation:d,config:cfg,runtime,project,client:jev,scope});
+        const judges=kernel();
+        const skillsMode=judges.point(SKILLS_POINT).mode;
+        // Every preservation guard above has already returned; an oversized task is never classified, so it is not skill-routed either.
+        const skillsWork=skillsMode!=='off'&&d.text.length<=cfg.maxTaskChars?routeSkills(judges,cfg,project,d.text,scope):null;
+        const [decision,skills]=await Promise.all([routeTask({state,docs,delegation:d,config:cfg,runtime,project,client:judges,scope}),skillsWork]);
+        const skillsText=skills&&skillsMode==='active'&&skills.status==='selected'?skillContext(skills):'';
+        const recordSkills=async injected=>{
+          if(!skills)return;
+          try{await store.record('skills',skillsEvent(e.tool_use_id,skillsMode,skills,injected),e.tool_use_id);}catch{/* skill bookkeeping never fails a route */}
+        };
         if(decision.deferred){
-          const message=`Jev did not select a model/effort (${decision.reason}). Main should gather missing evidence or inspect the model registry. No replacement execution was started. The original native call is unchanged.`;
+          // Shadow classification is log-only: nothing is shown to Main and no deferred task is stored.
+          if(decision.reason==='classification_point_shadow_only'){
+            await recordSkills(false);
+            await store.record('routing_skipped',{reason:decision.reason});
+            return {};
+          }
+          const notice=`Jev did not select a model/effort (${decision.reason}). Main should gather missing evidence or inspect the model registry. No replacement execution was started. The original native call is unchanged.`;
+          // No model/effort was chosen, but a selected skill still applies to the unchanged call. Main is told
+          // (as in advisory mode); the pending input is never rewritten here. The stored message makes the replay identical.
+          const told=visible&&fits(notice,skillsText);
+          const message=told?notice+'\n\n'+skillsText:notice;
+          await recordSkills(told);
           await store.putTask(e.tool_use_id,{inputHash,policy,stamp,deferred:true,message});
           await store.record('route_deferred',{taskId:e.tool_use_id,reason:decision.reason},e.tool_use_id);
           return visible?contextOutput(e.event,message):{};
@@ -137,41 +450,70 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
           plan:currentPlan?.revision||null,turn:e.turn_id||null});
         if(currentStamp!==stamp){await store.record('routing_skipped',{reason:'workspace_or_goal_changed_in_flight'});return visible?warning(e.event,'WORKSPACE_OR_GOAL_CHANGED'):{};}
         const route=decision.route;
-        let output=visible?advice(route):{};
+        let output=visible?advice(route,skillsText):{};
+        let injected=visible&&fits(adviceText(route),skillsText);
         if(canRewrite){
           if(!cfg.nativeProfiles)throw Object.assign(new Error('NATIVE_PROFILES_REQUIRED_FOR_EFFORT'),{code:'NATIVE_PROFILES_REQUIRED_FOR_EFFORT'});
           route.application=await assertInstalledProfile(cfg,decision.profile,project,e.cwd);
-          output=rewrite(e,d,route,routeContext(route,cfg),cfg);
+          const context=routeContext(route,cfg);
+          injected=fits(context,skillsText);
+          output=rewrite(e,d,route,withSkills(context,skillsText),cfg);
         }
-        await store.putTask(e.tool_use_id,{inputHash,outputHash:hash(output.hookSpecificOutput?.updatedInput||e.input),policy,stamp,route});
-        await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
+        // The exact skills text is stored so an idempotent replay reproduces the identical rewrite.
+        const outputHash=hash(output.hookSpecificOutput?.updatedInput||e.input);
+        // The fresh decision for a call that arrived with an unverified tail reproduced that input exactly:
+        // there is nothing to change, so nothing is returned (an unchanged updatedInput would only invite the
+        // host's refusal round). The route is stored, so the call is checked like any routed call.
+        const asIssued=stripped&&canRewrite&&outputHash===inputHash;
+        if(asIssued)output={};
+        await store.putTask(e.tool_use_id,{inputHash,outputHash,policy,stamp,route,...(skillsText?{skillsText}:{}),...(stripped?{stripped:true}:{}),...(asIssued?{asIssued:true}:{})});
+        // Lets a later call with this returned input be recognised under its new tool_use_id (claimReissue, rewriteOrigin).
+        if(canRewrite&&(outputHash!==inputHash||asIssued)){try{await store.noteRewrite(outputHash,e.tool_use_id);}catch{/* without the index the next call with this input is routed again, on the text in front of its packet */}}
+        await recordSkills(injected);
+        await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,judgeDecisionIds:decision.judgeDecisionIds??null,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
         return output;
       },Math.min(cfg.optimization.routeDeadlineMs+400,5800));
     }
     if(e.event==='PreToolUse'&&isRead(e)&&cfg.readAdvice&&cfg.safety.allowEgress){
       const document=await readDocumentMetadata(project,e.input);if(!document)return {};
+      if(kernel().point('read.advice').mode==='off')return {};
       const s=await store.snapshot();
-      const decision=await jev.evaluate({document,task:s.goal},readQuestions(),scope);
+      const decision=await kernel().forPoint('read.advice').evaluate({document,task:s.goal},readQuestions(),scope);
+      if(decision.apply===false)return {}; // shadow: logged by the kernel, never shown
       await store.record('read_advice',{document:document.path,kind:decision.response.answers.kind.choice,reading:decision.response.answers.reading.choice,cached:decision.cached});
       // Never block reads or silently replace a requested file with a summary.
       return visible?contextOutput(e.event,`Document hint: ${decision.response.answers.kind.choice}; reading=${decision.response.answers.reading.choice}. Metadata-only classification. Read the requested source; this is not permission or a replacement for exact requirements.`):{};
     }
     if(['PostToolUse','PostToolUseFailure'].includes(e.event)){
       if(e.tool_name==='SubagentHandback'){
-        await store.record('handback_observed',{agentId:e.agent_id||null,reportHash:hash(e.input?.message||''),verification:'not_inferred'});return {};
+        await store.record('handback_observed',{agentId:e.agent_id||null,reportHash:hash(e.input?.message||''),verification:'not_inferred'});
+        // Hook output of this event would reach the finishing subagent, not Main, so it is always empty.
+        if(e.event==='PostToolUse')await superviseHandback();
+        return {};
       }
       if(!isDelegation(e))return {};
       const failed=failedResponse(e);
       const response=object(e.tool_response)?e.tool_response:{};
       const agentId=response.agent_id||response.agentId||null;
-      await store.record('spawn_observed',{taskId:e.tool_use_id||'unknown',failed,agentId,taskName:typeof response.task_name==='string'?response.task_name:null},e.tool_use_id||null);
-      if(failed&&cfg.classifyFailures&&cfg.safety.allowEgress){
+      // The model id the host says it resolved for the launch (Claude Code's Agent result carries `resolvedModel`).
+      // Stored only when it is a plain model id, for the outcome collector to cross-check against the transcript.
+      // It is recorded, never acted on: no hook output depends on it.
+      const resolved=isModelId(response.resolvedModel)?{resolvedModel:response.resolvedModel}:{};
+      await store.record('spawn_observed',{taskId:e.tool_use_id||'unknown',failed,agentId,taskName:typeof response.task_name==='string'?response.task_name:null,...resolved},e.tool_use_id||null);
+      if(failed&&cfg.classifyFailures&&cfg.safety.allowEgress&&kernel().point('failure.classify').mode!=='off'){
         const evidence=redact(e.error||JSON.stringify(e.tool_response||{}),1600);
-        const decision=await jev.evaluate({failure:evidence},failureQuestions(),scope);
-        const category=decision.response.answers.failure.choice;
-        const prior=e.tool_use_id?await store.getTask(e.tool_use_id):null;
-        await store.record('failure',{category,taskId:e.tool_use_id||null,taskSignature:prior?.route?.taskSignature||null,profileId:prior?.route?.profile||null},e.tool_use_id||null);
-        return visible?contextOutput(e.event,`Jev failure category: ${category}. Native Main must decide the next step using the actual error. No automatic retry, respawn, or permission escalation was performed.`):{};
+        const decision=await kernel().forPoint('failure.classify').evaluate({failure:evidence},failureQuestions(),scope);
+        // A shadow point is logged by the kernel only; it must not feed retry routing or Main.
+        if(decision.apply!==false){
+          const category=decision.response.answers.failure.choice;
+          const prior=e.tool_use_id?await store.getTask(e.tool_use_id):null;
+          await store.record('failure',{category,taskId:e.tool_use_id||null,taskSignature:prior?.route?.taskSignature||null,profileId:prior?.route?.profile||null},e.tool_use_id||null);
+          return visible?contextOutput(e.event,`Jev failure category: ${category}. Native Main must decide the next step using the actual error. No automatic retry, respawn, or permission escalation was performed.`):{};
+        }
+      }
+      if(!failed&&cfg.safety.allowEgress){
+        const advisory=await supervise(response);
+        if(advisory)return advisory;
       }
       return visible?contextOutput(e.event,'Native delegation result observed. A spawn acknowledgement is not task completion, and a worker report is not proof of test success. Reconcile native status and verify evidence before integration.'):{};
     }

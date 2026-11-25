@@ -3,7 +3,8 @@ import {safetyDefaults,applySafetyEnvironment,readPrivateEnv} from './safety.mjs
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { VERSION, assert, object, atomicWrite, readJSON, writeJSON, hash, withLock } from './util.mjs';
-import { defaults, loadConfig, validateConfig, parseEnv } from './config.mjs';
+import { defaults, loadConfig, validateConfig, parseEnv, applyKernelEnvironment, storedSkillsRetrieval, keepLegacyRetrieval } from './config.mjs';
+import { mergeKernel } from './kernel/kernel.mjs';
 import { hookMatchers } from './adapters.mjs';
 import { profileDefinitions } from './profiles.mjs';
 import { profileCatalog, validateRegistry, applyModelEnvironment } from './catalog.mjs';
@@ -80,6 +81,12 @@ export async function install({home,project,runtime='both',yes=false,envFile=nul
     }
     config={...starter,...config,schema:4};delete config.models;
   }
+  // Configs installed before 3.2.0 have no kernel block; a partial one is completed with defaults.
+  // A config from before kernel.skills.retrieval that routes skills under a small request cap keeps 'lexical'
+  // (stored explicitly from here on) instead of failing validation with the wide default.
+  const storedRetrieval=storedSkillsRetrieval(config);
+  config.kernel=mergeKernel(config.kernel);
+  keepLegacyRetrieval(config,storedRetrieval);
   validateConfig(config);
   if(registryFile){assert(path.isAbsolute(registryFile),'ABSOLUTE_REGISTRY_REQUIRED');config.registry=validateRegistry(await readJSON(registryFile));}
   config.allowedProjects=[...new Set([...config.allowedProjects,project])];
@@ -93,7 +100,7 @@ export async function install({home,project,runtime='both',yes=false,envFile=nul
     const prefix=`JEV_${prior.runtime.toUpperCase()}_${prior.slot.toUpperCase()}`;
     assert(registryFile||(env[prefix+'_MODEL']&&env[prefix+'_EFFORT_MAP']),'LEGACY_CUSTOM_MAPPING_REQUIRES_EXPLICIT_CAPABILITIES');
   }
-  applyModelEnvironment(config,env);applySafetyEnvironment(config,k=>env[k]);
+  applyModelEnvironment(config,env);applySafetyEnvironment(config,k=>env[k]);applyKernelEnvironment(config,k=>env[k],{storedRetrieval});
   if(env.JEV_OBJECTIVE)config.optimization.objective=env.JEV_OBJECTIVE;
   if(env.JEV_EVALUATION_CONTEXT)config.optimization.evaluationContext=env.JEV_EVALUATION_CONTEXT;
   if(env.JEV_MODE)config.mode=env.JEV_MODE;
@@ -111,7 +118,8 @@ export async function install({home,project,runtime='both',yes=false,envFile=nul
   };
   // Copy only the small hook runtime. No old engine, worker runner, Skills, or MCP server is installed.
   for(const dir of ['src','bin']){
-    for(const name of await fs.readdir(path.join(root,dir))){if(!name.endsWith('.mjs'))continue;
+    // Recursive so src/kernel/*.mjs ships with the modules that import it.
+    for(const name of (await fs.readdir(path.join(root,dir),{recursive:true})).sort()){if(!name.endsWith('.mjs'))continue;
       const file=path.join(snapshot,dir,name);const content=await fs.readFile(path.join(root,dir,name),'utf8');
       await add(file,content,true);const ix=owned.findIndex(x=>x.path===file);if(ix>=0)owned.splice(ix,1);owned.push({path:file,sha256:hash(content)});
     }

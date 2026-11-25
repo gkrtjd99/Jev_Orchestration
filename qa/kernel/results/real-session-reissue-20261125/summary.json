@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "what": "One real Claude Code desktop session (permission mode auto) in a disposable copy of the pilot project (60 skills), run after the re-issue fix (product tree at commit c09cd2e). Project-level hooks pointing at a disposable install; global mode active, delegation.skills active, supervisor.outcome active, judge = live Jev, default thresholds. Main delegated 3 tasks one at a time (two skill tasks, one control). The jev4_* agent profiles were copied to the user-level agents folder for the run and removed afterwards.",
+  "delegations": [
+    { "n": 1, "kind": "skill", "firstAttempt": { "routed": true, "profile": "implement / standard / opus / high", "skillsInjected": true, "loaded": [{ "name": "domain-failure-types", "p": 0.98 }], "skillJudgeRequests": 2 },
+      "hostRefusedRewrittenCall": true, "reissueRecognised": true, "reissueAgeMs": 15625, "judgeRequestsOnReissue": 0, "launched": true,
+      "supervisor": { "source": "handback", "outcome": "complete", "confidence": 0.88, "promptRecordedAs": "handback_prompt", "adviceDelivered": true } },
+    { "n": 2, "kind": "control", "firstAttempt": { "routed": true, "profile": "implement / standard / opus / high", "skillsInjected": false, "loaded": [], "skillJudgeRequests": 2 },
+      "hostRefusedRewrittenCall": true, "reissueRecognised": true, "reissueAgeMs": 5126, "judgeRequestsOnReissue": 0, "launched": true,
+      "supervisor": { "source": "handback", "outcome": "complete", "confidence": 1, "promptRecordedAs": "handback_prompt", "adviceDelivered": true } },
+    { "n": 3, "kind": "skill", "firstAttempt": { "routed": true, "profile": "implement / standard / opus / high", "skillsInjected": true, "loaded": [{ "name": "read-endpoints", "p": 0.99 }], "skillJudgeRequests": 2 },
+      "hostRefusedRewrittenCall": true, "reissueRecognised": true, "reissueAgeMs": 6674, "judgeRequestsOnReissue": 0, "launched": true,
+      "supervisor": { "source": "handback", "outcome": "complete", "confidence": 0.99, "promptRecordedAs": "handback_prompt", "adviceDelivered": true } }
+  ],
+  "judgeRecords": { "delegation.classify": 3, "delegation.profile": 3, "delegation.skills": 6, "supervisor.outcome": 3 },
+  "judgeTokens": {
+    "delegation.classify": { "input": 5220, "output": 1065 },
+    "delegation.profile": { "input": 7693, "output": 462 },
+    "delegation.skills": { "input": 26099, "output": 3480 },
+    "supervisor.outcome": { "input": 3391, "output": 195 }
+  },
+  "comparisonWithPilot": "In the pilot (before the fix) every refused-then-re-issued delegation was judged twice: 46 of 94 judge requests went to re-issued calls. Here 0 judge requests were made on the 3 re-issued calls, and no hook_error, failure or unverified_prompt event was recorded.",
+  "notCovered": [
+    "Whether the subagents' work was correct (not checked in this run; it only verifies hook behaviour)",
+    "The hand-back prompt shape with the harness notice line (not known whether it occurred in this run)",
+    "Codex runtime",
+    "A re-issue later than the 120 s look-back"
+  ],
+  "evidenceLocation": "raw hook state and transcripts were kept only in a temporary directory outside the repository; this file is the reviewed summary"
+}

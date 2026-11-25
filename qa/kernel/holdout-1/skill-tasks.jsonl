@@ -1,0 +1,180 @@
+{"id":"ho-001","lang":"ko","task":"이번에 입사한 박 사원 수습 기간이 2주 뒤에 끝납니다. 팀장 의견 메모는 hr/park-notes.md에 있으니 평가서로 정리해 주세요."}
+{"id":"ho-002","lang":"en","task":"A field unit that worked for months stopped booting after a failed OTA update. There's no output on the serial port at all, though the power LED is on. Get it back."}
+{"id":"ho-003","lang":"mixed","task":"enable_new_onboarding flag가 석 달째 100%입니다. flag 체크하는 코드랑 예전 분기, config 항목까지 다 걷어내 주세요."}
+{"id":"ho-004","lang":"en","task":"The parcels layer from the county is in some state-plane feet system and about forty polygons fail validity checks. I need it clean and in web mercator so the area-by-zone join works."}
+{"id":"ho-005","lang":"en","task":"Our onboarding wizard component (the three-step signup flow for new customers) has a bug where Back loses the form state. Lift the state into the parent and add a test."}
+{"id":"ho-006","lang":"en","task":"Version 5.0 of the app is approved on both stores. Start it at a small percentage on iOS and Android and tell me what numbers we watch before going wider."}
+{"id":"ho-007","lang":"ko","task":"eslint 설정에 no-console 규칙을 warn으로 추가하고, scripts/ 폴더는 예외로 해 주세요."}
+{"id":"ho-008","lang":"ko","task":"엑셀 다운로드 기능에서 한글 파일명이 깨집니다. Content-Disposition 헤더 인코딩 문제 같으니 서버 코드에서 고쳐 주세요."}
+{"id":"ho-009","lang":"en","task":"We're tagging v2.9.0 this afternoon. Put together what changed since v2.8.3 for the announcement post, in our usual format."}
+{"id":"ho-010","lang":"en","task":"Please review the 30-line diff in retry.patch that adds retry with exponential backoff to our HTTP client and tell me if the jitter calculation is right."}
+{"id":"ho-011","lang":"ko","task":"10월분 전기요금 고지서가 11월 중순에나 나옵니다. 10월 마감에 이 비용을 어떻게 잡아야 하는지 분개를 만들어 주세요."}
+{"id":"ho-012","lang":"en","task":"Add a unit test for the function that formats a webhook URL for display by masking the token query parameter. The function is in ui/format.ts."}
+{"id":"ho-013","lang":"en","task":"We need to get off PostgreSQL 12 before support ends. The database is 2 TB and the business will tolerate a couple of minutes of read-only, not hours."}
+{"id":"ho-014","lang":"en","task":"We've been sending from this domain for two years and SPF, DKIM and DMARC all pass. Since Tuesday, Gmail is deferring a third of our mail and the complaint rate tripled. Figure out what happened."}
+{"id":"ho-015","lang":"en","task":"Create a Dockerfile for a small FastAPI app following the usual best practices: Python 3.12 slim, non-root user, uvicorn on port 8080."}
+{"id":"ho-016","lang":"mixed","task":"console에서 손으로 만든 S3 bucket이랑 IAM role 몇 개를 Terraform 관리로 가져와야 합니다. 기존 resource가 recreate되지 않게 해 주세요."}
+{"id":"ho-017","lang":"ko","task":"지난달 발주한 노트북 30대가 들어왔고 세금계산서도 받았는데, 발주 금액과 계산서 금액이 대당 2만 원씩 다릅니다. 대금 지급 전에 확인해 주세요."}
+{"id":"ho-018","lang":"en","task":"Parse the terraform plan output in plan.txt and list just the resources that will be destroyed. I only need the list; do not touch state or run anything."}
+{"id":"ho-019","lang":"en","task":"We fixed the currency conversion bug in the daily orders DAG on Tuesday. Everything from 1 March to 14 April in the warehouse is still wrong; get those days recomputed without hammering BigQuery during business hours."}
+{"id":"ho-020","lang":"ko","task":"학습률과 워밍업 스텝을 여러 조합으로 탐색해 보려고 합니다. 공용 GPU 클러스터에 40회 이내 예산으로 걸어 주시고 가망 없는 조합은 일찍 끊기게 해 주세요."}
+{"id":"ho-021","lang":"ko","task":"config/regions.json 파일이 왜 파싱이 안 되는지 봐 주세요. 어딘가 쉼표가 잘못된 것 같습니다."}
+{"id":"ho-022","lang":"ko","task":"git에서 방금 한 커밋 메시지에 오타가 있습니다. 아직 푸시 안 했는데 어떻게 고치는지 명령어만 알려 주세요."}
+{"id":"ho-023","lang":"en","task":"Our Android beta testers on the internal track are fine, but the production release that went to 10% on Monday is showing a spike in ANRs. Hold it where it is."}
+{"id":"ho-024","lang":"en","task":"The warehouse is re-labelling aisle C: 640 bin locations, C-01-01 through C-16-40. Produce the print job for the Zebra printers."}
+{"id":"ho-025","lang":"ko","task":"수습 직원도 휴가 신청 메뉴가 보이도록 권한 체크 조건에서 PROBATION 역할을 추가해 주세요."}
+{"id":"ho-026","lang":"en","task":"Write a regex that matches Korean mobile phone numbers with or without hyphens and add it to validators/phone.ts with a few tests."}
+{"id":"ho-027","lang":"ko","task":"팀원마다 실험 결과를 엑셀이나 메모장에 따로 적어 놔서 누가 어떤 설정으로 돌렸는지 비교가 안 됩니다. 학습 스크립트에 기록을 남기는 부분을 넣어 주세요."}
+{"id":"ho-028","lang":"ko","task":"드론으로 찍은 정사영상이 12GB짜리 tif 한 장입니다. 웹 지도에서 확대·축소하며 볼 수 있게 준비해 주세요."}
+{"id":"ho-029","lang":"en","task":"Draft a two-line Slack reply telling the design team that the Figma link they sent is view-only and asking for edit access."}
+{"id":"ho-030","lang":"ko","task":"앱에서 위치 정보를 새로 수집하게 됐습니다. 지금 게시된 처리방침에 빠진 내용이 없는지 봐 주세요. 참고로 위치 데이터 처리를 맡기는 외주사와의 용역 계약서는 법무팀이 따로 보고 있습니다."}
+{"id":"ho-031","lang":"en","task":"Sort the imports and remove the unused ones in every file under services/notifier/. Don't change behaviour."}
+{"id":"ho-032","lang":"en","task":"Traces and logs for the auth service are in good shape. What we lack is a sane way to get paged: right now it's 'error count > 50 in 5 minutes' and it fires on every deploy."}
+{"id":"ho-033","lang":"ko","task":"납품업체 청구서가 왔는데 발주서 수량은 500개, 입고 확인은 480개, 청구는 500개로 되어 있습니다. 지급 승인 전에 정리해 주세요."}
+{"id":"ho-034","lang":"en","task":"Before Black Friday I want proof that /api/cart/checkout can handle 800 requests per second with p95 under 400 ms. Set that up and run it against staging."}
+{"id":"ho-035","lang":"mixed","task":"신규 board rev B 처음 전원 넣는 날입니다. power rail, clock 순서대로 체크하고, boot가 안 올라오면 UART console 붙여서 boot log 캡처해 어디서 멈추는지까지 봐 주세요."}
+{"id":"ho-036","lang":"mixed","task":"character model FBX가 scale이 안 맞게 들어오는 것 고치고, 그 캐릭터 texture들이 각각 따로라 mobile에서 memory budget 넘습니다. atlas로 묶어 주세요."}
+{"id":"ho-037","lang":"mixed","task":"sweep은 이미 끝났고 best trial의 checkpoint도 있습니다. 근데 그 run에 dataset hash랑 config artifact가 안 남아서 재현이 안 돼요. training script에서 tracking 부분을 팀 convention대로 고쳐 주세요."}
+{"id":"ho-038","lang":"ko","task":"새로 받은 전용 IP로 이번 달부터 프로모션 메일을 보내기 시작합니다. 인증 레코드는 이미 다 통과하는 상태이고, 첫날부터 50만 통을 한꺼번에 보내도 되는지, 안 된다면 어떻게 늘려 가야 하는지 계획을 짜 주세요."}
+{"id":"ho-039","lang":"ko","task":"제출 전에 품질 점검 차원에서 docs/architecture.md의 목차가 실제 섹션 순서와 맞는지 보고, 다르면 목차를 다시 맞춰 주세요."}
+{"id":"ho-040","lang":"en","task":"We're splitting the monolithic network module into vpc and subnets modules. I need the existing resources to end up under the new addresses with a plan that shows zero changes."}
+{"id":"ho-041","lang":"en","task":"The payment provider says they POST events to us with an X-Signature header. Our receiver currently trusts anything that arrives. Fix that."}
+{"id":"ho-042","lang":"en","task":"Design changed the brand blue and tightened the spacing scale last week. The app still has the old values; bring the code in line with what's in the design file."}
+{"id":"ho-043","lang":"en","task":"There is a flaky Jest test, 'renders the phased rollout banner', that fails about one in ten runs because of a timer. Find the race and fix the test."}
+{"id":"ho-044","lang":"ko","task":"석 달 전에 온 신입 개발자의 정규직 전환 여부를 다음 주까지 결정해야 합니다. 그동안의 1:1 메모는 hr/1on1/에 있으니 정식 문서로 만들어 주세요."}
+{"id":"ho-045","lang":"ko","task":"MD팀 요청입니다. '추석 선물'을 검색하면 기획전 페이지로 바로 넘어가게 하고, '아이폰 케이스' 검색 시에는 자사 브랜드 상품이 상단에 오게 해 주세요."}
+{"id":"ho-046","lang":"en","task":"The checkout service emits traces fine, but in the log search its lines show up as one long message string with no level or request id fields. Make them searchable by field."}
+{"id":"ho-047","lang":"en","task":"I've dropped the BMP390 PDF in docs/vendor/. We need a header file with all the addresses and bit masks so the driver doesn't use magic numbers."}
+{"id":"ho-048","lang":"en","task":"Two backend engineers start on Monday. Prepare what we send new joiners ahead of their first day."}
+{"id":"ho-049","lang":"en","task":"We're moving newsletters to a new provider on a fresh subdomain next month. I need the DNS records ready and a plan for how fast we can go from zero to our normal 400k sends a day."}
+{"id":"ho-050","lang":"en","task":"Add a --dry-run flag to scripts/prune-branches.sh that prints the branches it would delete instead of deleting them."}
+{"id":"ho-051","lang":"en","task":"Our customer survey got 2,100 responses but 70% are from Seoul and skew under 35. Adjust it so the satisfaction numbers reflect our actual customer base; the population margins are in margins.csv."}
+{"id":"ho-052","lang":"en","task":"Yesterday's 47-minute checkout outage needs a written review for the Thursday meeting. The Slack timeline and the PagerDuty log are in incidents/2026-11-24/. Write it up."}
+{"id":"ho-053","lang":"ko","task":"주문 서비스에 분산 추적을 붙여 주시고, 붙인 김에 그 서비스 호출 알림도 가용성 목표 기준으로 다시 만들어 주세요. 지금은 5xx 개수 임계값 하나뿐입니다."}
+{"id":"ho-054","lang":"mixed","task":"staging 환경 Grafana dashboard JSON에서 panel title 오타('Latnecy')만 고쳐 주세요. alert rule은 건드리지 마세요."}
+{"id":"ho-055","lang":"en","task":"Our Postgres connection string in .env.example still points at localhost:5433 but the compose file exposes 5432. Update the example file and the one line in CONTRIBUTING."}
+{"id":"ho-056","lang":"ko","task":"배포 스크립트 deploy.sh 맨 위에 set -euo pipefail이 빠져 있습니다. 추가하고 변수 인용 안 된 곳도 정리해 주세요."}
+{"id":"ho-057","lang":"ko","task":"지도 화면에서 마커를 클릭했을 때 뜨는 팝업의 닫기 버튼이 모바일에서 너무 작다는 피드백이 있습니다. 이 버튼만 44px로 키워 주세요."}
+{"id":"ho-058","lang":"mixed","task":"PR #482 리뷰 코멘트 반영해 주세요. useEffect dependency array에 userId 빠진 것과 early return 순서 바꾸는 것 두 가지입니다."}
+{"id":"ho-059","lang":"en","task":"After last night's outage, write the review document, and also write the note for Dana who picks up on-call from me in the morning; two of the follow-ups are still open."}
+{"id":"ho-060","lang":"mixed","task":"nori analyzer 설정 바꾼 branch가 있는데 merge 전에 기존 대비 search quality가 나아졌는지 숫자로 확인하고 싶습니다. labeled query set은 data/judgments에 있어요."}
+{"id":"ho-061","lang":"ko","task":"동의어 사전을 대폭 손본 브랜치가 있습니다. 반영하기 전에 예전보다 검색 결과가 실제로 좋아졌는지, 어떤 검색어에서 나빠졌는지 수치로 보여 주세요."}
+{"id":"ho-062","lang":"ko","task":"교육 영상 원본을 받았는데 자막이 뒤로 갈수록 2초씩 밀리고, 스트리밍용으로 여러 화질 버전도 필요합니다. 자막은 영상에 입혀서 내보내 주세요."}
+{"id":"ho-063","lang":"ko","task":"서버 랙 납품 업체 세 곳에서 견적서를 받았는데 단위도 다르고 납기, 결제 조건도 제각각입니다. 한눈에 비교할 수 있게 정리해 주세요."}
+{"id":"ho-064","lang":"mixed","task":"Android build에서 shader compile 때문에 첫 실행 시 loading이 20초 넘게 걸립니다. 안 쓰는 keyword 조합 정리해서 줄여 주세요."}
+{"id":"ho-065","lang":"ko","task":"매주 월요일마다 영업팀 원본 시트에서 담당자별·지역별 매출 합계를 손으로 뽑고 있습니다. 구글 시트 안에서 행이 추가돼도 자동으로 갱신되는 요약 탭을 만들어 주세요."}
+{"id":"ho-066","lang":"en","task":"Convert the function parseInvoiceDate in lib/dates.js from moment to date-fns. Behaviour must stay identical; the existing tests should pass untouched."}
+{"id":"ho-067","lang":"mixed","task":"Dockerfile을 multi-stage build로 바꿔서 최종 image size 줄여 주세요. 지금은 node_modules 전체가 들어가 있습니다."}
+{"id":"ho-068","lang":"en","task":"Translate the error messages in errors.en.json into Spanish and save as errors.es.json. There are 14 keys, all plain sentences with no placeholders or counts."}
+{"id":"ho-069","lang":"en","task":"Write a Python function that takes a list of (lat, lon) tuples and returns the bounding box. Add type hints and a docstring."}
+{"id":"ho-070","lang":"en","task":"What's the difference between a Kubernetes Deployment and a StatefulSet? One paragraph, then a table of three rows."}
+{"id":"ho-071","lang":"ko","task":"빌드할 때마다 셰이더 컴파일에만 25분이 걸리고 앱 용량도 그 때문에 커졌습니다. 텍스처 쪽은 이미 최적화를 끝냈으니 그쪽은 건드리지 말아 주세요."}
+{"id":"ho-072","lang":"en","task":"Supplier invoice INV-8841 bills 1,200 units at 4.10 but we ordered at 3.95 and the dock signed for 1,150. Accounts payable wants to know what to pay."}
+{"id":"ho-073","lang":"en","task":"Explain what an HS256 JWT is versus RS256 and when you'd choose each. No code changes, just a short explanation I can paste into a design doc."}
+{"id":"ho-074","lang":"en","task":"Here's the raw transcript of today's sprint planning in notes/planning-raw.txt. Turn it into the record we keep in the team Notion, with decisions and who owes what by when."}
+{"id":"ho-075","lang":"en","task":"The Spanish subtitles on the documentary drift: fine at the start, almost three seconds late by the end. The source was 25 fps and our encode is 23.976. The client wants them baked into the picture."}
+{"id":"ho-076","lang":"ko","task":"설정 화면에 한글 문구가 코드에 그대로 박혀 있습니다. 영어 버전을 내기 전에 번역 가능한 구조로 빼내 주세요. '~개' 같은 수량 표현도 신경 써야 합니다."}
+{"id":"ho-077","lang":"ko","task":"Redis 캐시 키에 붙는 접두사를 환경변수로 뺄 수 있게 리팩터링해 주세요. 기본값은 지금 값 그대로 두고요."}
+{"id":"ho-078","lang":"mixed","task":"신규 search endpoint 오픈 전에 500 RPS에서 버티는지 staging 대상으로 부하 걸어 보고 결과 리포트 주세요. ramp-up은 현실적으로 잡아 주시고요."}
+{"id":"ho-079","lang":"ko","task":"예약 확정 알림톡 템플릿이 또 반려됐습니다. 사유가 '광고성 문구 포함'이라는데 고쳐서 다시 올릴 수 있게 해 주세요."}
+{"id":"ho-080","lang":"mixed","task":"PG 13에서 16으로 올리는 작업입니다. downtime 최소로 logical replication 방식 cutover 계획 짜 주시고, cutover 전에 신규 cluster 대상으로 부하 테스트 시나리오도 만들어 capacity 확인해 주세요."}
+{"id":"ho-081","lang":"en","task":"Write a bash one-liner that counts how many lines in access.log contain status 502, grouped by hour."}
+{"id":"ho-082","lang":"mixed","task":"CFO가 보실 Excel model인데 IRR 시트에 circular reference 경고가 뜨고, 몇몇 cell은 formula 대신 값이 hardcode돼 있다고 합니다. scenario는 나중에 추가할 거니 지금은 오류만 잡아 주세요."}
+{"id":"ho-083","lang":"ko","task":"구청에서 받은 건물 shp 파일을 우리 지도 위에 올렸더니 전부 남서쪽으로 300미터쯤 밀려 있습니다. 맞춰 주세요."}
+{"id":"ho-084","lang":"en","task":"Rewrite the second paragraph of blog/player-migration.md so it reads less stiffly. It's about why we moved our video player to a new library. Keep it under 120 words."}
+{"id":"ho-085","lang":"en","task":"The mobile team is nervous about the v3 spec. Compare api/v2.yaml and api/v3.yaml and tell them which changes will break the app that's already in the stores."}
+{"id":"ho-086","lang":"ko","task":"강의 영상 30개를 이어 붙였더니 어떤 강의는 소리가 너무 작고 어떤 건 너무 큽니다. 자막이나 화질은 문제없으니 소리만 일정하게 맞춰 주세요."}
+{"id":"ho-087","lang":"en","task":"Finance wants the model in forecast_v7.xlsx checked for errors before it goes to the bank, and the bank has also asked to see how debt coverage changes if revenue is 10-30% lower and rates are 1-3 points higher."}
+{"id":"ho-088","lang":"en","task":"Training script for the reranker: wire it so every run is recorded properly on the tracking server, then kick off a search over lr, dropout and batch size on the cluster with at most 60 trials."}
+{"id":"ho-089","lang":"ko","task":"지난 금요일 로그인 장애 건 회고 문서 초안을 써 주세요. 타임라인은 incidents/1120/timeline.md에 정리해 뒀습니다."}
+{"id":"ho-090","lang":"en","task":"The spreadsheet export button on the admin page downloads a file named 'undefined.csv'. Track down where the filename is built in the React code and fix it."}
+{"id":"ho-091","lang":"ko","task":"쇼핑몰 검색에서 '운동화'로 찾으면 '스니커즈'로 등록된 상품이 안 나오고, '무선이어폰'은 이상하게 쪼개져서 엉뚱한 결과가 섞입니다. 고쳐 주세요."}
+{"id":"ho-092","lang":"ko","task":"이메일 주소 형식 검증 함수에서 '+' 기호가 들어간 주소를 거부하고 있습니다. 허용하도록 정규식을 고치고 테스트를 추가해 주세요."}
+{"id":"ho-093","lang":"ko","task":"결제 요청이 게이트웨이를 지나 정산 서비스까지 가는 동안 어디서 시간이 걸리는지 지금은 전혀 보이지 않습니다. 구간별로 볼 수 있게 해 주세요."}
+{"id":"ho-094","lang":"en","task":"Support gets about thirty 'where is my refund' tickets a day and agents type the same answer each time. Give them something reusable."}
+{"id":"ho-095","lang":"ko","task":"다음 주 투자자 미팅에 보낼 5개년 재무 모델 엑셀 파일입니다. 보내기 전에 수식에 숫자가 직접 박혀 있거나 행마다 수식이 어긋난 곳이 없는지 점검해 주세요."}
+{"id":"ho-096","lang":"ko","task":"어르신 사용자들이 버튼 글씨가 잘 안 보인다는 민원이 많습니다. 예약 앱 주요 화면을 점검해서 문제 되는 곳을 알려 주세요."}
+{"id":"ho-097","lang":"en","task":"The mobile build's main menu is making 240 draw calls, mostly from individual UI icons each in its own PNG. Bring that down."}
+{"id":"ho-098","lang":"ko","task":"환율이 1,300원에서 1,500원까지, 원가율이 60%에서 70%까지 움직일 때 영업이익이 어떻게 변하는지 한 표로 보고 싶다고 대표님이 요청하셨습니다. 기존 손익 모델 파일에 추가해 주세요."}
+{"id":"ho-099","lang":"en","task":"Summarise the 40-line Python script in tools/notify.py that sends a Slack message when a cron job finishes. Two or three sentences, for a non-engineer."}
+{"id":"ho-100","lang":"ko","task":"어제 공개된 OpenSSL 취약점이 우리 제품에 영향이 있는지, 있다면 언제까지 뭘 올려야 하는지 정리해 주세요."}
+{"id":"ho-101","lang":"en","task":"Rename the variable `burnRate` to `monthlyCashBurn` across the finance dashboard frontend package and make sure the TypeScript build still passes. It's used in about a dozen components."}
+{"id":"ho-102","lang":"mixed","task":"GitHub Actions workflow 파일의 node-version을 18에서 20으로 올려 주세요. 다른 구조는 그대로 두고 한 줄만 바꾸면 됩니다."}
+{"id":"ho-103","lang":"en","task":"The team wants four more build machines, about 14 million won in total. Write up the internal approval request; the two supplier quotes are already in procurement/quotes/."}
+{"id":"ho-104","lang":"ko","task":"부가세 신고 전에 3분기 매입 세금계산서를 장부와 맞춰 보고, 맞춘 뒤에 누락됐던 전표는 더존에 올릴 수 있는 파일로 만들어 주세요."}
+{"id":"ho-105","lang":"ko","task":"모니터 20대를 사야 합니다. 세 업체 견적을 비교표로 정리하고 그 결과를 붙여서 품의서까지 올릴 수 있게 작성해 주세요."}
+{"id":"ho-106","lang":"en","task":"In the README, the section on MLflow says the tracking UI runs on port 5000 but docker-compose maps 5001. Correct the README and nothing else."}
+{"id":"ho-107","lang":"ko","task":"새로 나온 rev C 기판 다섯 장이 오늘 도착했습니다. 아직 한 번도 전원을 넣지 않았으니 순서대로 확인하면서 첫 부팅까지 진행해 주세요."}
+{"id":"ho-108","lang":"en","task":"CI takes 38 minutes and runs 54 jobs per push, and half of them get superseded by the next push anyway. Look at .github/workflows/ and cut it down."}
+{"id":"ho-109","lang":"en","task":"Implement a simple LRU cache class in Go with Get and Put, capacity set at construction, and table-driven tests."}
+{"id":"ho-110","lang":"en","task":"The hosting vendor's contract has a confidentiality section, but what worries me is that their liability is capped at one month of fees and there's no uptime commitment. Mark it up."}
+{"id":"ho-111","lang":"en","task":"Bump the version in package.json from 3.4.1 to 3.4.2 and tag nothing; I'll write the release notes myself later."}
+{"id":"ho-112","lang":"en","task":"Jae-won's last day is Friday and his replacement, Mina, starts the Monday after. Handle the paperwork and access on both sides."}
+{"id":"ho-113","lang":"ko","task":"모델 학습 스크립트 train.py의 argparse 도움말이 영어와 한국어가 섞여 있습니다. 전부 영어로 통일해 주세요."}
+{"id":"ho-114","lang":"ko","task":"아이폰 앱 새 버전이 심사를 통과해서 어제부터 일부 사용자에게만 풀리고 있습니다. 문제없어 보이니 오늘 전체 사용자에게 풀어 주세요."}
+{"id":"ho-115","lang":"ko","task":"행정동 경계 파일을 다른 레이어와 겹쳐 보면 위치는 정확한데, 인접한 동 사이에 실처럼 가느다란 빈틈과 겹침이 수백 군데 있어서 면적 합계가 안 맞습니다."}
+{"id":"ho-116","lang":"ko","task":"서버 로그에 ECONNREFUSED 127.0.0.1:6379 에러가 반복해서 찍힙니다. 원인이 뭔지 한 줄로 알려 주세요."}
+{"id":"ho-117","lang":"ko","task":"11월 경비 전표 320건을 ERP에 일괄 업로드해야 합니다. 업로드용 파일로 만들어 주세요. 우리 ERP는 더존입니다."}
+{"id":"ho-118","lang":"ko","task":"세금계산서 발행 화면에서 사업자등록번호 입력란에 하이픈이 자동으로 들어가도록 입력 마스크를 추가해 주세요. 프론트엔드만 수정하면 됩니다."}
+{"id":"ho-119","lang":"en","task":"Look at the stack trace in crash-0412.txt and tell me which line throws the NullPointerException and why. The top frame is SubtitleRenderer.java:88."}
+{"id":"ho-120","lang":"ko","task":"신규 입사자 목록을 보여주는 관리자 테이블에 입사일 기준 정렬 기능을 넣어 주세요. 컬럼 헤더 클릭 시 오름차순/내림차순 전환입니다."}
+{"id":"ho-121","lang":"mixed","task":"feature flag 값에 따라 새 checkout 버튼을 보여주는 조건문에 else 분기가 빠져서 flag off일 때 버튼이 아예 안 보입니다. 고쳐 주세요."}
+{"id":"ho-122","lang":"ko","task":"새 체크포인트 평가를 돌린 결과를 실험 관리 서버에 다른 실행들과 비교 가능하게 남기고, 점수는 사내 순위표에도 올려 주세요. 시드 3개로 돌렸습니다."}
+{"id":"ho-123","lang":"ko","task":"검색 결과 페이지의 페이지네이션 컴포넌트에서 마지막 페이지 번호가 하나 적게 나옵니다. off-by-one 같은데 찾아서 고쳐 주세요."}
+{"id":"ho-124","lang":"en","task":"The 4K master of the keynote is 38 GB. Viewers on phones with bad connections need to be able to watch it without stalling. Prepare it for our player."}
+{"id":"ho-125","lang":"en","task":"A prospective reseller sent over their mutual confidentiality agreement. They want a five-year term and a residuals clause. Tell me what we can accept."}
+{"id":"ho-126","lang":"en","task":"Read src/geo/distance.ts and write unit tests for the haversine function. Cover the antimeridian and the poles. Inputs are always WGS84 lat/lon degrees so no conversion is involved."}
+{"id":"ho-127","lang":"ko","task":"홈택스에서 내려받은 3분기 매출 세금계산서 목록과 우리 매출 장부 합계가 440만 원 차이 납니다. 어디서 틀어졌는지 찾아 주세요."}
+{"id":"ho-128","lang":"en","task":"My on-call week ends tomorrow morning and Priya takes over. Write up what she needs to know; the alert history and open tickets are in oncall/week47/."}
+{"id":"ho-129","lang":"en","task":"The district boundaries file has the right coordinates and overlays the basemap perfectly, but the dissolve step crashes with 'ring self-intersection' and the total area is 3% more than the official figure."}
+{"id":"ho-130","lang":"mixed","task":"daily_settlement DAG에서 9월 전체를 다시 돌려야 합니다. downstream Snowflake warehouse에 부하 안 가게 순차적으로 재실행 계획 잡아서 진행해 주세요."}
+{"id":"ho-131","lang":"en","task":"Dependabot opened eleven alerts overnight on the payments service. Work out which of them actually matter for us and what we should do about each."}
+{"id":"ho-132","lang":"mixed","task":"partner API spec PR이 올라왔는데 기존 client들이 깨지는 변경이 있는지 release 전에 확인해 주세요. main의 openapi.yaml과 PR branch 것을 비교하면 됩니다."}
+{"id":"ho-133","lang":"ko","task":"구매 내역 페이지에서 날짜 필터를 걸면 타임존 때문에 하루씩 밀립니다. KST 기준으로 필터가 동작하도록 고쳐 주세요."}
+{"id":"ho-134","lang":"en","task":"We need a new order-shipped notification for KakaoTalk. Last time our template got rejected for promotional wording, so write one that will pass review."}
+{"id":"ho-135","lang":"mixed","task":"webhook handler에서 JSON body parsing 실패 시 500이 아니라 400을 반환하도록 error handling만 고쳐 주세요. 서명 검증 로직은 이미 잘 돌아가니 그대로 두세요."}
+{"id":"ho-136","lang":"ko","task":"장애 알림 메시지에 들어가는 서비스 이름이 전부 소문자로 나오는데, 첫 글자만 대문자로 바꾸는 헬퍼를 만들어 적용해 주세요."}
+{"id":"ho-137","lang":"ko","task":"자막 설정 메뉴의 글자 크기 옵션 라벨이 '크게'가 두 번 나옵니다. 두 번째를 '아주 크게'로 고쳐 주세요. 문자열 파일 한 줄입니다."}
+{"id":"ho-138","lang":"en","task":"Count how many TODO comments exist per top-level directory in this repo and give me the table."}
+{"id":"ho-139","lang":"mixed","task":"Unity 프로젝트의 .gitignore에 Library/와 Temp/ 폴더가 빠져 있습니다. 추가하고 이미 tracked된 파일은 index에서만 제거해 주세요."}
+{"id":"ho-140","lang":"mixed","task":"API response에서 snake_case를 camelCase로 바꿔주는 util 함수를 작성하고 nested object랑 array도 처리되게 해 주세요."}
+{"id":"ho-141","lang":"en","task":"We're adding phone number and birth date collection to signup next sprint. Check whether the published privacy notice for the Korean service still covers everything it legally must."}
+{"id":"ho-142","lang":"ko","task":"김 책임님이 이번 달 말일자로 퇴사합니다. 그분이 쓰던 계정이나 권한, 공유 비밀번호 같은 것들을 빠짐없이 정리해 주세요."}
+{"id":"ho-143","lang":"en","task":"We're launching in Japan next quarter. The settings screens have their text baked into the components; get them ready so translators can work on them."}
+{"id":"ho-144","lang":"mixed","task":"v4.2.0 tag 찍기 전에 지난 release 이후 merge된 PR 기준으로 release note 작성해 주세요. 평소 쓰던 Added/Changed/Fixed 형식으로요."}
+{"id":"ho-145","lang":"en","task":"The marketing landing page has a typo in the hero: 'TestFlight' is written as 'Testflight' in three places. Fix the copy in apps/web/content/home.mdx and touch nothing else."}
+{"id":"ho-146","lang":"ko","task":"어제 회의에서 나온 얘기인데, 로그인 버튼 색상을 #2563EB에서 #1D4ED8로 바꿔 주세요. Button.tsx의 primary variant만 건드리면 됩니다."}
+{"id":"ho-147","lang":"ko","task":"보드에 전원은 들어오고 LED도 깜빡이는데 네트워크가 안 올라옵니다. 디버그 핀 헤더가 있으니 부팅 중에 무슨 메시지가 나오는지 확인해서 어디서 막히는지 알려 주세요. 보율은 모릅니다."}
+{"id":"ho-148","lang":"en","task":"Three employees submitted their year-end tax documents and HR suspects two of them are both claiming the same parent as a dependant. Check the submissions for that kind of problem."}
+{"id":"ho-149","lang":"ko","task":"연말정산 안내 팝업을 2월 말까지만 노출되게 날짜 조건을 넣어 주세요. 컴포넌트는 YearEndNotice.vue입니다."}
+{"id":"ho-150","lang":"ko","task":"광고 영상을 납품했더니 방송사에서 음량 기준 미달로 반려했습니다. 기준에 맞게 다시 만들어 주세요."}
+{"id":"ho-151","lang":"en","task":"Design handed over the new checkout screens. Before we build them, go through the mockups and tell me where low-vision users or people navigating by keyboard will struggle."}
+{"id":"ho-152","lang":"en","task":"The new checkpoint beat the baseline on the internal benchmark. People are asking for the number; post it where the team compares models, done the proper way."}
+{"id":"ho-153","lang":"ko","task":"queries/monthly_report.sql 쿼리가 무슨 일을 하는지 주석으로 설명을 달아 주세요. 성능 문제는 없고 신입 분이 읽기 쉽게 하려는 겁니다."}
+{"id":"ho-154","lang":"mixed","task":"partner가 보내는 event를 받는 endpoint에서 가끔 signature mismatch가 납니다. 코드를 보니 body를 JSON parse한 다음 다시 stringify해서 HMAC을 계산하던데, 그게 원인인지 보고 고쳐 주세요."}
+{"id":"ho-155","lang":"ko","task":"상품 검색에 새 랭킹 가중치를 넣었는데 배포 전에 기존 대비 좋아졌는지 평가해 주세요. 그리고 별개로 '환불'이라고 치면 고객센터 페이지가 맨 위에 고정되게 해 달라는 CS 요청도 같이 처리해 주세요."}
+{"id":"ho-156","lang":"ko","task":"다음 주부터 새 도메인 news.example.co.kr로 뉴스레터를 보내려고 합니다. 발송 전에 DNS 쪽에 해 둬야 할 것들을 설정하고 검증해 주세요."}
+{"id":"ho-157","lang":"ko","task":"외주 작가가 보낸 캐릭터 모델을 엔진에 넣으면 100배 크게 들어오고 누워 있습니다. 매번 손으로 고치고 있는데 제대로 처리해 주세요."}
+{"id":"ho-158","lang":"ko","task":"주문 목록 API가 특정 판매자 계정에서만 8초씩 걸립니다. 실행 계획 출력은 perf/orders-explain.txt에 있으니 왜 느린지 보고 해결책을 제안해 주세요."}
+{"id":"ho-159","lang":"en","task":"QA needs the release candidate on their phones tonight so they can run the regression pass before we submit to Apple on Thursday."}
+{"id":"ho-160","lang":"mixed","task":"k6 결과 JSON을 읽어서 p95 값만 뽑아 출력하는 jq 한 줄 명령어 알려 주세요."}
+{"id":"ho-161","lang":"ko","task":"새벽마다 CPU 80% 넘었다는 알림이 울리는데 실제 사용자 영향은 없습니다. 반대로 지난주 오류율이 올랐을 때는 아무 알림도 없었고요. 호출 기준을 다시 잡아 주세요."}
+{"id":"ho-162","lang":"en","task":"The orders table needs its amount column changed from integer to numeric, and while you're there the monthly-revenue query on that table takes 40 seconds; its EXPLAIN ANALYZE is in perf/revenue-plan.txt. The table has 900M rows and is live."}
+{"id":"ho-163","lang":"mixed","task":"payment-service가 log format을 JSON에서 key=value로 바꾼 뒤로 Kibana에서 trace_id, user_id field가 안 잡힙니다. ingestion 쪽에서 고쳐 주세요."}
+{"id":"ho-164","lang":"en","task":"The ops team keeps a raw 'Tickets' tab in Google Sheets and wants a tab that shows counts by category and week, updating as rows are added. They mentioned they might want what-if numbers someday, but not now."}
+{"id":"ho-165","lang":"ko","task":"파이썬으로 CSV 파일 두 개를 id 기준으로 합치는 스크립트를 짜 주세요. pandas 써도 됩니다."}
+{"id":"ho-166","lang":"ko","task":"다음 주 월요일에 디자이너 한 분이 합류합니다. 첫 주에 뭘 하는지, 계정은 어떻게 받는지 미리 보낼 자료를 준비해 주세요."}
+{"id":"ho-167","lang":"en","task":"new_pricing_page has been on for everyone since August. Get rid of it and the old code path it guards."}
+{"id":"ho-168","lang":"en","task":"iOS 6.3 has been out to a slice of users since yesterday and crash-free sessions dropped from 99.7 to 98.9. Stop it from reaching more people while we investigate."}
+{"id":"ho-169","lang":"ko","task":"협력사에서 서비스 계약서 초안과 비밀유지계약서를 같이 보내왔습니다. 둘 다 우리 기준에 맞는지 검토하고 수정 의견을 달아 주세요."}
+{"id":"ho-170","lang":"ko","task":"회원 테이블(2억 건)에 NOT NULL 컬럼을 하나 추가해야 하는데 서비스 중단 없이 해야 합니다. 마이그레이션 계획과 스크립트를 준비해 주세요."}
+{"id":"ho-171","lang":"mixed","task":"Kubernetes ConfigMap에 LOG_LEVEL=debug 추가하는 manifest patch 작성해 주세요. deployment 이름은 billing-api입니다."}
+{"id":"ho-172","lang":"en","task":"The recommendation service keeps getting killed around 9pm when traffic peaks, and finance says the cluster bill for that namespace is also too high. Sort out its resource settings."}
+{"id":"ho-173","lang":"en","task":"The December rent invoice won't arrive until January, and we paid the annual software licence up front in October. Make sure November's books reflect the right amounts."}
+{"id":"ho-174","lang":"en","task":"We have plenty of logs and dashboards for the image resizer, but when a request is slow nobody can tell whether the time went to the queue, the worker or S3."}
+{"id":"ho-175","lang":"ko","task":"TypeScript에서 Partial과 Pick의 차이를 예시 코드와 함께 짧게 설명해 주세요."}
+{"id":"ho-176","lang":"mixed","task":"users table에 index 추가하는 migration인데 CREATE INDEX가 lock 잡아서 지난번에 장애 났습니다. 이번엔 production에서 write 안 막히게 적용해 주세요. 쿼리 자체는 이미 tuning 끝났습니다."}
+{"id":"ho-177","lang":"mixed","task":"새로 쓰는 PMIC datasheet PDF가 docs/vendor/에 있습니다. register table 보고 address랑 bit field 정의된 C header 만들어 주세요. reset value도 주석으로요."}
+{"id":"ho-178","lang":"ko","task":"utils/currency.ts의 formatKRW 함수가 음수일 때 '-₩1,000' 대신 '₩-1,000'으로 나옵니다. 수정하고 테스트 케이스 추가해 주세요."}
+{"id":"ho-179","lang":"en","task":"We're shipping a first batch of lithium battery packs with integrated BMS to a customer in Vietnam. The commercial invoice needs the tariff classification filled in."}
+{"id":"ho-180","lang":"ko","task":"README에 있는 설치 순서를 한국어로 번역해서 README.ko.md로 저장해 주세요. 코드 블록은 그대로 두시고요."}

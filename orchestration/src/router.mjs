@@ -18,7 +18,18 @@ export function finalizeRoute(profile,features,docs,result,config,extra={}) {
 export async function routeTask({state,docs,delegation,config,runtime,project,client,scope,evidence:providedEvidence}) {
   const began=performance.now();
   if(delegation.text.length>config.maxTaskChars)return {deferred:true,reason:'task_exceeds_safe_classification_budget',stageCount:0};
-  const classify=await client.evaluate(state,routeQuestions(docs),scope);
+  // A decision kernel exposes per-point judges; a plain client answers every point itself.
+  const classifier=client.forPoint?.('delegation.classify')??client;
+  const selectorJudge=client.forPoint?.('delegation.profile')??client;
+  // An off classification point means routing is disabled, not broken: no judge is called and nothing is thrown.
+  if(client.point?.('delegation.classify').mode==='off')return {deferred:true,reason:'classification_point_off',stageCount:0};
+  // One total budget for the classification stage, however many judges the point chains.
+  // A kernel sizes it from the point's own judges (a per-provider timeout may exceed config.timeoutMs);
+  // the route deadline is the ceiling either way.
+  const classify=await classifier.evaluate(state,routeQuestions(docs),scope,
+    {timeoutMs:client.budget?.('delegation.classify',config.optimization.routeDeadlineMs)??Math.min(config.timeoutMs,config.optimization.routeDeadlineMs)});
+  // A shadow point is logged only: its answer must not steer a native call.
+  if(classify.apply===false)return {deferred:true,reason:'classification_point_shadow_only',stageCount:1};
   const features=taskFeatures(classify.response,delegation,config);
   // Missing information is not cured by spending more on a model.
   if(features.information==='missing'&&!features.uncertain)return {deferred:true,reason:'gather_missing_context',features,stageCount:1};
@@ -31,7 +42,7 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
   const statistics=summarizeEvidence(observed.rows,eligibility.candidates,{
     context:config.optimization.evaluationContext,projectHash:hash(project),classKey:taskClass(features),ttlDays:config.optimization.evidenceTtlDays});
   const options=optimizeCandidates(eligibility.candidates,statistics,config.optimization);
-  let selected=options.baseline,reason=options.basis,stageCount=1,selector=null;
+  let selected=options.baseline,reason=options.basis,stageCount=1,selector=null,profileDecisionId=null;
   const remaining=config.optimization.routeDeadlineMs-(performance.now()-began);
   const mechanicalFastPath=features.reasoning==='mechanical'&&features.complexity==='small'&&features.risk==='normal'&&!features.uncertain;
   if(mechanicalFastPath)reason='bounded_mechanical_policy_fast_path';
@@ -41,18 +52,20 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
       const candidates=options.pool.map(p=>({id:p.profileId,model:p.model,backend:p.backend,effort:p.effort,
         role:p.role,slot:p.slot,deliberationIntents:p.intents,capabilitySource:p.capabilitySource,
         availability:p.availability,rubric:candidateRubric(p,features),policyDistance:p.policyDistance,statistics:statistics[p.profileId]||null}));
-      const choice=await client.evaluate({task:redact(delegation.text,config.maxTaskChars),features,
+      const choice=await selectorJudge.evaluate({task:redact(delegation.text,config.maxTaskChars),features,
         ...(state.plan?{plan:state.plan,planRevision:state.planRevision}:{}),
         ...(state.parentGoal?{parentGoal:state.parentGoal}:{}),
         objective:config.optimization.objective,recoveryAction:recovery.action,candidates,baseline:options.baseline.profileId,
         evidenceBasis:options.basis,evidenceRevision:observed.revision,registryRevision:registryFingerprint(config.registry),
         note:'policyDistance is a declared startup preference, NOT measured cost, latency, or capability. Missing statistics are unknown.'},
-        selectionQuestions(candidates),scope,{timeoutMs:Math.min(config.timeoutMs,Math.floor(remaining))});
+        selectionQuestions(candidates),scope,{timeoutMs:client.budget?.('delegation.profile',Math.floor(remaining))??Math.min(config.timeoutMs,Math.floor(remaining))});
       const a=choice.response.answers.profile;
       const probs=Object.values(a.probabilities).sort((a,b)=>b-a);
       const margin=probs[0]-(probs[1]||0);
       selector={choice:a.choice,confidence:a.confidence,margin,cached:choice.cached};
-      if(a.choice==='defer')return {deferred:true,reason:'selector_abstained',features,stageCount};
+      profileDecisionId=typeof choice.decisionId==='string'?choice.decisionId:null;
+      if(choice.apply===false)reason='selector_shadow_only_incumbent';
+      else if(a.choice==='defer')return {deferred:true,reason:'selector_abstained',features,stageCount};
       else if(a.confidence<config.optimization.selectionConfidence||margin<config.optimization.selectionMargin)reason='selector_uncertain_incumbent';
       else {
         const candidate=options.pool.find(p=>p.profileId===a.choice);
@@ -69,5 +82,8 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
     classification:{role:features.role,complexity:features.complexity,reasoning:features.reasoning,information:features.information},
     candidateIds:options.pool.map(p=>p.profileId),projectHash:hash(project),evaluationContext:config.optimization.evaluationContext});
   route.decisionId=hash({scope,task:state.task,profile:route.profile,registry:route.registryFingerprint,evidence:observed.revision,version:ROUTER_VERSION});
-  return {route,profile:selected,deferred:false,cached:classify.cached,latencyMs:performance.now()-began,stageCount};
+  // Decision-log ids of the judgments behind this route (null: a plain client without a log, or no judgment made).
+  // They go into the session's route event only, so the outcome collector can count judge cost per delegation.
+  const judgeDecisionIds={classify:typeof classify.decisionId==='string'?classify.decisionId:null,profile:profileDecisionId};
+  return {route,profile:selected,deferred:false,cached:classify.cached,latencyMs:performance.now()-began,stageCount,judgeDecisionIds};
 }

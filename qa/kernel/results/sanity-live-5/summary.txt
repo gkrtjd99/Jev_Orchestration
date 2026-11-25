@@ -1,0 +1,24 @@
+Decision kernel evaluation  run=sanity-live-5  LIVE API  product=3.2.0@95e30f18
+failures count as "nothing selected / no advice"; tok = usage fields in the API response bodies (n/a = not returned)
+skills data: 5 tasks, 40 skills; consensus 5; labeler exact-set agreement 100.0%, any-skill kappa 1.000
+BM25 retrieval recall of gold skills: @4 100.0%  @8 100.0%  @12 100.0%  @16 100.0%  @40 100.0%
+  by language @8: en 100.0% (3/3)
+SKILLS (gold: consensus; thresholds need 0.5, autoLoad 0.9)
+  arm     n  fail  needAcc  load P  load R  load F1  exact   F1+sugg  falseInj  miss    ECE need  ECE skill  p50ms  p95ms  maxms  tok in/out
+  jev     5  0     100.0%   1.000   1.000   1.000    100.0%  1.000    0.0%      0.0%    0.132     0.080      314    333    333    7501/820
+  openai  5  0     100.0%   1.000   1.000   1.000    100.0%  1.000    0.0%      0.0%    0.014     0.072      535    712    712    11740/0
+  local   5  0     80.0%    n/a     0.000   n/a      40.0%   0.800    0.0%      100.0%  0.383     0.202      0      2      2      n/a/n/a
+  chain   5  0     100.0%   1.000   1.000   1.000    100.0%  1.000    0.0%      0.0%    0.124     0.083      174    176    176    7501/820
+  jev: failures none; retried 0; injected ctx mean 379 chars vs catalog 9589; product/direct calibration agree
+  openai: failures none; retried 0; injected ctx mean 376 chars vs catalog 9589; product/direct calibration agree
+  local: failures none; retried 0; injected ctx mean 380 chars vs catalog 9589; product/direct calibration agree
+  chain: failures none; retried 0; injected ctx mean 379 chars vs catalog 9589; product/direct calibration agree; escalation 100.0%, saved calls 0.0%
+supervisor data: 5 reports; consensus 5; outcome agreement 100.0%, kappa 1.000
+SUPERVISOR (gold: consensus; surfaced when confidence >= 0.65)
+  arm     n  fail  acc     macroF1  evMAE  evExact  ECE    coverage  accSurfaced  p50ms  p95ms  maxms  tok in/out
+  jev     5  0     100.0%  1.000    0.178  80.0%    0.012  100.0%    100.0%       172    172    172    3420/328
+  openai  5  0     100.0%  1.000    0.734  40.0%    0.102  80.0%     100.0%       247    345    345    2607/0
+  jev: failures none; skipped none; retried 0; product/direct calibration agree
+  openai: failures none; skipped none; retried 0; product/direct calibration agree
+live HTTP requests: api.typesafe.ai=15  api.openai.com=10  (total 25)
+results: qa/kernel/results/sanity-live-5/metrics.json

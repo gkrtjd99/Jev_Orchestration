@@ -3,6 +3,9 @@ import {safetyDefaults,applySafetyEnvironment,validateSafety,readPrivateEnv} fro
 import path from 'node:path';
 import { assert, object, within, readJSON } from './util.mjs';
 import { defaultRegistry, validateRegistry, applyModelEnvironment } from './catalog.mjs';
+import { kernelDefaults, mergeKernel, validateKernel, MODES, PROVIDERS } from './kernel/kernel.mjs';
+import { RETRIEVAL_MODES, skillRequests } from './kernel/skills.mjs';
+import { OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './kernel/judges.mjs';
 export function defaults(home) {
   return {
     schema: 4, mode: 'shadow', safety:safetyDefaults(), enabledRuntimes: ['claude','codex'],
@@ -16,6 +19,7 @@ export function defaults(home) {
       routeDeadlineMs:3000,maxRetryEscalations:2,minimumSamples:30,qualityFloor:.85,nonInferiorityTolerance:.02,objectiveSlack:.08,
       evidenceTtlDays:30,requiredContextTokens:null,evaluationContext:'native-default-unvalidated',requireConfirmedAvailability:true},
     circuit:{failureThreshold:3,cooldownMs:60000,maxRequestsPerSession:100},
+    kernel:kernelDefaults(),
   };
 }
 export function parseEnv(text) {
@@ -63,7 +67,130 @@ export function validateConfig(c) {
   assert(object(c.circuit)&&Number.isInteger(c.circuit.failureThreshold)&&c.circuit.failureThreshold>=1&&c.circuit.failureThreshold<=10,'INVALID_CIRCUIT');
   assert(Number.isInteger(c.circuit.cooldownMs)&&c.circuit.cooldownMs>=1000&&c.circuit.cooldownMs<=3600000,'INVALID_CIRCUIT_COOLDOWN');
   assert(Number.isInteger(c.circuit.maxRequestsPerSession)&&c.circuit.maxRequestsPerSession>=1&&c.circuit.maxRequestsPerSession<=10000,'INVALID_REQUEST_CAP');
+  validateKernel(c.kernel);
+  // A wide skills decision spends several requests of the per-session auxiliary cap at once. With a wide
+  // mode switched on, the cap must leave room for at least four such delegations, so that one delegation
+  // can never use up the budget supervisor.outcome and later delegations depend on.
+  // 'full' is the shipped default, so the check applies only while delegation.skills is not off: an
+  // install that never routes skills keeps loading with any request cap, as it did before the default changed.
+  // JEV_SKILLS_MODE and JEV_SKILLS_RETRIEVAL are applied before this runs, so env overrides are covered.
+  assert(c.kernel.points['delegation.skills'].mode==='off'||c.kernel.skills.retrieval==='lexical'||skillRequests(c.kernel.skills)*4<=c.circuit.maxRequestsPerSession,'INVALID_KERNEL_SKILLS_FANOUT_CAP');
   return c;
+}
+
+const KERNEL_MODE_ENV = { JEV_SKILLS_MODE: 'delegation.skills', JEV_SUPERVISOR_MODE: 'supervisor.outcome' };
+const KERNEL_JUDGE_ENV = {
+  JEV_SKILLS_JUDGES: ['delegation.skills'],
+  JEV_SUPERVISOR_JUDGES: ['supervisor.outcome'],
+  JEV_DECISION_JUDGES: ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice'],
+};
+// Without these an env-only chain such as JEV_SKILLS_JUDGES=local,jev never escalates: escalateBelow defaults to 0.
+const KERNEL_ESCALATE_ENV = {
+  JEV_SKILLS_ESCALATE_BELOW: ['delegation.skills'],
+  JEV_SUPERVISOR_ESCALATE_BELOW: ['supervisor.outcome'],
+  JEV_DECISION_ESCALATE_BELOW: ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice'],
+};
+/** True when the stored config itself names a candidate retrieval mode (before defaults are merged in). */
+export const storedSkillsRetrieval = c => object(c?.kernel?.skills) && Object.hasOwn(c.kernel.skills, 'retrieval');
+/**
+ * Upgrade path for a config written before kernel.skills.retrieval existed. Its retrieval used to be the
+ * single-request 'lexical' behaviour; the merged default is now the wide 'full'. When such a config routes
+ * skills with a request cap that the wide default cannot satisfy (INVALID_KERNEL_SKILLS_FANOUT_CAP), it keeps
+ * the behaviour it had instead of failing to load. Nothing changes when the mode was stored or set by env:
+ * an explicit wide mode with a cap that is too small is still rejected by validateConfig.
+ * `explicit` is true when the stored config or the environment named the mode. Call after mergeKernel.
+ */
+export function keepLegacyRetrieval(c, explicit) {
+  const k = c.kernel;
+  if (explicit || !object(k?.skills) || k.skills.retrieval === 'lexical' || !object(k.points?.['delegation.skills'])
+    || k.points['delegation.skills'].mode === 'off' || !Number.isInteger(c.circuit?.maxRequestsPerSession)) return false;
+  let requests;
+  try { requests = skillRequests(k.skills); } catch { return false; }
+  if (!Number.isFinite(requests) || requests * 4 <= c.circuit.maxRequestsPerSession) return false;
+  k.skills.retrieval = 'lexical';
+  return true;
+}
+/**
+ * Kernel overrides from the private .env or process env. Keys never enter the config.
+ * `storedRetrieval` is passed by a caller that merged the kernel defaults before calling (the installer).
+ */
+export function applyKernelEnvironment(c, get, { storedRetrieval = storedSkillsRetrieval(c) } = {}) {
+  c.kernel = mergeKernel(c.kernel);
+  const k = c.kernel;
+  const read = key => { const v = get(key); return v === undefined || v === '' ? null : v; };
+  const flag = key => {
+    const v = read(key);
+    if (v === null) return null;
+    assert(v === 'true' || v === 'false', 'INVALID_' + key);
+    return v === 'true';
+  };
+  // A malformed point is left for validateKernel to reject with its own code.
+  const points = ids => ids.map(id => k.points?.[id]).filter(object);
+  for (const [key, id] of Object.entries(KERNEL_MODE_ENV)) {
+    const v = read(key);
+    if (v === null) continue;
+    assert(MODES.includes(v), 'INVALID_' + key);
+    for (const point of points([id])) point.mode = v;
+  }
+  for (const [key, ids] of Object.entries(KERNEL_JUDGE_ENV)) {
+    const v = read(key);
+    if (v === null) continue;
+    const judges = v.split(',').map(x => x.trim());
+    assert(judges.length >= 1 && judges.length <= PROVIDERS.length && judges.every(j => PROVIDERS.includes(j))
+      && new Set(judges).size === judges.length, 'INVALID_' + key);
+    for (const point of points(ids)) point.judges = [...judges];
+  }
+  for (const [key, ids] of Object.entries(KERNEL_ESCALATE_ENV)) {
+    const v = read(key);
+    if (v === null) continue;
+    // Plain decimals in [0, 1] only: Number('') or Number('1e-1') must not slip through.
+    assert(/^(?:0(?:\.\d{1,6})?|1(?:\.0{1,6})?)$/.test(v), 'INVALID_' + key);
+    for (const point of points(ids)) point.escalateBelow = Number(v);
+  }
+  const dirs = read('JEV_SKILL_DIRS');
+  if (dirs !== null && object(k.skills)) {
+    const list = dirs.split(path.delimiter).map(x => x.trim()).filter(Boolean);
+    assert(list.length >= 1 && list.length <= 8 && list.every(d => path.isAbsolute(d)), 'INVALID_JEV_SKILL_DIRS');
+    k.skills.dirs = list;
+  }
+  // Candidate retrieval for delegation.skills. Format and range are checked here so a bad value fails
+  // with the variable's own name; validateKernel still checks the combined config afterwards.
+  const retrieval = read('JEV_SKILLS_RETRIEVAL');
+  if (retrieval !== null) {
+    assert(RETRIEVAL_MODES.includes(retrieval), 'INVALID_JEV_SKILLS_RETRIEVAL');
+    if (object(k.skills)) k.skills.retrieval = retrieval;
+  }
+  const coverage = read('JEV_SKILLS_MIN_COVERAGE');
+  if (coverage !== null) {
+    assert(/^(?:0(?:\.\d{1,6})?|1(?:\.0{1,6})?)$/.test(coverage), 'INVALID_JEV_SKILLS_MIN_COVERAGE');
+    if (object(k.skills)) k.skills.minCoverage = Number(coverage);
+  }
+  for (const [key, field, min, max] of [['JEV_SKILLS_MAX_JUDGED', 'maxJudged', 1, 400], ['JEV_SKILLS_CHUNK', 'chunk', 4, 64]]) {
+    const v = read(key);
+    if (v === null) continue;
+    // Digits only: Number('') or Number('1e2') must not slip through.
+    assert(/^\d{1,3}$/.test(v) && Number(v) >= min && Number(v) <= max, 'INVALID_' + key);
+    if (object(k.skills)) k.skills[field] = Number(v);
+  }
+  const openai = object(k.providers?.openai) ? k.providers.openai : null;
+  const approved = flag('JEV_OPENAI_DECISIONS_APPROVED');
+  if (approved !== null && openai) openai.approved = approved;
+  const model = read('JEV_OPENAI_DECISIONS_MODEL');
+  if (model !== null) {
+    assert(/^[A-Za-z0-9_.-]{1,100}$/.test(model), 'INVALID_JEV_OPENAI_DECISIONS_MODEL');
+    if (openai) openai.model = model;
+  }
+  const timeout = read('JEV_OPENAI_DECISIONS_TIMEOUT_MS');
+  if (timeout !== null) {
+    // Digits only: Number('') or Number('1e3') must not slip through as a timeout.
+    assert(/^\d{1,5}$/.test(timeout) && Number(timeout) >= OPENAI_TIMEOUT_MIN_MS && Number(timeout) <= OPENAI_TIMEOUT_MAX_MS,
+      'INVALID_JEV_OPENAI_DECISIONS_TIMEOUT_MS');
+    if (openai) openai.timeoutMs = Number(timeout);
+  }
+  const log = flag('JEV_DECISION_LOG');
+  if (log !== null) k.log = log;
+  // After every override: the point mode, maxJudged and chunk set by env count for the check.
+  keepLegacyRetrieval(c, storedRetrieval || retrieval !== null);
 }
 export async function loadConfig(file, env=process.env) {
   assert(typeof file==='string'&&path.isAbsolute(file),'ABSOLUTE_CONFIG_REQUIRED');
@@ -80,12 +207,13 @@ export async function loadConfig(file, env=process.env) {
   if(get('TYPESAFE_BASE_URL'))c.endpoint=get('TYPESAFE_BASE_URL');
   if(get('JEV_READ_ADVICE')) {assert(['true','false'].includes(get('JEV_READ_ADVICE')),'INVALID_READ_ADVICE');c.readAdvice=get('JEV_READ_ADVICE')==='true';}
   applyModelEnvironment(c,new Proxy({}, {get:(_,key)=>get(key)}));
+  applyKernelEnvironment(c,get);
   if(get('JEV_OBJECTIVE'))c.optimization.objective=get('JEV_OBJECTIVE');
   if(get('JEV_EVALUATION_CONTEXT'))c.optimization.evaluationContext=get('JEV_EVALUATION_CONTEXT');
   validateConfig(c);
   const runtimeEnv={...env};
   for(const key of ['JEV_CONTROLLER_CRITIQUE','JEV_OTEL_ENABLED','JEV_OTEL_ENDPOINT','JEV_OTEL_PROJECT_ID','JEV_OTEL_INGEST_TOKEN',
-    'OTEL_RESOURCE_ATTRIBUTES','OTEL_EXPORTER_OTLP_HEADERS'])if(get(key))runtimeEnv[key]=get(key);
+    'OTEL_RESOURCE_ATTRIBUTES','OTEL_EXPORTER_OTLP_HEADERS','OPENAI_API_KEY'])if(get(key))runtimeEnv[key]=get(key);
   return {config:c,apiKey:get('TYPESAFE_API_KEY')||'',runtimeEnv};
 }
 export async function projectFor(config,cwd) {

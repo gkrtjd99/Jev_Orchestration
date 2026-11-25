@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-export const VERSION = '3.1.0';
+export const VERSION = '3.2.0';
 export function assert(ok, code) { if (!ok) { const e = new Error(code); e.code = code; throw e; } }
 export function object(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
 export function stable(x) {
@@ -10,6 +10,8 @@ export function stable(x) {
   return JSON.stringify(x);
 }
 export const hash = x => createHash('sha256').update(typeof x === 'string' ? x : stable(x)).digest('hex');
+/** fetch() rejects with TypeError('fetch failed') and a system cause (ECONNREFUSED, ENOTFOUND, ...) when no HTTP exchange happened. */
+export const networkFailure = e => e instanceof TypeError && (e.message === 'fetch failed' || typeof e.cause?.code === 'string');
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 export const within = (base, file) => { const r = path.relative(base, file); return r === '' || (!r.startsWith('..'+path.sep) && r !== '..' && !path.isAbsolute(r)); };
 export function redact(value, max = 6000) {

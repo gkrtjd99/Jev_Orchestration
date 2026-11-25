@@ -21,7 +21,10 @@
         "research"
       ],
       "contextTokens": null,
-      "price": null
+      "price": null,
+      "resolvesTo": [
+        "EXAMPLE-ONLY.replace-with-the-id-your-host-records"
+      ]
     },
     {
       "id": "claude-light",

@@ -1,0 +1,198 @@
+{
+  "point": "delegation.skills",
+  "source": "observed-load-after-injection",
+  "sourceInfo": {
+    "strength": "weak",
+    "oneSided": false,
+    "decisionInfluenced": true
+  },
+  "note": "Labelled decisions are a non-random subset of the decisions logged at this point (decisionsAtPoint); metrics are conditional on it. `need`: one question per judge request, about that request's own skills. `skill`: one question per judged skill.",
+  "decisionsAtPoint": 32,
+  "labeledDecisions": 8,
+  "need": {
+    "labeledDecisions": 8,
+    "answers": 8,
+    "labeled": 8,
+    "sufficient": false,
+    "sufficientReason": "weak_labels",
+    "metricsLabelStrength": "weak",
+    "metrics": {
+      "brier": 0.06525,
+      "ece": 0.23,
+      "baseRate": 0.5,
+      "threshold": 0.5,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "tp": 4,
+      "fp": 0,
+      "tn": 4,
+      "fn": 0,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.1,
+          "count": 1,
+          "meanPredicted": 0.06,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 2,
+          "meanPredicted": 0.125,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 1,
+          "meanPredicted": 0.2,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 3,
+          "meanPredicted": 0.6533333333333333,
+          "observedRate": 1
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "count": 1,
+          "meanPredicted": 0.71,
+          "observedRate": 1
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.9,
+          "upper": 1,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        }
+      ]
+    }
+  },
+  "skill": {
+    "labeledDecisions": 8,
+    "answers": 240,
+    "labeled": 240,
+    "sufficient": false,
+    "sufficientReason": "weak_labels",
+    "metricsLabelStrength": "weak",
+    "metrics": {
+      "brier": 0.003978749999999991,
+      "ece": 0.03562499999999991,
+      "baseRate": 0.020833333333333332,
+      "threshold": 0.5,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "tp": 5,
+      "fp": 0,
+      "tn": 235,
+      "fn": 0,
+      "reliability": [
+        {
+          "lower": 0,
+          "upper": 0.1,
+          "count": 224,
+          "meanPredicted": 0.02611607142857133,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 7,
+          "meanPredicted": 0.13714285714285715,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 2,
+          "meanPredicted": 0.255,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 2,
+          "meanPredicted": 0.42,
+          "observedRate": 0
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 1,
+          "meanPredicted": 0.68,
+          "observedRate": 1
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 0,
+          "meanPredicted": null,
+          "observedRate": null
+        },
+        {
+          "lower": 0.9,
+          "upper": 1,
+          "count": 4,
+          "meanPredicted": 0.9824999999999999,
+          "observedRate": 1
+        }
+      ]
+    }
+  }
+}

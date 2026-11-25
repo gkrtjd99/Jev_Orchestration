@@ -1,0 +1,53 @@
+{
+  "evaluationContext": "native-default-unvalidated",
+  "declared": [
+    {
+      "registryEntry": "claude-light",
+      "backend": "sonnet",
+      "resolvesTo": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    {
+      "registryEntry": "claude-standard",
+      "backend": "opus",
+      "resolvesTo": [
+        "claude-opus-5-5"
+      ]
+    }
+  ],
+  "registry": [
+    {
+      "id": "claude-micro",
+      "model": "haiku",
+      "backend": "haiku",
+      "enabled": false,
+      "resolvesTo": null
+    },
+    {
+      "id": "claude-light",
+      "model": "sonnet",
+      "backend": "sonnet",
+      "enabled": true,
+      "resolvesTo": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    {
+      "id": "claude-standard",
+      "model": "opus",
+      "backend": "opus",
+      "enabled": true,
+      "resolvesTo": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "id": "claude-strategic",
+      "model": "opus",
+      "backend": "opus",
+      "enabled": true,
+      "resolvesTo": null
+    }
+  ]
+}
