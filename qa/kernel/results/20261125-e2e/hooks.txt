@@ -1,0 +1,223 @@
+scenario                        result  expectation
+install                         PASS    installer plan run exits 0 and applies nothing
+install                         PASS    installer --yes exits 0 and reports applied
+install                         PASS    every installed file is inside the disposable HOME
+install                         PASS    installed entrypoint and kernel modules exist
+install                         PASS    installed .env is mode 600
+install                         PASS    state directory is inside the disposable HOME
+install                         PASS    settings.json registers the installed entrypoint for 9 events with timeout 8
+install                         PASS    installed defaults: skills and supervisor points off, OpenAI not approved
+install                         PASS    claude profile definitions were installed
+s01-lifecycle                   PASS    SessionStart exits 0 with visible context in active mode
+s01-lifecycle                   PASS    UserPromptSubmit exits 0 with visible context
+s01-lifecycle                   PASS    SubagentStart exits 0 with valid JSON
+s01-lifecycle                   PASS    SubagentStop exits 0 with valid JSON
+s01-lifecycle                   PASS    PreCompact exits 0 with valid JSON
+s01-lifecycle                   PASS    SessionEnd exits 0 with valid JSON
+s01-lifecycle                   PASS    Workflow PreToolUse is observed, not denied (default policy warn)
+s01-lifecycle                   PASS    no decision was logged for lifecycle events
+s02-default-active              PASS    default config: exit 0, valid output, never a deny
+s02-default-active              PASS    default config: prompt rewritten to an installed jev4_ profile without a permission decision
+s02-default-active              PASS    default config: original task text preserved as the prefix, followed by the <jev-routing> packet
+s02-default-active              PASS    default config: no <jev-skills> block in the rewritten prompt
+s02-default-active              PASS    decision log has delegation.classify for this session and no skills/supervisor record
+s02-default-active              PASS    all decisions answered by jev (default chain)
+s02-default-active              PASS    session state has a route event and no skills event
+s02-default-active              PASS    replay of the same tool_use_id gives byte-identical output
+s02-default-active              PASS    replay made no new judge call
+s03-default-shadow              PASS    installed default (shadow): exit 0 and empty output, native call untouched
+s03-default-shadow              PASS    shadow still judged and recorded a route
+s04-skills-shadow               PASS    skills shadow: exit 0, valid output, never a deny
+s04-skills-shadow               PASS    skills shadow: prompt rewritten to an installed jev4_ profile without a permission decision
+s04-skills-shadow               PASS    skills shadow: original task text preserved as the prefix, followed by the <jev-routing> packet
+s04-skills-shadow               PASS    skills shadow: no <jev-skills> block in the rewritten prompt
+s04-skills-shadow               PASS    skills decision logged once with mode shadow
+s04-skills-shadow               PASS    skills event recorded with mode shadow and injected=false
+s04-skills-shadow               PASS    shadow judge still rated the matching skill (recorded, not applied)
+s05-skills-active-match         PASS    skills active (matching task): exit 0, valid output, never a deny
+s05-skills-active-match         PASS    skills active (matching task): prompt rewritten to an installed jev4_ profile without a permission decision
+s05-skills-active-match         PASS    skills active (matching task): original task text preserved as the prefix, followed by the <jev-routing> packet
+s05-skills-active-match         PASS    matching task: <jev-skills> block present and parsable
+s05-skills-active-match         PASS    matching task: expected skill "changelog-hollowbrook" selected (load or consider)
+s05-skills-active-match         PASS    matching task: expected skill "changelog-hollowbrook" is in "load"
+s05-skills-active-match         PASS    matching task: no unrelated skill auto-loaded
+s05-skills-active-match         PASS    matching task: injected path is the logical .claude/skills/<folder>/SKILL.md
+s05-skills-active-match         PASS    matching task: block carries only name/path/p (no description text)
+s05-skills-active-match         PASS    block is appended after the routing packet, separated by a blank line
+s05-skills-active-match         PASS    the injected path opens the synthetic SKILL.md inside the project
+s05-skills-active-match         PASS    skills decision logged with mode active; answers are need + skill_N numbers only
+s05-skills-active-match         PASS    skills event: mode active, injected=true, decisionId matches the log
+s05-skills-active-match         PASS    replay of the same tool_use_id gives byte-identical output (block included)
+s05-skills-active-match         PASS    replay made no new judge call
+s05-skills-active-match         PASS    PreToolUse on the already rewritten input does not append a second block
+s06-skills-active-unrelated     PASS    skills active (unrelated task): exit 0, valid output, never a deny
+s06-skills-active-unrelated     PASS    skills active (unrelated task): prompt rewritten to an installed jev4_ profile without a permission decision
+s06-skills-active-unrelated     PASS    skills active (unrelated task): original task text preserved as the prefix, followed by the <jev-routing> packet
+s06-skills-active-unrelated     PASS    skills active (unrelated task): no <jev-skills> block in the rewritten prompt
+s06-skills-active-unrelated     PASS    skills event recorded with injected=false and nothing loaded
+s07-skills-active-other-skills  PASS    migration task: exit 0, valid output, never a deny
+s07-skills-active-other-skills  WARN    migration task: prompt rewritten to an installed jev4_ profile without a permission decision
+                                        -> kind=deferred code= profile= Jev did not select a model/effort (selector_abstained). Main should gather missing evidence or inspect the model registry. No replacement execution was started.
+s07-skills-active-other-skills  PASS    load-test task: exit 0, valid output, never a deny
+s07-skills-active-other-skills  PASS    load-test task: prompt rewritten to an installed jev4_ profile without a permission decision
+s07-skills-active-other-skills  PASS    load-test task: original task text preserved as the prefix, followed by the <jev-routing> packet
+s07-skills-active-other-skills  PASS    load-test task: <jev-skills> block present and parsable
+s07-skills-active-other-skills  PASS    load-test task: expected skill "k6-load-test" selected (load or consider)
+s07-skills-active-other-skills  PASS    load-test task: expected skill "k6-load-test" is in "load"
+s07-skills-active-other-skills  PASS    load-test task: no unrelated skill auto-loaded
+s07-skills-active-other-skills  PASS    load-test task: injected path is the logical .claude/skills/<folder>/SKILL.md
+s07-skills-active-other-skills  PASS    load-test task: block carries only name/path/p (no description text)
+s08-advisory                    PASS    advisory: exit 0, advice only, pending call unchanged (no updatedInput, no permission decision)
+s08-advisory                    PASS    advisory text says the pending call is UNCHANGED
+s08-advisory                    PASS    advisory: <jev-skills> block present and parsable
+s08-advisory                    PASS    advisory: expected skill "changelog-hollowbrook" selected (load or consider)
+s08-advisory                    PASS    advisory: expected skill "changelog-hollowbrook" is in "load"
+s08-advisory                    PASS    advisory: no unrelated skill auto-loaded
+s08-advisory                    PASS    advisory: injected path is the logical .claude/skills/<folder>/SKILL.md
+s08-advisory                    PASS    advisory: block carries only name/path/p (no description text)
+s08-advisory                    PASS    advisory replay is byte-identical
+s09-custom-agent                PASS    custom agent: exit 0 and empty output (delegation preserved)
+s09-custom-agent                PASS    custom agent PostToolUse: generic observation only, no supervisor advice
+s09-custom-agent                PASS    session records custom_agent_preserved and no skills/supervisor/route event
+s09-custom-agent                PASS    no judge was called for a custom agent
+s10-explicit-model              PASS    explicit model: exit 0, warning EXPLICIT_NATIVE_SETTINGS_PRESERVED, no rewrite, no deny
+s10-explicit-model              PASS    no judge was called for an explicit-model delegation
+s10-explicit-model              PASS    secret-like task text: SECRET_GUARD warning, nothing sent
+s11-supervisor-active           PASS    supervisor scenario delegation A: exit 0, valid output, never a deny
+s11-supervisor-active           PASS    supervisor scenario delegation A: prompt rewritten to an installed jev4_ profile without a permission decision
+s11-supervisor-active           PASS    supervisor scenario delegation A: original task text preserved as the prefix, followed by the <jev-routing> packet
+s11-supervisor-active           PASS    supervisor scenario delegation A: no <jev-skills> block in the rewritten prompt
+s11-supervisor-active           PASS    supervisor scenario delegation B: exit 0, valid output, never a deny
+s11-supervisor-active           PASS    supervisor scenario delegation B: prompt rewritten to an installed jev4_ profile without a permission decision
+s11-supervisor-active           PASS    supervisor scenario delegation B: original task text preserved as the prefix, followed by the <jev-routing> packet
+s11-supervisor-active           PASS    supervisor scenario delegation B: no <jev-skills> block in the rewritten prompt
+s11-supervisor-active           PASS    complete report: judged as "complete"
+s11-supervisor-active           PASS    complete report: advice is shown to Main and says it judges the report text only
+s11-supervisor-active           PASS    blocked report: judged as not complete (retry/replan/escalate)
+s11-supervisor-active           PASS    blocked report: output never denies or rewrites anything
+s11-supervisor-active           PASS    two supervisor.outcome decisions logged (mode active, choice + score answers)
+s11-supervisor-active           PASS    report for a tool id this extension never routed is not judged
+s12-chain-local-jev             PASS    chain local,jev (escalateBelow 0): exit 0, valid output, never a deny
+s12-chain-local-jev             PASS    chain local,jev (escalateBelow 0): prompt rewritten to an installed jev4_ profile without a permission decision
+s12-chain-local-jev             PASS    chain local,jev (escalateBelow 0): original task text preserved as the prefix, followed by the <jev-routing> packet
+s12-chain-local-jev             PASS    skills decision answered by the local judge alone (escalateBelow defaults to 0)
+s12-chain-local-jev             PASS    classification still answered by jev
+s13-chain-local-jev-escalate    PASS    chain local,jev (escalateBelow 0.6): exit 0, valid output, never a deny
+s13-chain-local-jev-escalate    PASS    chain local,jev (escalateBelow 0.6): prompt rewritten to an installed jev4_ profile without a permission decision
+s13-chain-local-jev-escalate    PASS    chain local,jev (escalateBelow 0.6): original task text preserved as the prefix, followed by the <jev-routing> packet
+s13-chain-local-jev-escalate    PASS    skills trail starts with local; a low-confidence local answer escalates to jev, which is adopted
+s13-chain-local-jev-escalate    PASS    escalated chain: <jev-skills> block present and parsable
+s13-chain-local-jev-escalate    PASS    escalated chain: expected skill "changelog-hollowbrook" selected (load or consider)
+s13-chain-local-jev-escalate    PASS    escalated chain: expected skill "changelog-hollowbrook" is in "load"
+s13-chain-local-jev-escalate    PASS    escalated chain: no unrelated skill auto-loaded
+s13-chain-local-jev-escalate    PASS    escalated chain: injected path is the logical .claude/skills/<folder>/SKILL.md
+s13-chain-local-jev-escalate    PASS    escalated chain: block carries only name/path/p (no description text)
+s14-chain-jev-openai            PASS    chain jev,openai (jev healthy): exit 0, valid output, never a deny
+s14-chain-jev-openai            PASS    chain jev,openai (jev healthy): prompt rewritten to an installed jev4_ profile without a permission decision
+s14-chain-jev-openai            PASS    chain jev,openai (jev healthy): original task text preserved as the prefix, followed by the <jev-routing> packet
+s14-chain-jev-openai            PASS    chain jev,openai: <jev-skills> block present and parsable
+s14-chain-jev-openai            PASS    chain jev,openai: expected skill "changelog-hollowbrook" selected (load or consider)
+s14-chain-jev-openai            PASS    chain jev,openai: expected skill "changelog-hollowbrook" is in "load"
+s14-chain-jev-openai            PASS    chain jev,openai: no unrelated skill auto-loaded
+s14-chain-jev-openai            PASS    chain jev,openai: injected path is the logical .claude/skills/<folder>/SKILL.md
+s14-chain-jev-openai            PASS    chain jev,openai: block carries only name/path/p (no description text)
+s14-chain-jev-openai            PASS    with a healthy first judge every decision is answered by jev and openai is never asked
+s15-chain-jev-openai-fallback   PASS    classification: jev fails with a typed code, the live OpenAI judge answers
+s15-chain-jev-openai-fallback   PASS    chain jev,openai (jev key rejected): exit 0, valid output, never a deny
+s15-chain-jev-openai-fallback   PASS    chain jev,openai (jev key rejected): prompt rewritten to an installed jev4_ profile without a permission decision
+s15-chain-jev-openai-fallback   PASS    chain jev,openai (jev key rejected): original task text preserved as the prefix, followed by the <jev-routing> packet
+s15-chain-jev-openai-fallback   PASS    openai fallback: <jev-skills> block present and parsable
+s15-chain-jev-openai-fallback   PASS    openai fallback: expected skill "changelog-hollowbrook" selected (load or consider)
+s15-chain-jev-openai-fallback   PASS    openai fallback: expected skill "changelog-hollowbrook" is in "load"
+s15-chain-jev-openai-fallback   PASS    openai fallback: no unrelated skill auto-loaded
+s15-chain-jev-openai-fallback   PASS    openai fallback: injected path is the logical .claude/skills/<folder>/SKILL.md
+s15-chain-jev-openai-fallback   PASS    openai fallback: block carries only name/path/p (no description text)
+s15-chain-jev-openai-fallback   PASS    skills: answered by openai after the jev failure
+s15-chain-jev-openai-fallback   PASS    supervisor (choice + score) answered by openai through the hook: judged "complete"
+s16-openai-not-approved         PASS    openai in the chain without approval: exit 0, valid output, never a deny
+s16-openai-not-approved         PASS    openai in the chain without approval: prompt rewritten to an installed jev4_ profile without a permission decision
+s16-openai-not-approved         PASS    openai in the chain without approval: original task text preserved as the prefix, followed by the <jev-routing> packet
+s16-openai-not-approved         PASS    openai in the chain without approval: no <jev-skills> block in the rewritten prompt
+s16-openai-not-approved         PASS    skills unavailable with OPENAI_DECISIONS_NOT_APPROVED; routing unaffected
+s16-openai-not-approved         PASS    the refused judge is logged as a failed decision (provider none) with the typed code
+s17-openai-only-cold-latency    PASS    openai-only delegation 0: exit 0, never denied
+s17-openai-only-cold-latency    PASS    openai-only delegation 1: exit 0, never denied
+s17-openai-only-cold-latency    PASS    openai-only delegation 2: exit 0, never denied
+s17-openai-only-cold-latency    PASS    openai-only delegation 3: exit 0, never denied
+s17-openai-only-cold-latency    PASS    openai-only delegation 4: exit 0, never denied
+s17-openai-only-cold-latency    PASS    no OpenAI request in a cold hook process hit the 2500 ms provider timeout
+s17-openai-only-cold-latency    PASS    all five delegations were routed by the OpenAI judge
+s18-parallel-delegations        PASS    parallel delegation 0: exit 0, valid output, never a deny
+s18-parallel-delegations        PASS    parallel delegation 0: prompt rewritten to an installed jev4_ profile without a permission decision
+s18-parallel-delegations        PASS    parallel delegation 0: original task text preserved as the prefix, followed by the <jev-routing> packet
+s18-parallel-delegations        PASS    parallel delegation 1: exit 0, valid output, never a deny
+s18-parallel-delegations        PASS    parallel delegation 1: prompt rewritten to an installed jev4_ profile without a permission decision
+s18-parallel-delegations        PASS    parallel delegation 1: original task text preserved as the prefix, followed by the <jev-routing> packet
+s18-parallel-delegations        PASS    parallel delegation 2: exit 0, valid output, never a deny
+s18-parallel-delegations        PASS    parallel delegation 2: prompt rewritten to an installed jev4_ profile without a permission decision
+s18-parallel-delegations        PASS    parallel delegation 2: original task text preserved as the prefix, followed by the <jev-routing> packet
+s18-parallel-delegations        PASS    three concurrent hooks in one session: no LOCK_BUSY or hook_error
+f1-wrong-key                    PASS    wrong TypeSafe key (active): exit 0, no deny, no rewrite (native call proceeds unchanged)
+f1-wrong-key                    PASS    wrong TypeSafe key (active): Main sees a typed warning (JEV_HTTP_4)
+f1-wrong-key                    PASS    wrong TypeSafe key (active): finished in 415 ms, below 7000 ms
+f1-wrong-key                    PASS    skills judge failure selects nothing (status unavailable)
+f1-wrong-key                    PASS    PostToolUse after a failed route: generic observation, exit 0
+f1-wrong-key                    PASS    PostToolUseFailure with a failing judge: exit 0 and a typed warning, no deny
+f1-wrong-key                    PASS    wrong key in shadow mode: exit 0 and empty output
+f2-unreachable-endpoint         PASS    unreachable endpoint (connection refused): exit 0, no deny, no rewrite (native call proceeds unchanged)
+f2-unreachable-endpoint         PASS    unreachable endpoint (connection refused): Main sees a typed warning
+f2-unreachable-endpoint         PASS    unreachable endpoint (connection refused): finished in 63 ms, below 7000 ms
+f3-tiny-timeout                 PASS    JEV_TIMEOUT_MS=60 against the live API: exit 0, no deny, no rewrite (native call proceeds unchanged)
+f3-tiny-timeout                 PASS    JEV_TIMEOUT_MS=60 against the live API: Main sees a typed warning (JEV_TIMEOUT)
+f3-tiny-timeout                 PASS    JEV_TIMEOUT_MS=60 against the live API: finished in 158 ms, below 2000 ms
+f3-tiny-timeout                 PASS    JEV_OPENAI_DECISIONS_TIMEOUT_MS=60 against the live API: exit 0, no deny, no rewrite (native call proceeds unchanged)
+f3-tiny-timeout                 PASS    JEV_OPENAI_DECISIONS_TIMEOUT_MS=60 against the live API: Main sees a typed warning (DECISIONS_TIMEOUT)
+f3-tiny-timeout                 PASS    JEV_OPENAI_DECISIONS_TIMEOUT_MS=60 against the live API: finished in 151 ms, below 2000 ms
+f3-tiny-timeout                 PASS    JEV_TIMEOUT_MS=50 (documented minimum): exit 0, no deny, no rewrite (native call proceeds unchanged)
+f3-tiny-timeout                 PASS    JEV_TIMEOUT_MS=50 (documented minimum): Main sees a typed warning
+f3-tiny-timeout                 PASS    JEV_TIMEOUT_MS=50 (documented minimum): finished in 55 ms, below 2000 ms
+f3-tiny-timeout                 WARN    JEV_TIMEOUT_MS=50 (documented minimum): the judge is actually asked and times out (JEV_TIMEOUT), as before the kernel
+                                        -> code=KERNEL_DEADLINE trail=jev:KERNEL_DEADLINE@0ms
+f3-tiny-timeout                 PASS    out-of-range JEV_OPENAI_DECISIONS_TIMEOUT_MS: exit 1, "{}" on stdout, typed code on stderr, no deny
+f4-blackhole-max-timeouts       PASS    both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): exit 0, no deny, no rewrite (native call proceeds unchanged)
+f4-blackhole-max-timeouts       PASS    both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): Main sees a typed warning
+f4-blackhole-max-timeouts       PASS    both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): finished in 5064 ms, below 7000 ms
+f4-blackhole-max-timeouts       PASS    PostToolUseFailure with hanging judges: exit 0, no deny, 5057 ms < 7000 ms
+f5-slow-classify-then-hang      PASS    slow classification (4.8 s) + hanging selector and skills judge: exit 0, no deny, 5557 ms < 7000 ms watchdog (loopback stub, not live)
+f5-slow-classify-then-hang      PASS    the hook process was not ended by its own watchdog (no HOOK_DEADLINE on stderr)
+f6-bad-input                    PASS    garbage on stdin: exit 1, "{}" on stdout, no deny
+f6-bad-input                    PASS    cwd outside the allow-listed project: exit 0 and empty output
+z1-decision-log                 PASS    decision log directory exists with mode 700
+z1-decision-log                 PASS    decision log holds only decisions-/labels-YYYY-MM.jsonl files, each mode 600
+z1-decision-log                 PASS    every decision line passes the product record contract
+z1-decision-log                 PASS    decision log contains no task, report, skill-description or skill-name text
+z1-decision-log                 PASS    decision log contains neither API key
+z2-state-files                  PASS    every file under the state directory is mode 600
+z2-state-files                  PASS    no API key anywhere under the state directory
+z2-state-files                  PASS    no task text anywhere under the state directory (retainPromptText is off)
+z2-state-files                  PASS    no worker report text anywhere under the state directory
+z2-state-files                  PASS    no skill description or body text anywhere under the state directory
+z2-state-files                  PASS    key values exist only in the private setup env and the installed .env
+z3-cli                          PASS    decisions.mjs --action report (installed config via HOME): exit 0 with points and groups
+z3-cli                          PASS    report covers classify, profile, skills and supervisor points
+z3-cli                          PASS    unlabeled calibration metrics are null, not 0
+z3-cli                          PASS    decisions.mjs --action show: exit 0 with at most 3 skills decisions
+z3-cli                          PASS    decisions.mjs --action label: exit 0
+z3-cli                          PASS    the label is joined in the next report (1 label, group not "sufficient")
+z3-cli                          PASS    label for an unknown decision is refused (UNKNOWN_DECISION, exit 1)
+z3-cli                          PASS    skills.mjs --list: exit 0, the four synthetic skills, nothing skipped
+z3-cli                          PASS    skills.mjs --why-not (local judge, no network): exit 0 with a stage and reason
+z3-cli                          PASS    skills.mjs --why-not for an unknown skill: not_in_catalog
+z3-cli                          PASS    skills.mjs --judge config with the installed default (point off): unavailable / KERNEL_POINT_OFF
+z3-cli                          PASS    skills.mjs --why-not --judge config (installed chain, live Jev): exit 0 with a judged stage and probability
+z3-cli                          PASS    the CLI run was written to the installed decision log
+isolation                       PASS    the real ~/.config/jev-hooks was not created or touched
+isolation                       PASS    the real ~/.claude/settings.json was not modified
+isolation                       PASS    no live-judge hook invocation approaches the watchdog (max 1281 ms < 5000 ms)
+isolation                       PASS    no hook invocation at all reached the 7000 ms watchdog or the host timeout (max 5557 ms)
+
+expectations: 212 passed, 0 failed, 2 soft misses (WARN: live-judge choice or documented observation; of 214, 12 soft)
+hook invocations: 100 (88 in live-judge scenarios); wall clock ms  all p50 49 max 5557 | live p50 49 p95 816 max 1281 | live delegation PreToolUse p50 519 max 1281
+live requests (from decision-log trails): api.typesafe.ai=57 api.openai.com=18; loopback (not live)=8
+token usage returned by the APIs (successful responses): jev-1.14.0 in=73565 out=8259 (48 responses); gpt-6-luna in=25070 out=0 (17 responses)
+results: /Users/hakseong/Project/Jev_Orchestration/.claude/worktrees/qa-kernel/qa/kernel/results/20261125-e2e/hooks.json
