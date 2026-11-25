@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { hash } from '../src/util.mjs';
-import { joinLabels, calibrationReport, reliabilityBins, usageTotals } from '../src/kernel/calibration.mjs';
+import { joinLabels, calibrationReport, reliabilityBins, usageTotals, applyRetractions } from '../src/kernel/calibration.mjs';
 
 const close = (actual, expected, message) => {
   assert.equal(typeof actual, 'number', message);
@@ -30,7 +30,7 @@ test('noul metrics match hand-computed Brier, ECE, precision and recall', () => 
   assert.equal(report.groups.length, 1);
   const g = report.groups[0];
   assert.deepEqual([g.pointId, g.provider, g.type], ['delegation.classify', 'jev', 'noul']);
-  assert.deepEqual(g.counts, { decisions: 6, answers: 6, labeled: 6 });
+  assert.deepEqual(g.counts, { decisions: 6, answers: 6, labeled: 6, labeledDecisions: 6 });
   assert.equal(g.sufficient, true);
   assert.equal(g.invalidLabels, 0);
   // (0.01 + 0.04 + 0.49 + 0.49 + 0.04 + 0.01) / 6
@@ -180,7 +180,7 @@ test('labels that do not fit the answer are counted as invalid and excluded', ()
   assert.equal(report.invalidLabels, 3);
   const by = type => report.groups.find(g => g.type === type);
   assert.deepEqual([by('noul').invalidLabels, by('choice').invalidLabels, by('score').invalidLabels], [1, 1, 1]);
-  assert.deepEqual(by('noul').counts, { decisions: 2, answers: 2, labeled: 1 });
+  assert.deepEqual(by('noul').counts, { decisions: 2, answers: 2, labeled: 1, labeledDecisions: 1 });
   close(by('noul').metrics.brier, 0.16, 'brier');
   assert.equal(by('choice').metrics.accuracy, null);
   assert.equal(by('score').metrics.mae, null);
@@ -214,7 +214,7 @@ test('operational metrics cover all decisions and split groups by point, provide
   assert.deepEqual(jev.operational.latencyMs, { p50: 20, p95: 400 });
   close(jev.operational.meanConfidence, 0.8, 'meanConfidence');
   const failed = report.groups[2];
-  assert.deepEqual(failed.counts, { decisions: 1, answers: 0, labeled: 0 });
+  assert.deepEqual(failed.counts, { decisions: 1, answers: 0, labeled: 0, labeledDecisions: 0 });
   assert.equal(failed.operational.meanConfidence, null);
   assert.deepEqual(failed.metrics, {});
 
@@ -298,4 +298,40 @@ test('judge token usage is totalled per point and per provider, each record once
   assert.deepEqual(group('delegation.classify', 'jev', 'choice'), { reported: 1, input_tokens: 1000, output_tokens: 200 });
   assert.deepEqual(group('delegation.skills', 'none', null), { reported: 0, input_tokens: null, output_tokens: null });
   assert.deepEqual(usageTotals([]), { reported: 0, input_tokens: null, output_tokens: null });
+});
+
+test('sufficiency counts labelled decisions, and weak labels are never sufficient', () => {
+  // One wide decision with 40 dependent questions: 40 labels, one decision.
+  const wide = decision(Object.fromEntries(Array.from({ length: 40 }, (_, i) => [`skill_${i}`, { type: 'noul', p: 0.1 }])), { pointId: 'delegation.skills' });
+  const many = Array.from({ length: 40 }, (_, i) => ({ ...label(wide, `skill_${i}`, false), source: 'human' }));
+  const one = calibrationReport({ decisions: [wide], labels: many }).groups[0];
+  assert.deepEqual([one.counts.labeled, one.counts.labeledDecisions, one.sufficient, one.sufficientReason], [40, 1, false, 'too_few_labeled_decisions']);
+
+  // 40 decisions with one label each.
+  const decisions = Array.from({ length: 40 }, () => decision({ q: { type: 'noul', p: 0.2 } }));
+  const by = source => decisions.map(d => ({ ...label(d, 'q', false), source }));
+  const human = calibrationReport({ decisions, labels: by('human') }).groups[0];
+  assert.deepEqual([human.counts.labeledDecisions, human.sufficient, human.sufficientReason], [40, true, null]);
+  for (const source of ['observed-load', 'observed-load-after-injection', 'external-verification-with-load']) {
+    const weak = calibrationReport({ decisions, labels: by(source) }).groups[0];
+    assert.deepEqual([weak.counts.labeled, weak.sufficient, weak.sufficientReason, weak.metricsLabelStrength], [40, false, 'weak_labels', 'weak'], source);
+    assert.deepEqual(weak.labelSources.map(s => [s.labeledDecisions, s.sufficient, s.sufficientReason]), [[40, false, 'weak_labels']]);
+  }
+  const none = calibrationReport({ decisions, labels: [] }).groups[0];
+  assert.deepEqual([none.sufficient, none.sufficientReason], [false, 'no_labels']);
+});
+
+test('a retraction marker takes back earlier labels of its source only; a later label stands again', () => {
+  const d = decision({ q: { type: 'noul', p: 0.9 } });
+  const at = (source, outcome, time) => ({ ...label(d, 'q', outcome, time), source });
+  const labels = [at('external-verification-with-load', true, 1), at('human', false, 2), at('external-verification-with-load:retracted', true, 3)];
+  const { labels: kept, retracted, markers } = applyRetractions(labels);
+  assert.deepEqual([kept.map(l => l.source), retracted, markers], [['human'], 1, 1]);
+  const report = calibrationReport({ decisions: [d], labels });
+  assert.deepEqual([report.generatedFrom.labels, report.labels.retracted, report.labels.retractionMarkers, report.labels.bySource.map(s => s.source)], [1, 1, 1, ['human']]);
+  assert.deepEqual(joinLabels({ decisions: [d], labels }).map(r => r.outcome), [false]);
+  // A filter on the retracted source sees nothing, not the retracted label.
+  assert.equal(calibrationReport({ decisions: [d], labels }, { sources: ['external-verification-with-load'] }).generatedFrom.labels, 0);
+  const again = [...labels, at('external-verification-with-load', true, 4)];
+  assert.deepEqual(applyRetractions(again).labels.map(l => [l.source, l.time]), [['human', 2], ['external-verification-with-load', 4]]);
 });

@@ -18,14 +18,24 @@ import { assert, object, hash, atomicWrite } from './util.mjs';
 import { splitRoutingTail } from './policy.mjs';
 import { validateEvaluation } from './feedback.mjs';
 import { DecisionLog } from './kernel/log.mjs';
-import { ObservationLog, observationId, isObservationRecord, IDENTIFIER, SKILL_ID } from './kernel/observations.mjs';
+import { ObservationLog, observationId, latestObservations, isObservationRecord, IDENTIFIER, SKILL_ID } from './kernel/observations.mjs';
 import { SKILLS_POINT } from './kernel/skills.mjs';
 import { SUPERVISOR_POINT } from './kernel/supervisor.mjs';
+import { RETRACTION_SUFFIX } from './kernel/calibration.mjs';
+import { classifySkillAccess } from './collector-access.mjs';
 
-export const COLLECTOR_VERSION = 'outcome-collector-1';
+export const COLLECTOR_VERSION = 'outcome-collector-2';
+// Label sources. Each says what kind of evidence the label is (kernel/calibration.mjs LABEL_SOURCES).
+// The "-after-injection" sources are used when the subagent's prompt carried the skills block of the very
+// decision being labelled: the block tells the subagent what to load, so the label is partly caused by the
+// decision. They are separate sources so that a report can leave them out.
 export const SOURCE_OBSERVED_LOAD = 'observed-load';
+export const SOURCE_OBSERVED_LOAD_INJECTED = 'observed-load-after-injection';
 export const SOURCE_EXTERNAL = 'external-verification';
 export const SOURCE_EXTERNAL_WITH_LOAD = 'external-verification-with-load';
+export const SOURCE_EXTERNAL_WITH_LOAD_INJECTED = 'external-verification-with-load-after-injection';
+const LOAD_SOURCES = [SOURCE_OBSERVED_LOAD, SOURCE_OBSERVED_LOAD_INJECTED];
+const WITH_LOAD_SOURCES = [SOURCE_EXTERNAL_WITH_LOAD, SOURCE_EXTERNAL_WITH_LOAD_INJECTED];
 export const UNVALIDATED_CONTEXT = 'native-default-unvalidated';
 
 export const MAX_TRANSCRIPT_BYTES = 134217728;
@@ -39,9 +49,7 @@ const MAX_SUBAGENT_FILES = 4000;
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const AGENT_FILE = /^agent-([A-Za-z0-9_-]{1,80})\.jsonl$/;
-const SKILL_PATH = /(?:^|\/)\.claude\/skills\/([^/\s"']+)\/SKILL\.md$/;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
-const SHELL_TOOLS = new Set(['Bash']);
 const DELEGATION_TOOLS = new Set(['Agent', 'Task']);
 const CONVERSATION_TYPES = new Set(['user', 'assistant', 'attachment', 'system']);
 const SPAN_TYPES = new Set(['user', 'assistant', 'attachment']);
@@ -53,6 +61,11 @@ const hex = x => (typeof x === 'string' && HEX64.test(x) ? x : null);
 const fail = code => Object.assign(new Error(code), { code });
 
 /**
+ * The task hash is UNKEYED. It keeps the task text out of the files, but anyone who can guess a task text can
+ * confirm the guess by hashing it, and short or formulaic delegations are guessable. Files that carry task
+ * hashes (observations, the summary's delegationIndex, verification files, candidate evaluation rows and the
+ * evidence store) should therefore not be shared for real projects.
+ *
  * The task hash that a verification file refers to: the lowercase hex SHA-256 of the UTF-8 bytes of the
  * ORIGINAL delegated task text, i.e. the `prompt` string of the Agent call exactly as Main first issued it,
  * before any hook rewrite. No trimming and no normalisation. If that string ends in the tail this extension
@@ -189,6 +202,8 @@ function tokenSums(usageByMessage) {
 export function parseSubagent(rows, { knownSkills = new Map() } = {}, warnings = new Warnings()) {
   const calls = [];
   const seenCalls = new Set();
+  const results = new Map();
+  const roots = new Set();
   const usageByMessage = new Map();
   const turns = new Set();
   const models = new Set();
@@ -203,7 +218,12 @@ export function parseSubagent(rows, { knownSkills = new Map() } = {}, warnings =
     if (role === null) continue;
     if (!object(row.message)) { warnings.add('conversation_row_without_message'); continue; }
     conversation++;
+    // The project root as the host recorded it. Used here to tell a project path from another one; never returned.
+    if (typeof row.cwd === 'string' && row.cwd.startsWith('/') && row.cwd.length > 1) roots.add(row.cwd.replace(/\/+$/, ''));
     if (role === 'user') {
+      for (const item of contentItems(row)) {
+        if (item.type === 'tool_result' && typeof item.tool_use_id === 'string') results.set(item.tool_use_id, { isError: item.is_error === true });
+      }
       // The first prompt is the first user text that is neither a harness reminder (isMeta) nor a tool result.
       if (firstPrompt === null && row.isMeta !== true && !contentItems(row).some(item => item.type === 'tool_result')) firstPrompt = messageText(row);
       continue;
@@ -219,69 +239,55 @@ export function parseSubagent(rows, { knownSkills = new Map() } = {}, warnings =
       const key = typeof item.id === 'string' ? item.id : `anonymous-${calls.length}`;
       if (seenCalls.has(key)) continue;
       seenCalls.add(key);
-      calls.push({ name: item.name, input: object(item.input) ? item.input : {} });
+      calls.push({ id: typeof item.id === 'string' ? item.id : null, name: item.name, input: object(item.input) ? item.input : {} });
     }
   }
   if (anonymous) warnings.add('assistant_row_without_message_id', anonymous);
+  const unanswered = calls.filter(call => call.id === null || !results.has(call.id)).length;
+  if (unanswered) warnings.add('subagent_tool_call_without_result', unanswered);
 
-  // A load is: a Skill call naming a known skill, a Read of its SKILL.md, or a shell command naming its SKILL.md.
-  // Access that may have read skill text without naming one file (a wildcard over the skills folder, a content
-  // search inside it, a SKILL.md under a folder this session does not know) is "indeterminate": it is never a
-  // load and never a "did not load" either, so no label is written from such a transcript.
-  const loaded = [];
-  let otherSkillCalls = 0, indeterminate = false;
-  const names = new Set(knownSkills.values());
-  const note = (name, via, index) => { if (!loaded.some(l => l.name === name)) loaded.push({ name, via, index }); };
+  // Loads and indeterminate access: collector-access.mjs. A load needs a non-error tool result.
+  const access = classifySkillAccess(calls, results, { known: knownSkills, roots: [...roots] });
   const firstWrite = calls.findIndex(call => WRITE_TOOLS.has(call.name));
-  calls.forEach((call, index) => {
-    if (call.name === 'Skill') {
-      const raw = str(call.input.skill);
-      const last = raw?.split(':').pop() ?? null;
-      const name = raw !== null && names.has(raw) ? raw : last !== null && names.has(last) ? last : null;
-      if (name !== null) note(name, 'Skill', index); else otherSkillCalls++;
-    } else if (call.name === 'Read') {
-      const match = SKILL_PATH.exec(String(call.input.file_path ?? ''));
-      if (!match) return;
-      if (knownSkills.has(match[1])) note(knownSkills.get(match[1]), 'Read', index); else indeterminate = true;
-    } else if (SHELL_TOOLS.has(call.name)) {
-      // Shell text is not parsed as a language. Each word that mentions the skills folder or a SKILL.md is
-      // looked at on its own: a word naming a known skill's SKILL.md is a load; a word that starts with '^'
-      // is a filter pattern (grep -v '^./.claude/skills/'), not a path; any other such word may have read
-      // skill text (a folder, a wildcard, an unknown name), which is indeterminate.
-      for (const raw of String(call.input.command ?? '').split(/[\s;|&()<>]+/)) {
-        const word = raw.replace(/^[\\"']+|[\\"']+$/g, '');
-        if (!word.includes('SKILL.md') && !word.includes('.claude/skills')) continue;
-        if (word.startsWith('^')) continue;
-        const hit = [...knownSkills].find(([folder]) => word.endsWith(`${folder}/SKILL.md`) && /(?:^|\/)$/.test(word.slice(0, -`${folder}/SKILL.md`.length)));
-        if (hit) note(hit[1], 'Shell', index); else indeterminate = true;
-      }
-    } else if (call.name === 'Grep' && ['path', 'glob'].some(k => String(call.input[k] ?? '').includes('.claude/skills'))) indeterminate = true;
-  });
 
-  // The skills block as the subagent received it. Only validated names are kept.
+  // The skills block as the subagent received it. It only counts where the hook puts it: at the very end of
+  // the prompt, behind the routing packet (policy.mjs splitRoutingTail). A block typed anywhere else is task
+  // text. Names are kept only when they are project skills this session knows; the others are counted.
   let block = { present: null, load: null, consider: null };
   if (firstPrompt !== null) {
-    const match = /<jev-skills>\n([^\n]*)\n<\/jev-skills>/.exec(firstPrompt);
+    const tail = splitRoutingTail(firstPrompt);
+    const match = tail ? /\n\n<jev-skills>\n([^\n]{1,8000})\n<\/jev-skills>\n[^\n]*$/.exec(firstPrompt.slice(tail.task.length)) : null;
     block = { present: Boolean(match), load: null, consider: null };
     if (match) {
       try {
         const parsed = JSON.parse(match[1]);
-        const list = value => (Array.isArray(value) ? value.map(e => (object(e) ? e.name : null)).filter(n => typeof n === 'string' && SKILL_ID.test(n)) : null);
+        const names = new Set(knownSkills.values());
+        let foreign = 0;
+        const list = value => {
+          if (!Array.isArray(value)) return null;
+          const out = [];
+          for (const entry of value) {
+            const name = object(entry) ? entry.name : null;
+            if (typeof name === 'string' && SKILL_ID.test(name) && names.has(name)) out.push(name); else foreign++;
+          }
+          return out;
+        };
         block.load = list(parsed?.load);
         block.consider = list(parsed?.consider);
+        if (foreign) warnings.add('skills_block_name_not_a_known_project_skill', foreign);
       } catch { warnings.add('skills_block_not_json'); }
     }
   } else warnings.add('subagent_first_prompt_not_found');
   if (models.size > 1) warnings.add('subagent_ran_on_several_models');
   if (efforts.size > 1) warnings.add('subagent_rows_carry_several_efforts');
   return {
-    firstPrompt, block, conversationRows: conversation, apiTurns: turns.size, toolCalls: calls.length,
+    firstPrompt, block, conversationRows: conversation, apiTurns: turns.size, toolCalls: calls.length, unansweredToolCalls: unanswered,
     tokens: usageByMessage.size ? tokenSums(usageByMessage) : { input: null, output: null, cacheRead: null, cacheCreation: null },
     model: models.size === 1 ? [...models][0] : null, effort: efforts.size === 1 ? [...efforts][0] : null,
     wallMs: stamps.length >= 2 ? Math.max(...stamps) - Math.min(...stamps) : null,
     lastTime: stamps.length ? Math.max(...stamps) : null,
-    loaded: loaded.map(l => ({ name: l.name, via: l.via, beforeFirstWrite: firstWrite < 0 ? null : l.index < firstWrite })),
-    otherSkillCalls, indeterminate,
+    loaded: access.loaded.map(l => ({ name: l.name, via: l.via, beforeFirstWrite: firstWrite < 0 ? null : l.index < firstWrite })),
+    otherSkillCalls: access.otherSkillCalls, indeterminate: access.indeterminate, indeterminateReasons: access.reasons,
   };
 }
 
@@ -418,6 +424,11 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
   const routes = byTask('route'), deferred = byTask('route_deferred'), reissued = byTask('delegation_reissued'), repeated = byTask('delegation_repeated');
   const spawns = byTask('spawn_observed'), skillsEvents = byTask('skills');
   const supervisorEvents = events.filter(e => e.type === 'supervisor' && typeof e.taskId === 'string');
+  // Agents the hooks saw end (SubagentStop, or the hand-back tool call).
+  const ended = new Set(events.filter(e => (e.type === 'agent_stopped' || e.type === 'handback_observed') && typeof e.agentId === 'string').map(e => e.agentId));
+  // Profile ids this session's routes named. Any other agent type is an inventory of the owner's environment
+  // (user-level or plugin agents) and is stored as 'other'.
+  const sessionProfiles = new Set(events.filter(e => e.type === 'route').map(e => ident(e.route?.profile)).filter(Boolean));
   const ids = new Set([...routes.keys(), ...deferred.keys(), ...reissued.keys(), ...repeated.keys(), ...spawns.keys(), ...(main ? main.calls.keys() : [])]);
   ids.delete('unknown');
   const timeOf = id => main?.calls.get(id)?.time ?? routes.get(id)?.time ?? reissued.get(id)?.time ?? repeated.get(id)?.time ?? deferred.get(id)?.time ?? spawns.get(id)?.time ?? 0;
@@ -483,16 +494,28 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     else if (sub.error) unjoined = 'subagent_transcript_unreadable';
     else if (!sub.parsed.apiTurns) unjoined = 'subagent_transcript_without_assistant_rows';
     else if (str(sub.meta?.toolUseId) && sub.meta.toolUseId !== id) unjoined = 'subagent_meta_names_another_call';
+    // A transcript is read as the whole run only when something says the run ended: the host's own record
+    // (meta `finished`), or, where the host recorded nothing, a stop or hand-back the hooks saw for that agent.
+    // Otherwise "did not load" and the token totals would be guesses about a run still in progress or a cut copy.
+    else if (sub.meta?.finished === false) unjoined = 'subagent_not_finished';
+    else if (sub.meta?.finished !== true && !ended.has(agentId)) unjoined = 'subagent_end_unconfirmed';
     if (main && head) {
       const stored = tasks.get(id)?.inputHash ?? routes.get(id)?.inputHash ?? reissued.get(id)?.inputHash ?? repeated.get(id)?.inputHash;
       if (hex(stored) && hash(head.input) !== stored) warnings.add('transcript_input_differs_from_hook_input');
     }
-    groups.push({ id, callIds, link, route, routeSource, governingCall, ownRoute, agentType, agentId, sub: unjoined ? null : sub, unjoined,
+    const routeMode = route ? str(routes.get(governingCall)?.mode) : null;
+    groups.push({ id, callIds, link, route, routeSource, routeMode, governingCall, ownRoute, agentType, agentId, sub: unjoined ? null : sub, unjoined,
       taskHash: hashOfTask, startTime: first?.time ?? head?.time ?? null, time: timeOf(id),
       unrouted: route ? null : deferred.has(id) ? 'route_deferred' : 'no_route_recorded' });
   }
 
-  // Verification entries -> groups. An entry by task hash covers every delegation of that task text.
+  // Verification entries -> groups. An entry by task hash is about the task: it is kept for every delegation of
+  // that task text (verificationFor, used for the task's evaluation row), but it describes the FINAL state of
+  // the work, so only the last launched delegation of the task carries it in its observation and its labels
+  // (attemptVerification). An entry by call id names its delegation itself.
+  const lastOfTask = new Map();
+  for (const g of groups) if (g.taskHash && g.agentId) lastOfTask.set(g.taskHash, g.id);
+  const namedByCall = new Set();
   let matchedEntries = 0;
   for (const entry of verification) {
     const hits = groups.filter(g => (entry.taskHash ? g.taskHash === entry.taskHash : g.callIds.includes(entry.toolUseId)));
@@ -501,18 +524,17 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
       const prior = verificationFor.get(g.id);
       assert(!prior || hash(prior) === hash({ ...entry, taskHash: null, toolUseId: null }), 'CONFLICTING_VERIFICATION');
       verificationFor.set(g.id, { ...entry, taskHash: null, toolUseId: null });
+      if (entry.toolUseId) namedByCall.add(g.id);
     }
   }
-  // When one task text was delegated more than once, only its last delegation is labelled from the verification:
-  // the check ran on the final state of the work.
-  const lastOfTask = new Map();
-  for (const g of groups) if (g.taskHash && g.agentId) lastOfTask.set(g.taskHash, g.id);
+  const isLastOfTask = g => !g.taskHash || lastOfTask.get(g.taskHash) === g.id;
+  const attemptVerification = g => (isLastOfTask(g) || namedByCall.has(g.id) ? verificationFor.get(g.id) ?? null : null);
 
-  const observations = [], labels = [], unlabelled = {}, mapping = { decisions: 0, mapped: 0, asked: 0, derived: 0, unmapped: {}, answersCheckedAgainstLog: 0 };
+  const observations = [], labels = [], settled = [], unlabelled = {}, accessReasons = {}, mapping = { decisions: 0, mapped: 0, asked: 0, derived: 0, unmapped: {}, answersCheckedAgainstLog: 0 };
   const usageOf = decisionId => decisionsById.get(decisionId)?.usage ?? null;
   const index = [];
   for (const g of groups) {
-    const verified = verificationFor.get(g.id) ?? null;
+    const verified = attemptVerification(g);
     const skillsCalls = g.callIds.filter(id => skillsEvents.has(id));
     const governingSkills = skillsEvents.get(g.governingCall) ?? null;
     const decisions = [];
@@ -547,8 +569,15 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     }
 
     index.push({ delegationId: hash(['jev-collector-delegation', scope, g.id]), taskHash: g.taskHash, routed: Boolean(g.route),
-      joined: !g.unjoined && Boolean(g.sub), profile: ident(g.route?.profile), verified: verified ? verified.passed : null });
-    if (g.unjoined || !g.sub) continue;
+      joined: !g.unjoined && Boolean(g.sub), profile: ident(g.route?.profile), verified: verified ? verified.passed : null,
+      supersededAttempt: Boolean(g.taskHash && g.agentId) && !isLastOfTask(g) });
+    if (g.unjoined || !g.sub) {
+      // Decisions of a delegation that could not be joined to a finished, readable run get no label. Counted,
+      // because the labelled decisions are what is left after this and every later filter.
+      const lost = [...mappings.values()].reduce((n, m) => n + m.mapped.size + m.unmapped.length, 0) + judged.length;
+      if (lost) bump(unlabelled, 'delegation_not_joined', lost);
+      continue;
+    }
     const s = g.sub.parsed;
     const effectiveModel = s.model ?? ident(g.sub.meta?.model);
     if (s.model && ident(g.sub.meta?.model) && s.model !== g.sub.meta.model) warnings.add('subagent_rows_and_meta_name_different_models');
@@ -569,7 +598,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
         reroutedAfterRefusal: g.link?.kind === 'refused-call' },
       requested: { profile: ident(g.route?.profile), model: ident(g.route?.model), backend: ident(g.route?.backend), effort: ident(g.route?.effort),
         role: ident(g.route?.role), tier: ident(g.route?.tier), taskClass: ident(g.route?.taskClass), routeSource: g.routeSource },
-      effective: { agentType: g.agentType, model: effectiveModel, effort: s.effort, source: effectiveModel !== null || s.effort !== null ? 'native-transcript' : null,
+      effective: { agentType: g.agentType === null ? null : sessionProfiles.has(g.agentType) ? g.agentType : 'other', model: effectiveModel, effort: s.effort, source: effectiveModel !== null || s.effort !== null ? 'native-transcript' : null,
         profileMatch: g.route && g.agentType ? g.agentType === g.route.profile : null, modelMatch: modelMatch(effectiveModel, g.route),
         effortMatch: g.route && s.effort !== null && typeof g.route.effort === 'string' ? s.effort === g.route.effort : null },
       skills: { mode: ['shadow', 'active'].includes(governingSkills?.mode) ? governingSkills.mode : null, status: ident(governingSkills?.status),
@@ -597,9 +626,16 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     g.supervisorJudged = judged;
 
     // ---- labels
-    const isLast = !g.taskHash || lastOfTask.get(g.taskHash) === g.id;
+    const isLast = isLastOfTask(g);
+    const taskVerified = verificationFor.has(g.id);
     const loadedNames = new Set(s.loaded.map(l => l.name));
+    for (const [reason, n] of Object.entries(s.indeterminateReasons ?? {})) bump(accessReasons, reason, n);
     const label = (decisionId, questionId, outcome, source, point) => labels.push({ decisionId, questionId, outcome, source, point });
+    // What the subagent was told decides the source: with the block of this decision in its prompt, a load is
+    // partly the decision's own doing. Unknown block presence gives no label at all.
+    const injected = s.block.present;
+    const loadSource = injected === true ? SOURCE_OBSERVED_LOAD_INJECTED : SOURCE_OBSERVED_LOAD;
+    const withLoadSource = injected === true ? SOURCE_EXTERNAL_WITH_LOAD_INJECTED : SOURCE_EXTERNAL_WITH_LOAD;
     for (const [callId, m] of mappings) {
       const count = m.mapped.size + m.unmapped.length;
       if (!count) continue;
@@ -608,13 +644,22 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
       // Only the decision whose result reached this subagent is labelled from what the subagent did.
       if (g.link?.kind === 'repeat') { bump(unlabelled, 'skills_decision_shared_with_repeated_call', m.mapped.size); continue; }
       if (callId !== g.governingCall) { bump(unlabelled, 'skills_decision_not_applied_to_launched_call', m.mapped.size); continue; }
-      if (s.indeterminate) { bump(unlabelled, 'skills_access_indeterminate', m.mapped.size); continue; }
+      // From here on this run decides what the labels of these decisions are: a label an earlier run wrote
+      // that this run does not derive is retracted by the caller (`settled`).
       for (const [decisionId, names] of m.mapped) {
-        label(decisionId, 'need', loadedNames.size > 0, SOURCE_OBSERVED_LOAD, SKILLS_POINT);
-        names.forEach((name, i) => label(decisionId, `skill_${i}`, loadedNames.has(name), SOURCE_OBSERVED_LOAD, SKILLS_POINT));
+        settled.push({ decisionId, point: SKILLS_POINT, questionIds: ['need', ...names.map((_, i) => `skill_${i}`)],
+          sources: [...LOAD_SOURCES, ...(taskVerified ? WITH_LOAD_SOURCES : [])] });
+      }
+      if (s.indeterminate) { bump(unlabelled, 'skills_access_indeterminate', m.mapped.size); continue; }
+      if (injected === null) { bump(unlabelled, 'skills_block_presence_unknown', m.mapped.size); continue; }
+      for (const [decisionId, names] of m.mapped) {
+        // Each judge request asked `need` about its OWN skills only, so its label is about those skills only.
+        const needed = names.some(name => loadedNames.has(name));
+        label(decisionId, 'need', needed, loadSource, SKILLS_POINT);
+        names.forEach((name, i) => label(decisionId, `skill_${i}`, loadedNames.has(name), loadSource, SKILLS_POINT));
         if (verified?.conventionPassed === true && isLast) {
-          if (loadedNames.size > 0) label(decisionId, 'need', true, SOURCE_EXTERNAL_WITH_LOAD, SKILLS_POINT);
-          names.forEach((name, i) => { if (loadedNames.has(name)) label(decisionId, `skill_${i}`, true, SOURCE_EXTERNAL_WITH_LOAD, SKILLS_POINT); });
+          if (needed) label(decisionId, 'need', true, withLoadSource, SKILLS_POINT);
+          names.forEach((name, i) => { if (loadedNames.has(name)) label(decisionId, `skill_${i}`, true, withLoadSource, SKILLS_POINT); });
         }
       }
     }
@@ -622,7 +667,9 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
       const target = judged.at(-1);
       if (judged.length > 1) bump(unlabelled, 'supervisor_earlier_handback', judged.length - 1);
       const logged = decisionsById.get(target.decisionId);
-      if (!verified) bump(unlabelled, 'supervisor_no_external_verification');
+      if (taskVerified) settled.push({ decisionId: target.decisionId, point: SUPERVISOR_POINT, questionIds: ['outcome'], sources: [SOURCE_EXTERNAL] });
+      if (!taskVerified) bump(unlabelled, 'supervisor_no_external_verification');
+      else if (!verified) bump(unlabelled, 'supervisor_earlier_attempt_of_task');
       // A failed check says the work is not complete; it does not say whether to retry, replan or escalate.
       else if (!verified.passed) bump(unlabelled, 'supervisor_verification_failed_no_outcome_class');
       else if (!isLast) bump(unlabelled, 'supervisor_earlier_attempt_of_task');
@@ -652,6 +699,14 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     if (!context || context === UNVALIDATED_CONTEXT) reasons.add('evaluation_context_not_configured');
     if (all.some(g => !g.observation)) reasons.add('attempt_not_joined_to_transcripts');
     if (all.some(g => !g.route)) reasons.add('delegation_not_routed');
+    // A row credits the route's profile, so the route must have been applied (a shadow-mode route is recorded
+    // and never applied) and the host must have recorded that profile's agent as the one that ran.
+    for (const g of all) {
+      if (!g.route) continue;
+      if (g.routeMode !== 'active') reasons.add(g.routeMode === null ? 'route_mode_unknown' : 'route_not_applied');
+      if (g.observation && g.agentType === null) reasons.add('agent_type_unknown');
+      else if (g.observation && g.agentType !== g.route.profile) reasons.add('agent_type_differs_from_profile');
+    }
     const routesUsed = ran.map(g => g.route).filter(Boolean);
     const route = routesUsed[0] ?? null;
     if (new Set(routesUsed.map(r => r.profile)).size > 1) reasons.add('task_ran_under_several_profiles');
@@ -699,7 +754,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     if (g.unrouted) bump(unrouted, g.unrouted);
   }
   return {
-    groups: groups.length, calls: ordered.length, index, observations, labels, unlabelled, mapping, evaluations,
+    groups: groups.length, calls: ordered.length, index, observations, labels, settled, unlabelled, accessReasons, mapping, evaluations,
     evaluationsWithheld: { tasks: withheldTasks, reasons: withheld }, evaluationContext: context ?? null,
     counts: { seen: groups.length, routed: groups.filter(g => g.route).length, joined: groups.filter(g => g.observation).length, unjoined, unrouted,
       refusedAndReissued: groups.filter(g => g.link?.kind === 'reissue').length, reroutedAfterRefusal: groups.filter(g => g.link?.kind === 'refused-call').length,
@@ -781,7 +836,7 @@ async function loadSubagents(files, knownSkills, warnings) {
       let meta = null;
       try {
         const raw = await readJsonFile(entry.meta, MAX_STATE_FILE_BYTES);
-        if (object(raw)) meta = { agentType: str(raw.agentType), model: str(raw.model), toolUseId: str(raw.toolUseId) }; else warnings.add('subagent_meta_shape_unknown');
+        if (object(raw)) meta = { agentType: str(raw.agentType), model: str(raw.model), toolUseId: str(raw.toolUseId), finished: typeof raw.finished === 'boolean' ? raw.finished : null }; else warnings.add('subagent_meta_shape_unknown');
       } catch (e) { warnings.add(e.code === 'SOURCE_MISSING' ? 'subagent_meta_missing' : e.code === 'SYMLINK_SOURCE' ? 'symlink_refused' : 'subagent_meta_unreadable'); }
       out.set(agentId, { parsed: parseSubagent(parsed.rows, { knownSkills }, warnings), meta });
     } catch (e) {
@@ -834,8 +889,8 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     sessions: { inState: sessions.length, selected: selected.length },
     delegations: { seen: 0, routed: 0, joined: 0, unjoined: {}, unrouted: {}, refusedAndReissued: 0, reroutedAfterRefusal: 0, repeated: 0, agentCalls: 0 },
     skillQuestionMapping: { decisions: 0, mapped: 0, asked: 0, derived: 0, unmapped: {}, answersCheckedAgainstLog: 0 },
-    labels: { written: {}, alreadyPresent: 0, unlabelled: {} },
-    observations: { written: 0, alreadyPresent: 0 },
+    labels: { written: {}, alreadyPresent: 0, retracted: {}, unlabelled: {}, indeterminateAccess: {} },
+    observations: { written: 0, alreadyPresent: 0, keptVerified: 0 },
     evaluations: { produced: 0, withheldTasks: 0, withheld: {}, context: null, files: [], imported: false },
     verification: { entries: verification.length, matched: 0, unmatched: 0 },
     supervisor: { judged: 0 },
@@ -845,8 +900,16 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
       permissionModes: main ? [...main.host.permissionModes].sort() : [], subagentTranscripts: transcripts ? transcripts.files.size : null,
       supportedRuntimes: ['claude'], codex: 'unsupported: no codex transcript was ever observed, so none is parsed' },
   };
-  const existingLabels = new Set(logged.labels.map(l => hash([l.decisionId, l.questionId, l.source, l.outcome])));
-  const existingObservations = new Set((await store.read()).observations.map(o => o.observationId));
+  // The label that currently stands for each (decision, question, source): the latest one, unless a later
+  // retraction marker took it back. Idempotence and retraction both work on this, not on "was it ever written".
+  const standing = new Map();
+  const labelKey = (decisionId, questionId, source) => `${decisionId}\n${questionId}\n${source}`;
+  for (const l of logged.labels) {
+    if (l.source.endsWith(RETRACTION_SUFFIX)) standing.delete(labelKey(l.decisionId, l.questionId, l.source.slice(0, -RETRACTION_SUFFIX.length)));
+    else standing.set(labelKey(l.decisionId, l.questionId, l.source), l.outcome);
+  }
+  // The record that currently stands for each delegation (kernel/observations.mjs latestObservations).
+  const standingObservation = new Map(latestObservations((await store.read()).observations).map(o => [o.delegationId, o]));
   for (const session of selected) {
     const runtime = session.events.find(e => e.type === 'session_started')?.runtime ?? 'claude';
     const known = new Map(skillFolders);
@@ -875,18 +938,40 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     summary.delegationIndex.push(...joined.index);
     summary.verification.matched += joined.verification.matched;
 
+    for (const [k, n] of Object.entries(joined.accessReasons)) bump(summary.labels.indeterminateAccess, k, n);
+    const derived = new Set();
     for (const l of joined.labels) {
-      const key = hash([l.decisionId, l.questionId, l.source, l.outcome]);
-      if (existingLabels.has(key)) { summary.labels.alreadyPresent++; continue; }
-      existingLabels.add(key);
+      const key = labelKey(l.decisionId, l.questionId, l.source);
+      derived.add(key);
+      if (standing.has(key) && standing.get(key) === l.outcome) { summary.labels.alreadyPresent++; continue; }
+      standing.set(key, l.outcome);
       if (!dryRun) await log.label(l.decisionId, { questionId: l.questionId, outcome: l.outcome, source: l.source });
       summary.labels.written[l.point] ??= {};
       bump(summary.labels.written[l.point], l.source);
     }
+    // Retraction: a label of a collector source that stands for a decision this run settled, and that this run
+    // does not derive (a corrected verification result, a transcript now read as indeterminate, a changed
+    // rule), is taken back with a marker. The log is append-only; the marker is what calibration honours.
+    for (const entry of joined.settled) {
+      for (const questionId of entry.questionIds) {
+        for (const source of entry.sources) {
+          const key = labelKey(entry.decisionId, questionId, source);
+          if (!standing.has(key) || derived.has(key)) continue;
+          if (!dryRun) await log.label(entry.decisionId, { questionId, outcome: standing.get(key), source: source + RETRACTION_SUFFIX });
+          standing.delete(key);
+          summary.labels.retracted[entry.point] ??= {};
+          bump(summary.labels.retracted[entry.point], source);
+        }
+      }
+    }
     for (const content of joined.observations) {
       const key = observationId({ ...content, time: 0 });
-      if (existingObservations.has(key)) { summary.observations.alreadyPresent++; continue; }
-      existingObservations.add(key);
+      const current = standingObservation.get(content.delegationId) ?? null;
+      if (current?.observationId === key) { summary.observations.alreadyPresent++; continue; }
+      // A record without a verification result never replaces one that has it: the earlier record stays the
+      // standing one. Re-run with the verification file to refresh it.
+      if (current && current.verification !== null && content.verification === null) { summary.observations.keptVerified++; continue; }
+      standingObservation.set(content.delegationId, { ...content, observationId: key });
       if (!dryRun) await store.append(content);
       summary.observations.written++;
     }

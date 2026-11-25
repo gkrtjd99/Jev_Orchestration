@@ -151,10 +151,18 @@ export class ObservationLog {
   }
 }
 
-/** The most recently written record of each delegation, in first-seen order. */
+/**
+ * The standing record of each delegation, in first-seen order: the most recently written one, except that a
+ * record without a verification result never replaces one that has it (a later run without the verification
+ * file must not erase a verified result; a later run WITH a result, pass or fail, does replace it).
+ */
 export function latestObservations(observations) {
   const latest = new Map();
-  for (const o of observations) latest.set(o.delegationId, o);
+  for (const o of observations) {
+    const prior = latest.get(o.delegationId);
+    if (prior && prior.verification !== null && o.verification === null) continue;
+    latest.set(o.delegationId, o);
+  }
   return [...latest.values()];
 }
 

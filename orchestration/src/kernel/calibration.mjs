@@ -30,23 +30,60 @@ function argmax(p) {
  *                                    label of this source is 'complete' and accuracy over them is recall on
  *                                    'complete', not accuracy.
  * Any other source (labels attached by hand) is 'unclassified': this code cannot vouch for it either way.
+ *
+ * decisionInfluenced: the "-after-injection" variants are written when the subagent's prompt carried the skills
+ * block produced by the very decision being labelled. The block tells the subagent what to load, so the
+ * label is partly caused by the decision: tuning on it rewards whatever the judge already selects. Only the
+ * variants without it (shadow mode, or nothing selected) are free of that loop. null: not applicable/unknown.
+ *
+ * A weak source is also worker-controllable: the subagent decides what it loads, and a load costs it one call.
  */
 export const LABEL_SOURCES = Object.freeze({
-  'observed-load': Object.freeze({ strength: 'weak', oneSided: false }),
-  'external-verification-with-load': Object.freeze({ strength: 'weak', oneSided: true }),
-  'external-verification': Object.freeze({ strength: 'verified', oneSided: true }),
+  'observed-load': Object.freeze({ strength: 'weak', oneSided: false, decisionInfluenced: false }),
+  'observed-load-after-injection': Object.freeze({ strength: 'weak', oneSided: false, decisionInfluenced: true }),
+  'external-verification-with-load': Object.freeze({ strength: 'weak', oneSided: true, decisionInfluenced: false }),
+  'external-verification-with-load-after-injection': Object.freeze({ strength: 'weak', oneSided: true, decisionInfluenced: true }),
+  'external-verification': Object.freeze({ strength: 'verified', oneSided: true, decisionInfluenced: null }),
 });
-export const labelSourceInfo = source => (Object.hasOwn(LABEL_SOURCES, source) ? LABEL_SOURCES[source] : { strength: 'unclassified', oneSided: null });
+export const labelSourceInfo = source => (Object.hasOwn(LABEL_SOURCES, source) ? LABEL_SOURCES[source] : { strength: 'unclassified', oneSided: null, decisionInfluenced: null });
+
+/**
+ * Retraction. The label log is append-only, so a label is taken back by a later marker: a label record for the
+ * same decision and question whose source is the retracted source plus this suffix. Every label of that
+ * (decision, question, source) written before the marker is dropped; one written after it stands again.
+ * The outcome collector writes markers when a corrected verification result or a re-read transcript no
+ * longer supports a label it wrote; a marker can also be attached by hand.
+ */
+export const RETRACTION_SUFFIX = ':retracted';
+export function applyRetractions(labels = []) {
+  const cut = new Map();
+  labels.forEach((label, index) => {
+    if (typeof label.source === 'string' && label.source.endsWith(RETRACTION_SUFFIX))
+      cut.set(`${label.decisionId}\n${label.questionId}\n${label.source.slice(0, -RETRACTION_SUFFIX.length)}`, index);
+  });
+  const kept = [];
+  let retracted = 0, markers = 0;
+  labels.forEach((label, index) => {
+    if (typeof label.source === 'string' && label.source.endsWith(RETRACTION_SUFFIX)) { markers++; return; }
+    const at = cut.get(`${label.decisionId}\n${label.questionId}\n${label.source}`);
+    if (at !== undefined && index < at) { retracted++; return; }
+    kept.push(label);
+  });
+  return { labels: kept, retracted, markers };
+}
 const LABEL_NOTE = 'Metrics are only as strong as their labels. A "weak" source records behaviour (for example that a subagent loaded a skill), '
-  + 'not ground truth; a "one-sided" source only ever writes one outcome, so rates over it are not accuracy; "unclassified" sources were '
+  + 'not ground truth, and is never "sufficient"; a "decision-influenced" source was written after the decision itself told the subagent what to do, '
+  + 'so it must not be used to tune that decision; labels exist only for decisions that could be joined to a finished, readable run, so every '
+  + 'metric is conditional on that subset; a "one-sided" source only ever writes one outcome, so rates over it are not accuracy; "unclassified" sources were '
   + 'attached by hand and are not vouched for here. Read each group\'s labelSources before its metrics.';
 
 /** Latest label per (decisionId, questionId) wins; labels for unknown decisions/questions are dropped. */
 export function joinLabels(data = {}) {
-  return joinWithSource(data).map(({ source, ...row }) => row);
+  return joinWithSource(data).map(({ source, decisionId, ...row }) => row);
 }
 
-function joinWithSource({ decisions = [], labels = [] } = {}) {
+function joinWithSource({ decisions = [], labels: allLabels = [] } = {}) {
+  const { labels } = applyRetractions(allLabels);
   const byId = new Map(decisions.map(d => [d.decisionId, d]));
   const latest = new Map();
   for (const label of labels) {
@@ -60,7 +97,7 @@ function joinWithSource({ decisions = [], labels = [] } = {}) {
     const d = byId.get(label.decisionId);
     if (!d?.answers || !Object.hasOwn(d.answers, label.questionId)) continue;
     const answer = d.answers[label.questionId];
-    rows.push({ pointId: d.pointId, provider: d.provider, model: d.model, mode: d.mode,
+    rows.push({ decisionId: d.decisionId, pointId: d.pointId, provider: d.provider, model: d.model, mode: d.mode,
       questionId: label.questionId, type: answer.type, answer, outcome: label.outcome, source: label.source });
   }
   return rows;
@@ -215,14 +252,29 @@ function pointSummaries(decisions) {
 }
 
 /**
+ * Whether a set of labelled rows is enough to read its metrics as more than a hint. The unit is the labelled
+ * DECISION, not the question label. Weak labels are never sufficient, however many there are: they record
+ * behaviour, so more of them does not make them ground truth.
+ */
+function sufficiency(rows, minSamples) {
+  const labeledDecisions = new Set(rows.map(r => r.decisionId)).size;
+  const weak = rows.some(r => labelSourceInfo(r.source).strength === 'weak');
+  const sufficientReason = !rows.length ? 'no_labels' : weak ? 'weak_labels' : labeledDecisions < minSamples ? 'too_few_labeled_decisions' : null;
+  return { labeledDecisions, sufficient: sufficientReason === null, sufficientReason };
+}
+
+/**
  * One group per pointId x provider x question type. A decision without any answers (typically a
  * failed one, provider 'none') lands in a group with type null so failures stay visible.
  */
-export function calibrationReport({ decisions = [], labels: allLabels = [] } = {}, { bins = 10, threshold = 0.5, minSamples = 30, sources = null, excludeSources = [] } = {}) {
+export function calibrationReport({ decisions = [], labels: loggedLabels = [] } = {}, { bins = 10, threshold = 0.5, minSamples = 30, sources = null, excludeSources = [] } = {}) {
   assert(Number.isInteger(bins) && bins >= 1 && bins <= 1000, 'INVALID_CALIBRATION_OPTIONS');
   const names = list => Array.isArray(list) && list.every(x => typeof x === 'string' && x.length > 0);
   assert((sources === null || names(sources)) && names(excludeSources), 'INVALID_CALIBRATION_OPTIONS');
-  // Source filters apply before anything is joined, so a filtered report never mixes in an excluded label.
+  // Retractions first (a marker names the source it takes back), then the source filters, so a filtered
+  // report never mixes in an excluded label and never counts a retracted one.
+  const resolved = applyRetractions(loggedLabels);
+  const allLabels = resolved.labels;
   const labels = allLabels.filter(l => (sources === null || sources.includes(l.source)) && !excludeSources.includes(l.source));
   const metricsFor = (type, rows) => (type === 'noul' ? noulMetrics(rows, bins, threshold)
     : type === 'choice' ? choiceMetrics(rows, bins) : type === 'score' ? scoreMetrics(rows) : {});
@@ -267,24 +319,29 @@ export function calibrationReport({ decisions = [], labels: allLabels = [] } = {
       const members = [...g.decisions];
       const metrics = metricsFor(g.type, g.rows);
       const strengths = new Set(g.rows.map(r => labelSourceInfo(r.source).strength));
+      const enough = sufficiency(g.rows, minSamples);
       return {
         pointId: g.pointId, provider: g.provider, type: g.type,
         models: [...new Set(members.map(d => d.model))].sort(),
-        counts: { decisions: members.length, answers: g.answers, labeled: g.rows.length },
-        invalidLabels: g.invalidLabels, sufficient: g.rows.length >= minSamples,
+        // labeled counts question labels; labeledDecisions counts the decisions they sit on. One wide skills
+        // decision carries dozens of dependent questions, so the second number is the sample size.
+        counts: { decisions: members.length, answers: g.answers, labeled: g.rows.length, labeledDecisions: enough.labeledDecisions },
+        invalidLabels: g.invalidLabels, sufficient: enough.sufficient, sufficientReason: enough.sufficientReason,
         operational: operational(members),
         // What the labels behind `metrics` are worth: one strength, 'mixed', or null when nothing is labelled.
         metricsLabelStrength: strengths.size === 0 ? null : strengths.size === 1 ? [...strengths][0] : 'mixed',
         metrics,
         labelSources: [...(g.bySource ?? new Map()).entries()].map(([source, rows]) => ({
-          source, ...labelSourceInfo(source), labeled: rows.length, sufficient: rows.length >= minSamples, metrics: metricsFor(g.type, rows),
+          source, ...labelSourceInfo(source), labeled: rows.length, ...sufficiency(rows, minSamples), metrics: metricsFor(g.type, rows),
         })),
       };
     });
   const bySource = presentSources.map(source => ({ source, ...labelSourceInfo(source), labels: labels.filter(l => l.source === source).length }));
   return { generatedFrom: { decisions: decisions.length, labels: labels.length },
-    labels: { filter: { sources, excludeSources }, excludedByFilter: allLabels.length - labels.length, bySource,
+    labels: { filter: { sources, excludeSources }, excludedByFilter: allLabels.length - labels.length,
+      retracted: resolved.retracted, retractionMarkers: resolved.markers, bySource,
       weakSources: bySource.filter(x => x.strength === 'weak').map(x => x.source),
+      decisionInfluencedSources: bySource.filter(x => x.decisionInfluenced === true).map(x => x.source),
       oneSidedSources: bySource.filter(x => x.oneSided === true).map(x => x.source),
       unclassifiedSources: bySource.filter(x => x.strength === 'unclassified').map(x => x.source), note: LABEL_NOTE },
     invalidLabels: out.reduce((n, g) => n + g.invalidLabels, 0),

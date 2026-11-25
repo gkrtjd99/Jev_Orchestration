@@ -216,15 +216,18 @@ test('a refused and re-issued delegation is joined from hook state through Main 
   assert.equal(event.retrieval.requests, 2);
   assert.deepEqual(event.asked.map(a => [a.decisionId, a.names.length]), event.decisionIds.map(id => [id, 31]));
   assert.deepEqual(summary.skillQuestionMapping, { decisions: 2, mapped: 2, asked: 2, derived: 0, unmapped: {}, answersCheckedAgainstLog: 62 });
+  // The block of this decision was in the subagent's prompt, so the sources are the "-after-injection" ones.
   assert.deepEqual(summary.labels.written, {
-    'delegation.skills': { 'observed-load': 64, 'external-verification-with-load': 3 },
+    'delegation.skills': { 'observed-load-after-injection': 64, 'external-verification-with-load-after-injection': 2 },
     'supervisor.outcome': { 'external-verification': 1 },
   });
+  assert.deepEqual([summary.labels.retracted, summary.labels.indeterminateAccess], [{}, {}]);
 
   // Every label sits on the question that was about that skill: the judge's probability for a name is unique.
   const { decisions, labels } = await logOf(f).read();
   const byId = new Map(decisions.map(d => [d.decisionId, d]));
-  const observed = labels.filter(l => l.source === 'observed-load');
+  const observed = labels.filter(l => l.source === 'observed-load-after-injection');
+  assert.equal(labels.filter(l => l.source === 'observed-load').length, 0);
   for (const label of observed.filter(l => l.questionId !== 'need')) {
     const names = event.asked.find(a => a.decisionId === label.decisionId).names;
     const name = names[Number(label.questionId.slice(6))];
@@ -232,7 +235,12 @@ test('a refused and re-issued delegation is joined from hook state through Main 
     assert.equal(label.outcome, name === TARGET, name);
   }
   assert.equal(observed.filter(l => l.outcome === true && l.questionId !== 'need').length, 1);
-  assert.deepEqual(observed.filter(l => l.questionId === 'need').map(l => l.outcome), [true, true]);
+  // `need` is asked per request about that request's own skills: only the request that held the loaded skill is true.
+  const needs = observed.filter(l => l.questionId === 'need');
+  assert.deepEqual(needs.map(l => [event.asked.find(a => a.decisionId === l.decisionId).names.includes(TARGET), l.outcome]).sort(), [[false, false], [true, true]]);
+  const withLoad = labels.filter(l => l.source === 'external-verification-with-load-after-injection');
+  assert.deepEqual(withLoad.map(l => l.outcome), [true, true]);
+  assert.ok(withLoad.every(l => event.asked.find(a => a.decisionId === l.decisionId).names.includes(TARGET)));
   // What the judge was shown, request by request, is what `asked` says (independent of the collector).
   const shown = f.judge.calls.filter(c => Object.hasOwn(c.questions, 'need')).map(c => c.state.skills.map(s => s.name));
   assert.deepEqual(event.asked.map(a => a.names).sort(), shown.sort());
@@ -284,7 +292,7 @@ test('a refused and re-issued delegation is joined from hook state through Main 
   assert.equal((await fs.stat(path.dirname(store))).mode & 0o777, 0o700);
   const before = await outputsText(f, {});
   const again = await run(f, { verification, config });
-  assert.deepEqual([again.labels.written, again.labels.alreadyPresent, again.observations], [{}, 68, { written: 0, alreadyPresent: 1 }]);
+  assert.deepEqual([again.labels.written, again.labels.alreadyPresent, again.labels.retracted, again.observations], [{}, 67, {}, { written: 0, alreadyPresent: 1, keptVerified: 0 }]);
   assert.equal(await outputsText(f, {}), before);
 
   // Nothing the collector wrote or printed carries text, a path or an id.
@@ -312,7 +320,7 @@ test('a rewrite applied in place (no refusal) joins on the one call; the inline 
   // from escalate), no with-load label is written, and the evaluation row carries passed: false.
   const failed = verificationFor(TASK, { passed: false, conventionPassed: false });
   const summary = await run(f, { verification: failed, config: withContext(f.config) });
-  assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load': 4 } });
+  assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load-after-injection': 4 } });
   assert.deepEqual(summary.labels.unlabelled, { supervisor_verification_failed_no_outcome_class: 1 });
   assert.deepEqual(summary.warnings, {});
   const [o] = (await new ObservationLog(observationLogDir(f.config)).read()).observations;
@@ -422,7 +430,7 @@ test('state from before the re-issue fix: both calls were routed; only the decis
   const summary = await run(f);
   assert.deepEqual([summary.delegations.seen, summary.delegations.joined, summary.delegations.reroutedAfterRefusal, summary.delegations.refusedAndReissued], [1, 1, 1, 0]);
   // The first call's decision governs: its rewrite is the input the host launched. The second route was never applied.
-  assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load': 4 } });
+  assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load-after-injection': 4 } });
   assert.deepEqual(summary.labels.unlabelled, { skills_decision_not_applied_to_launched_call: 1 });
   const labels = (await log.read()).labels;
   assert.ok(labels.every(l => l.decisionId === skillsA.decisionIds[0]));
@@ -508,7 +516,7 @@ test('a verification entry can name a call id; unmatched entries are counted; a 
   const summary = await run(f, { verification: byCall, evaluationContext: 'ctx-1' });
   assert.deepEqual(summary.verification, { entries: 2, matched: 1, unmatched: 1 });
   // No convention result was supplied: the outcome label is written, the with-load label is not.
-  assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load': 4 }, 'supervisor.outcome': { 'external-verification': 1 } });
+  assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load-after-injection': 4 }, 'supervisor.outcome': { 'external-verification': 1 } });
   const [row] = (await fs.readFile(path.join(f.stateDir, 'collector', summary.evaluations.files[0]), 'utf8')).trim().split('\n').map(JSON.parse);
   assert.equal(row.costUsd, 0.25);
   const entry = { taskHash: 'cd'.repeat(32), passed: true, validator: VALIDATOR, artifactSha256: ARTIFACT };
@@ -641,7 +649,9 @@ test('the default configuration records no skill names; a deferred, unrouted del
   const { observations } = await new ObservationLog(observationLogDir(f.config)).read();
   const unrouted = observations.find(o => !o.routed);
   assert.deepEqual([unrouted.requested.profile, unrouted.effective.agentType, unrouted.effective.model, unrouted.effective.profileMatch, unrouted.judge.routerRequests],
-    [null, 'general-purpose', 'default-model', null, null]);
+    [null, 'other', 'default-model', null, null]);
+  // An agent type that is not a profile of this session's routes is not written by name.
+  assert.ok(!JSON.stringify(observations).includes('general-purpose'));
   // With the project's skill folders supplied, a Skill call is recognised even though the hook state names no skill.
   await fs.rm(observationLogDir(f.config), { recursive: true });
   await run(f, { skillFolders: new Map([[TARGET, TARGET]]) });
@@ -696,25 +706,30 @@ test('the calibration report keeps label sources apart and says which are weak',
   const data = await log.read();
   const report = calibrationReport(data);
   assert.deepEqual(report.labels.bySource.map(s => [s.source, s.strength, s.oneSided, s.labels]),
-    [['external-verification', 'verified', true, 1], ['external-verification-with-load', 'weak', true, 2], ['human-review', 'unclassified', null, 1], ['observed-load', 'weak', false, 4]]);
-  assert.deepEqual([report.labels.weakSources, report.labels.oneSidedSources, report.labels.unclassifiedSources],
-    [['external-verification-with-load', 'observed-load'], ['external-verification', 'external-verification-with-load'], ['human-review']]);
+    [['external-verification', 'verified', true, 1], ['external-verification-with-load-after-injection', 'weak', true, 2], ['human-review', 'unclassified', null, 1], ['observed-load-after-injection', 'weak', false, 4]]);
+  assert.deepEqual([report.labels.weakSources, report.labels.oneSidedSources, report.labels.unclassifiedSources, report.labels.decisionInfluencedSources],
+    [['external-verification-with-load-after-injection', 'observed-load-after-injection'], ['external-verification', 'external-verification-with-load-after-injection'], ['human-review'],
+      ['external-verification-with-load-after-injection', 'observed-load-after-injection']]);
   const skills = report.groups.find(g => g.pointId === 'delegation.skills');
   // The combined metrics use the latest label per question whatever its source, and are marked as mixed.
   assert.deepEqual([skills.counts.labeled, skills.metricsLabelStrength], [4, 'mixed']);
   // Per source, a label of another source never replaces one: observed-load still has its own four.
   assert.deepEqual(skills.labelSources.map(s => [s.source, s.strength, s.labeled, s.metrics.tp + s.metrics.fn]),
-    [['external-verification-with-load', 'weak', 2, 2], ['human-review', 'unclassified', 1, 0], ['observed-load', 'weak', 4, 2]]);
+    [['external-verification-with-load-after-injection', 'weak', 2, 2], ['human-review', 'unclassified', 1, 0], ['observed-load-after-injection', 'weak', 4, 2]]);
   const supervisor = report.groups.find(g => g.pointId === 'supervisor.outcome' && g.type === 'choice');
   assert.deepEqual([supervisor.metricsLabelStrength, supervisor.labelSources.map(s => [s.source, s.oneSided, s.metrics.accuracy])], ['verified', [['external-verification', true, 1]]]);
 
-  const only = calibrationReport(data, { sources: ['observed-load'] });
-  assert.deepEqual([only.generatedFrom.labels, only.labels.excludedByFilter, only.labels.weakSources], [4, 4, ['observed-load']]);
+  const only = calibrationReport(data, { sources: ['observed-load-after-injection'] });
+  assert.deepEqual([only.generatedFrom.labels, only.labels.excludedByFilter, only.labels.weakSources], [4, 4, ['observed-load-after-injection']]);
+  // The labels that may inform a threshold are the ones the decision did not cause: none exist in this session.
+  assert.equal(calibrationReport(data, { sources: ['observed-load'] }).generatedFrom.labels, 0);
   assert.equal(only.groups.find(g => g.pointId === 'delegation.skills').metricsLabelStrength, 'weak');
-  const strong = calibrationReport(data, { excludeSources: ['observed-load', 'external-verification-with-load', 'human-review'] });
+  const strong = calibrationReport(data, { excludeSources: ['observed-load-after-injection', 'external-verification-with-load-after-injection', 'human-review'] });
   assert.deepEqual([strong.generatedFrom.labels, strong.groups.find(g => g.pointId === 'delegation.skills').metricsLabelStrength], [1, null]);
   assert.throws(() => calibrationReport(data, { sources: [''] }), code('INVALID_CALIBRATION_OPTIONS'));
-  assert.deepEqual(labelSourceInfo('anything-else'), { strength: 'unclassified', oneSided: null });
+  assert.deepEqual(labelSourceInfo('anything-else'), { strength: 'unclassified', oneSided: null, decisionInfluenced: null });
+  assert.deepEqual([labelSourceInfo('observed-load'), labelSourceInfo('observed-load-after-injection')],
+    [{ strength: 'weak', oneSided: false, decisionInfluenced: false }, { strength: 'weak', oneSided: false, decisionInfluenced: true }]);
 });
 
 test('CLI: collect (dry run, real run, report, task hash) and the decisions report source filters', async t => {
@@ -752,13 +767,230 @@ test('CLI: collect (dry run, real run, report, task hash) and the decisions repo
   assert.equal((await cli(...shared)).stderr.trim(), 'INVALID_VERIFICATION_KEY');
 
   const decisions = (...args) => child(process.execPath, [DECISIONS, '--log-dir', decisionLogDir(f.config), '--action', 'report', ...args]);
-  r = await decisions('--source', 'observed-load', '--point', 'delegation.skills');
+  r = await decisions('--source', 'observed-load-after-injection', '--point', 'delegation.skills');
   const weak = JSON.parse(r.stdout);
-  assert.deepEqual([weak.generatedFrom.labels, weak.labels.weakSources, weak.groups[0].metricsLabelStrength], [4, ['observed-load'], 'weak']);
-  r = await decisions('--exclude-source', 'observed-load,external-verification-with-load');
+  assert.deepEqual([weak.generatedFrom.labels, weak.labels.weakSources, weak.groups[0].metricsLabelStrength], [4, ['observed-load-after-injection'], 'weak']);
+  assert.deepEqual([weak.groups[0].sufficient, weak.groups[0].sufficientReason, weak.groups[0].counts.labeledDecisions], [false, 'weak_labels', 1]);
+  r = await decisions('--exclude-source', 'observed-load-after-injection,external-verification-with-load-after-injection');
   assert.deepEqual(JSON.parse(r.stdout).labels.bySource.map(s => s.source), ['external-verification']);
   r = await decisions('--source', ',');
   assert.deepEqual([r.code, r.stderr.trim()], [1, 'INVALID_SOURCE_FILTER']);
   r = await child(process.execPath, [DECISIONS, '--log-dir', decisionLogDir(f.config), '--action', 'show', '--exclude-source', 'x']);
   assert.equal(r.stderr.trim(), 'EXCLUDE_SOURCE_IS_A_REPORT_FILTER');
+});
+
+// ---------------------------------------------------------------- review findings: regression tests
+
+test('a route that was recorded but not applied, or ran under another agent type, gives no evaluation row', async t => {
+  // Shadow mode: the route is recorded, the call is launched as Main issued it. Even when the subagent happens
+  // to run the profile's model and effort, the profile's agent definition never ran.
+  const f = await prepared(t, { skills: 'off', supervisor: 'off' });
+  f.config.mode = 'shadow';
+  const pre = preCall(f, A, { description: 'toggle', subagent_type: 'general-purpose', prompt: TASK });
+  assert.deepEqual(await handleHook(pre, 'claude', f.deps), {});
+  const [event] = (await f.store.events()).filter(e => e.type === 'route');
+  assert.equal(event.mode, 'shadow');
+  await handleHook(launched(pre, AGENT), 'claude', f.deps);
+  await writeTranscripts(f, {
+    main: mainRows([{ id: A, input: pre.tool_input, at: 0, agentId: AGENT }]),
+    subs: [{ agent: AGENT, rows: subRows({ prompt: TASK, steps: STEPS, model: event.route.backend, effort: event.route.effort }), agentType: 'general-purpose', toolUseId: A, model: event.route.backend }],
+  });
+  const shadow = await run(f, { verification: verificationFor(TASK), evaluationContext: 'ctx-1' });
+  assert.deepEqual([shadow.evaluations.produced, shadow.evaluations.files, shadow.evaluations.withheld], [0, [], { route_not_applied: 1, agent_type_differs_from_profile: 1 }]);
+  const [o] = (await new ObservationLog(observationLogDir(f.config)).read()).observations;
+  assert.deepEqual([o.effective.profileMatch, o.effective.agentType, o.effective.modelMatch, o.effective.effortMatch], [false, 'other', 'exact', true]);
+
+  // Active mode, but the host's record names another agent type than the route's profile.
+  const { f: g, second, route } = await reissuedSession(t);
+  await fs.writeFile(path.join(g.transcripts, 'subagents', `agent-${AGENT}.meta.json`), JSON.stringify({ agentType: 'general-purpose', toolUseId: B, model: route.backend, finished: true }));
+  const other = await run(g, { verification: verificationFor(TASK), evaluationContext: 'ctx-1' });
+  assert.deepEqual([other.evaluations.produced, other.evaluations.withheld], [0, { agent_type_differs_from_profile: 1 }]);
+  assert.equal(second.tool_input.subagent_type, route.profile);
+});
+
+test('a subagent transcript without a confirmed end is not read as the whole run', async t => {
+  const { f } = await reissuedSession(t);
+  const meta = path.join(f.transcripts, 'subagents', `agent-${AGENT}.meta.json`);
+  const file = path.join(f.transcripts, 'subagents', `agent-${AGENT}.jsonl`);
+  const whole = await fs.readFile(file, 'utf8');
+  // The host says the agent is still running and the copy ends before the Skill call: no "did not load" label,
+  // no usage totals, no observation.
+  await fs.writeFile(meta, JSON.stringify({ agentType: 'x', toolUseId: B, finished: false }));
+  await fs.writeFile(file, whole.split('\n').slice(0, 4).join('\n') + '\n');
+  const running = await run(f, { verification: verificationFor(TASK), evaluationContext: 'ctx-1' });
+  assert.deepEqual([running.delegations.joined, running.delegations.unjoined, running.labels.written, running.observations.written],
+    [0, { subagent_not_finished: 1 }, {}, 0]);
+  // The skills decision and the report check of that delegation are counted as left without a label.
+  assert.deepEqual(running.labels.unlabelled, { delegation_not_joined: 2 });
+  assert.deepEqual(running.evaluations.withheld, { attempt_not_joined_to_transcripts: 1 });
+  assert.equal((await logOf(f).read()).labels.length, 0);
+  // `finished: false` wins over a stop the hooks saw: the copy of the transcript is what is being read.
+  assert.ok((await f.store.events()).some(e => e.type === 'handback_observed' && e.agentId === AGENT));
+
+  // A host record that says nothing about the end: the hooks' own hand-back event for that agent confirms it.
+  await fs.writeFile(file, whole);
+  await fs.writeFile(meta, JSON.stringify({ agentType: 'x', toolUseId: B }));
+  assert.equal((await run(f, { dryRun: true })).delegations.joined, 1);
+  // Neither the host nor the hooks say it ended.
+  const quiet = await prepared(t);
+  const s = await refusedAndReissued(quiet, { report: false });
+  await writeTranscripts(quiet, {
+    main: mainRows([{ id: A, input: s.first.tool_input, at: 0, refused: true }, { id: B, input: s.second.tool_input, at: 10, agentId: AGENT }]),
+    subs: [{ agent: AGENT, rows: subRows({ prompt: s.second.tool_input.prompt, steps: STEPS, model: s.route.backend, effort: s.route.effort }), meta: { agentType: s.route.profile, toolUseId: B } }],
+  });
+  const unknown = await run(quiet, { dryRun: true });
+  assert.deepEqual([unknown.delegations.joined, unknown.delegations.unjoined, unknown.labels.written], [0, { subagent_end_unconfirmed: 1 }, {}]);
+});
+
+test('a run without the verification file does not replace a verified observation; a corrected result does, and takes its labels back', async t => {
+  const { f } = await reissuedSession(t);
+  const passed = verificationFor(TASK);
+  const first = await run(f, { verification: passed });
+  assert.deepEqual(first.observations, { written: 1, alreadyPresent: 0, keptVerified: 0 });
+  const report = async () => observationReport((await new ObservationLog(observationLogDir(f.config)).read()).observations);
+  const stored = async () => (await new ObservationLog(observationLogDir(f.config)).read()).observations.length;
+
+  // Same session, no verification file: nothing is appended, the verified record stands, no label is taken back.
+  const bare = await run(f);
+  assert.deepEqual([bare.observations, bare.labels.written, bare.labels.retracted], [{ written: 0, alreadyPresent: 0, keptVerified: 1 }, {}, {}]);
+  assert.deepEqual([await stored(), (await report()).all.verified, (await report()).all.passRate], [1, 1, 1]);
+  // A store that already holds an unverified line after a verified one (written by an older collector) reports the verified one.
+  const [record] = (await new ObservationLog(observationLogDir(f.config)).read()).observations;
+  const { time, observationId, ...content } = record;
+  assert.equal(observationReport([record, { ...content, verification: null, time: time + 1, observationId: 'f'.repeat(64) }]).all.verified, 1);
+
+  // The user corrects the result: the task failed its checks.
+  const failed = verificationFor(TASK, { passed: false, conventionPassed: false });
+  const corrected = await run(f, { verification: failed });
+  assert.deepEqual(corrected.observations, { written: 1, alreadyPresent: 0, keptVerified: 0 });
+  assert.deepEqual(corrected.labels.written, {});
+  assert.deepEqual(corrected.labels.retracted, { 'delegation.skills': { 'external-verification-with-load-after-injection': 2 }, 'supervisor.outcome': { 'external-verification': 1 } });
+  assert.deepEqual([(await report()).all.verified, (await report()).all.passRate], [1, 0]);
+  const data = await logOf(f).read();
+  assert.equal(data.labels.filter(l => l.source.endsWith(':retracted')).length, 3);
+  const after = calibrationReport(data);
+  assert.deepEqual(after.labels.bySource.map(s => [s.source, s.labels]), [['observed-load-after-injection', 4]]);
+  assert.deepEqual([after.labels.retracted, after.labels.retractionMarkers], [3, 3]);
+  assert.equal(after.groups.find(g => g.pointId === 'supervisor.outcome' && g.type === 'choice').counts.labeled, 0);
+  // Running the corrected file again changes nothing.
+  const again = await run(f, { verification: failed });
+  assert.deepEqual([again.labels.written, again.labels.retracted, again.observations], [{}, {}, { written: 0, alreadyPresent: 1, keptVerified: 0 }]);
+  // The result is corrected back to a pass: the labels are written again and stand.
+  const back = await run(f, { verification: passed });
+  assert.deepEqual(back.labels.written, { 'delegation.skills': { 'external-verification-with-load-after-injection': 2 }, 'supervisor.outcome': { 'external-verification': 1 } });
+  assert.deepEqual([back.observations.written, (await report()).all.passRate], [1, 1]);
+  assert.deepEqual(calibrationReport(await logOf(f).read()).labels.bySource.map(s => [s.source, s.labels]),
+    [['external-verification', 1], ['external-verification-with-load-after-injection', 2], ['observed-load-after-injection', 4]]);
+});
+
+test('a verification by task hash is carried by the last attempt only; an abandoned first attempt is not counted as verified', async t => {
+  const f = await prepared(t, { skills: 'off', supervisor: 'off' });
+  const agents = [AGENT, 'b' + AGENT.slice(1)];
+  const calls = [], subs = [];
+  for (const [i, id] of [A, B].entries()) {
+    // The same task text, delegated twice (the second with another description so that it is a new call, not a repeat).
+    const pre = preCall(f, id, { description: 'toggle ' + i, subagent_type: 'general-purpose', prompt: TASK });
+    const updated = (await handleHook(pre, 'claude', f.deps)).hookSpecificOutput.updatedInput;
+    await handleHook(launched(pre, agents[i]), 'claude', f.deps);
+    const route = (await f.store.getTask(id)).route;
+    calls.push({ id, input: pre.tool_input, at: i * 100, agentId: agents[i] });
+    subs.push({ agent: agents[i], rows: subRows({ agent: agents[i], prompt: updated.prompt, steps: STEPS, model: route.backend, effort: route.effort, start: i * 100 + 20 }), agentType: updated.subagent_type, toolUseId: id, model: route.backend });
+  }
+  await writeTranscripts(f, { main: mainRows(calls), subs });
+  const summary = await run(f, { verification: verificationFor(TASK), evaluationContext: 'ctx-1' });
+  assert.deepEqual([summary.delegations.seen, summary.delegations.joined, summary.verification], [2, 2, { entries: 1, matched: 1, unmatched: 0 }]);
+  assert.deepEqual(summary.delegationIndex.map(d => [d.verified, d.supersededAttempt]), [[null, true], [true, false]]);
+  const { observations } = await new ObservationLog(observationLogDir(f.config)).read();
+  assert.deepEqual(observations.map(o => o.verification?.passed ?? null), [null, true]);
+  assert.deepEqual([observationReport(observations).all.verified, observationReport(observations).all.passed], [1, 1]);
+  // The task is still one evaluation unit with both attempts counted.
+  const [row] = (await fs.readFile(path.join(f.stateDir, 'collector', summary.evaluations.files[0]), 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.deepEqual([summary.evaluations.produced, row.attempts], [1, 2]);
+});
+
+test('a load needs a reading tool and a non-error result; searches that reach the skills folder are indeterminate', () => {
+  const known = new Map([['alpha', 'alpha'], ['beta', 'beta']]);
+  const parse = (tools, { results = {} } = {}) => {
+    const rows = subRows({ prompt: 'p', steps: tools.map((tool, i) => ({ id: 'm' + i, tools: [tool] })), model: 'm', effort: 'high' });
+    for (const row of rows) for (const item of Array.isArray(row.message?.content) ? row.message.content : []) {
+      if (item.type === 'tool_result' && results[item.tool_use_id] === 'error') item.is_error = true;
+    }
+    return parseSubagent(rows.filter(row => !(row.message?.content?.[0]?.type === 'tool_result' && results[row.message.content[0].tool_use_id] === 'missing')), { knownSkills: known });
+  };
+  const bash = command => ({ name: 'Bash', input: { command } });
+  const seen = (tools, options) => { const p = parse(tools, options); return [p.loaded.map(l => `${l.name}:${l.via}`), p.indeterminate]; };
+  const ROOT = common.cwd;
+
+  // Loads.
+  assert.deepEqual(seen([{ name: 'Skill', input: { skill: 'alpha' } }]), [['alpha:Skill'], false]);
+  assert.deepEqual(seen([bash(`cd ${ROOT} && cat .claude/skills/alpha/SKILL.md | head -40; npm test 2>&1 | tail -5`)]), [['alpha:Shell'], false]);
+  assert.deepEqual(seen([bash(`head -n 30 "${ROOT}/.claude/skills/beta/SKILL.md"`)]), [['beta:Shell'], false]);
+  // The call alone is not a load: an errored or missing result is indeterminate, never "loaded" and never "not loaded".
+  for (const tool of [{ name: 'Skill', input: { skill: 'alpha' } }, { name: 'Read', input: { file_path: `${ROOT}/.claude/skills/alpha/SKILL.md` } }, bash('cat .claude/skills/alpha/SKILL.md')]) {
+    assert.deepEqual(seen([tool], { results: { toolu_sub_1: 'error' } }), [[], true], tool.name);
+    assert.deepEqual(seen([tool], { results: { toolu_sub_1: 'missing' } }), [[], true], tool.name);
+  }
+  assert.deepEqual(parse([{ name: 'Skill', input: { skill: 'alpha' } }], { results: { toolu_sub_1: 'error' } }).indeterminateReasons, { load_call_returned_an_error: 1 });
+  // Naming the file is not reading it.
+  for (const command of ['ls .claude/skills/alpha/SKILL.md', 'test -f .claude/skills/alpha/SKILL.md && echo yes', 'ls -la .claude/skills', 'find .claude/skills -name "*.md" | head',
+    "find . -type f -not -path './node_modules/*' | head -100", 'echo "see .claude/skills/alpha/SKILL.md"'])
+    assert.deepEqual(seen([bash(command)]), [[], false], command);
+  for (const command of ['git status --short .claude/skills/alpha/SKILL.md', 'wc -l .claude/skills/alpha/SKILL.md', 'grep -n rule .claude/skills/alpha/SKILL.md',
+    'cat /tmp/elsewhere/.claude/skills/alpha/SKILL.md', 'cd /tmp/elsewhere && cat .claude/skills/alpha/SKILL.md', 'cat docs/alpha/SKILL.md', 'cat .claude/skills/alpha/reference.md'])
+    assert.deepEqual(seen([bash(command)]), [[], true], command);
+  // A same-named SKILL.md outside the project, and another file inside a known skill folder.
+  assert.deepEqual(seen([{ name: 'Read', input: { file_path: '/tmp/elsewhere/.claude/skills/alpha/SKILL.md' } }]), [[], true]);
+  assert.deepEqual(seen([{ name: 'Read', input: { file_path: `${ROOT}/.claude/skills/alpha/reference.md` } }, { name: 'Glob', input: { pattern: '.claude/skills/**/*.md' } }]), [[], true]);
+  assert.deepEqual(seen([{ name: 'Read', input: { file_path: '/home/someone/.claude/skills/unrelated/SKILL.md' } }, { name: 'Glob', input: { pattern: '.claude/skills/**/*.md' } }]), [[], false]);
+
+  // Recursive content search from the project root reads skill text without naming a skill.
+  for (const command of ['grep -rn -e runDue -e ledger --include=*.mjs --include=*.md . | grep -v "^./.claude/skills/periodic"', 'grep -rn "tracking" . | grep -v node_modules',
+    `grep -Rl fault ${ROOT}`, 'grep -r fault .claude', 'rg --hidden fault', 'rg fault .claude/skills', 'git grep -n fault', "find . -name '*.md' -exec cat {} +",
+    'find . -type f | xargs grep -l fault', 'grep -rn fault "$DIR"'])
+    assert.deepEqual(seen([bash(command)]), [[], true], command);
+  assert.deepEqual(parse([bash('grep -rn fault .')]).indeterminateReasons, { recursive_search_reaches_skills_folder: 1 });
+  // ... unless the skills folder is left out as a whole, the search cannot match SKILL.md, or it does not reach the folder.
+  for (const command of ['grep -rn fault . --exclude-dir=.claude', "grep -rn fault . | grep -v '^./.claude/skills/'", 'grep -rn fault --include=*.mjs --include=*.js .',
+    'grep -rn fault src test docs README.md', 'rg fault', "rg --hidden -g '!.claude/**' fault", "find . -name '*.mjs' -exec cat {} +", "find . -not -path './.claude/*' -type f -exec cat {} +",
+    'grep -n fault README.md', 'cat <<EOF > notes.txt\ngrep -rn fault .\ncat .claude/skills/alpha/SKILL.md\nEOF'])
+    assert.deepEqual(seen([bash(command)]), [[], false], command);
+  assert.deepEqual(seen([{ name: 'Grep', input: { pattern: 'fault' } }]), [[], true]);
+  assert.deepEqual(seen([{ name: 'Grep', input: { pattern: 'fault', path: 'src' } }, { name: 'Grep', input: { pattern: 'fault', glob: '*.mjs' } }]), [[], false]);
+  assert.deepEqual(seen([{ name: 'Grep', input: { pattern: 'fault' } }], { results: { toolu_sub_1: 'error' } }), [[], false]);
+});
+
+test('the skills block counts only at the end of the prompt and only with known skill names', () => {
+  const known = new Map([['alpha', 'alpha']]);
+  const packet = JSON.stringify({ decisionId: 'ab'.repeat(32), role: 'implement' });
+  const tail = `\n\n<jev-routing>\n${packet}\n</jev-routing>\nPerform only the original native task. Preserve acceptance criteria, existing permissions, and write scope. Read required instructions and exact contracts before changes. Selected documents are a starting set, not an access allowlist. Seek missing evidence. Return changed files, executed checks, and unresolved issues. Never claim success from a worker stop. Main retains integration, scheduling and independent verification. Requested model/effort is not proof of the effective setting.`;
+  const blockText = names => `<jev-skills>\n${JSON.stringify({ load: names.map(name => ({ name })), consider: [{ name: 'acme-internal-payroll' }] })}\n</jev-skills>\nLoad them.`;
+  const parse = prompt => { const warnings = { counts: {}, add(k, n = 1) { this.counts[k] = (this.counts[k] ?? 0) + n; } };
+    return { block: parseSubagent(subRows({ prompt, steps: STEPS, model: 'm', effort: 'high' }), { knownSkills: known }, warnings).block, warnings: warnings.counts }; };
+  assert.equal(taskHash('TASK' + tail), taskHash('TASK'), 'the fixture tail is the tail the product recognises');
+  // Where the hook puts it: names outside the session's project skills are dropped and counted, never stored.
+  assert.deepEqual(parse('TASK' + tail + '\n\n' + blockText(['alpha', 'my-private-user-skill'])),
+    { block: { present: true, load: ['alpha'], consider: [] }, warnings: { skills_block_name_not_a_known_project_skill: 2 } });
+  // Typed by Main inside the task text: it is task text, not a block.
+  assert.deepEqual(parse('TASK ' + blockText(['alpha']) + tail), { block: { present: false, load: null, consider: null }, warnings: {} });
+  assert.deepEqual(parse('TASK ' + blockText(['alpha'])).block, { present: false, load: null, consider: null });
+});
+
+test('labels on a delegation without the block use the plain source; an unknown block gives no label and takes earlier ones back', async t => {
+  // Skills point in shadow: the decision is logged, nothing is injected, so a load is not the decision's own doing.
+  const { f } = await reissuedSession(t, { prepare: { skills: 'shadow' } });
+  const summary = await run(f, { verification: verificationFor(TASK) });
+  assert.deepEqual(summary.labels.written['delegation.skills'], { 'observed-load': 4, 'external-verification-with-load': 2 });
+  const [o] = (await new ObservationLog(observationLogDir(f.config)).read()).observations;
+  assert.deepEqual([o.skills.mode, o.skills.blockInPrompt, o.skills.injectedByHook], ['shadow', false, false]);
+  const report = calibrationReport(await logOf(f).read());
+  assert.deepEqual(report.labels.decisionInfluencedSources, []);
+
+  // The same session read again from a transcript whose first prompt cannot be found: block presence is unknown.
+  const file = path.join(f.transcripts, 'subagents', `agent-${AGENT}.jsonl`);
+  const rows = parseJsonl(await fs.readFile(file, 'utf8')).rows;
+  await fs.writeFile(file, jsonl(rows.filter(row => !(row.type === 'user' && typeof row.message?.content === 'string'))));
+  const unknown = await run(f, { verification: verificationFor(TASK) });
+  assert.deepEqual([unknown.labels.written['delegation.skills'] ?? null, unknown.labels.unlabelled.skills_block_presence_unknown, unknown.warnings.subagent_first_prompt_not_found], [null, 1, 1]);
+  assert.deepEqual(unknown.labels.retracted['delegation.skills'], { 'observed-load': 4, 'external-verification-with-load': 2 });
+  assert.deepEqual(calibrationReport(await logOf(f).read()).labels.bySource.map(s => s.source), ['external-verification']);
 });
