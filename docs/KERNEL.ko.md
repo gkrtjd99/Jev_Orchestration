@@ -366,17 +366,41 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 
 ## 검증 상태
 
-**오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh`, Node 508/508, 2026-11-25)
+**오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh`, Node 503/503, 구문 64개 모듈, 2026-11-25. `orchestration`에서 `npm test`만 돌려도 503/503)
 
 모두 mock judge, 로컬 어휘 judge, loopback 서버, 주입된 fetch, 로컬 CLI의 자식 프로세스로 돌린 계약 검사입니다.
 
 - kernel: 지점 모드, 체인 순서, 실패·낮은 확신 시 escalation, escalation 실패 시 보류한 답 채택, 체인 예산(명시·기본), 설정 병합·검증, env 덮어쓰기
-- judge: OpenAI wire 변환과 응답 검증(label 기준 score 분포 포함), 동의 관문, 크기 제한, 답 검증, 선택 지점의 별도 요청 상한·circuit
+- judge: OpenAI wire 변환과 응답 검증(label 기준 score 분포 포함), 동의 관문, 크기 제한, 답 검증, 선택 지점의 별도 요청 상한·circuit, 제공자별 timeout(loopback 서버로 제공자 timeout 적용·체인 예산 우선·route deadline 우선·재시도 없음 확인)
 - skill: 카탈로그 읽기와 건너뛰기 규칙, 프로젝트 안 심볼릭 링크 root 허용과 프로젝트 밖 root 거부, 적대적 디렉터리 이름의 주입 차단, 경로 구간 검사, BM25, 임계값·상한, 주입 블록 형식, 예산 초과 시 생략, 재호출 재현, 실패 시 미선택
 - supervisor: 판정 조건, 조언 문구, 확신 미달 시 기존 문구 유지
 - log·calibration: 형식 검사, 원문 미기록, 라벨 결합, 지표 계산, 지점별 실패·escalation 비율
 - hook: 분류 지점 `off`/`shadow`의 무표시 동작, 분류 체인 예산 초과 시 typed 오류와 strict deny 유지
-- 기본 동작 보존: 병합 전 트리와 54개 hook 출력·judge 호출 순서를 byte 단위로 비교해 일치. 이 비교는 **일회성 수동 확인이며 저장소에 남긴 테스트가 아닙니다.** 리뷰 수정(체인 예산, 분류 지점 `off`/`shadow` 처리 등) 뒤에는 다시 돌리지 않았습니다.
+- 기본 동작 보존: 아래 [기본 동작 비교](#기본-동작-비교)
+
+### 기본 동작 비교
+
+"기본 설정에서는 kernel 이전과 같다"는 주장을 저장소에 남긴 반복 가능한 검사로 확인합니다.
+
+```bash
+cd orchestration && npm run compare:default      # 또는 node scripts/compare-default-behavior.mjs [--json] [--base <commit>]
+```
+
+- `git archive`로 kernel 이전 커밋(`005d2529`)의 `orchestration/`을 임시 디렉터리에 풀고, 같은 시나리오 코드를 이전 트리와 현재 작업 트리에 각각 별도 프로세스로 실행합니다. fixture는 두 번 모두 같은 정규 경로에 만들고 파일 시각을 고정합니다. judge는 프로세스 내부 mock이며 네트워크를 쓰지 않습니다.
+- 시나리오: hook 모드(`active`/`advisory`/`shadow`) × runtime(`claude`/`codex`) × 9개 이벤트(SessionStart, UserPromptSubmit, 위임 PreToolUse, 같은 `tool_use_id` 재호출, PostToolUse, PostToolUseFailure, Read 조언, custom agent, Workflow 경계) = 54개. 이를 두 설정으로 돌립니다. `judged`는 judge 경로에 필요한 동의·capability 스위치(egress, Codex rewrite, 모델 confirmed, `readAdvice`)를 두 트리에 똑같이 켠 것이고, `untouched`는 `defaults(home)`에 프로젝트 허용 목록과 hook 모드만 넣은 것입니다. 두 설정 모두 `config.kernel`은 건드리지 않은 기본값입니다.
+- 비교 대상: 단계별 hook 출력, judge 호출의 순서와 내용(state, questions, scope), 그 시점까지 저장된 세션 이벤트 type의 multiset. JSON 문자열로 byte 단위 비교합니다.
+- 종료 코드: `0` 일치, `1` 차이 있음(차이를 출력), `2` 실행 불가, `3` 기준 커밋 없음(git checkout이 아니거나 shallow clone). `test/default-behavior.test.mjs`가 이 스크립트를 실행하므로 `npm test`에도 포함됩니다. 기준 커밋이 없으면 그 테스트는 통과가 아니라 skip으로 보고됩니다.
+
+**실행 결과 (2026-11-25, Node v24.19.0, 제공자별 timeout·skill root 변경을 포함한 트리)**: hook 출력 108개(`judged` 54개 중 비어 있지 않은 것 28개, `untouched` 54개 중 30개)와 judge 호출 21건(`judged` 21, `untouched` 0)이 모두 일치했습니다. 차이 0건, 예외로 끝난 출력 0건. 같은 실행을 세 번 반복해 같은 결과를 얻었습니다. 출력 문구 한 글자와 질문 문구 한 단어를 일부러 바꿨을 때 각각 `output`, `judgeCalls` 차이로 잡히고 종료 코드 1이 나오는 것도 확인했습니다(확인 후 원복).
+
+이 비교가 **다루지 않는 것**은 다음과 같고, 스크립트도 매번 출력합니다.
+
+- 기본값이 아닌 kernel 설정(skill, supervisor, `openai`/`local` judge, 지점 `shadow`/`off`, escalation)
+- `controller` 모드, hook 모드 `off`, SubagentStart/SubagentStop/PreCompact/SessionEnd, plan context, 재시도 escalation, `failureMode=block`
+- 실제 Jev/OpenAI 호출, HTTP timeout, cache·circuit 동작
+- judge에 전달되는 `limits` 인자. kernel이 `pointId`와 시간에 따라 변하는 남은 예산을 넣으므로 의도적으로 다릅니다.
+- 이벤트 type 외의 저장 상태(시각이 다르고, 정책 지문은 kernel 설정을 포함하므로 의도적으로 다름), 새로 생긴 decision log
+- 설치, `bin/jev-hook.mjs` 프로세스 진입점과 watchdog, 지연 시간
 
 **측정하지 않은 것**
 

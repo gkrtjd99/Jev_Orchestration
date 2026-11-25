@@ -18,6 +18,7 @@
     "eval:router": "node scripts/evaluate-router.mjs",
     "catalog": "node scripts/catalog.mjs",
     "feedback": "node scripts/feedback.mjs",
+    "compare:default": "node scripts/compare-default-behavior.mjs",
     "test:coverage": "node --test --experimental-test-coverage test/*.test.mjs"
   }
 }

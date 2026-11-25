@@ -8,6 +8,8 @@
 
 검증 범위: 2026-11-25 격리 실행(`scripts/test-all.sh`)에서 Node **498/498**, 구문 **61개 모듈**, 독립 검증기 self-test와 offline suite가 통과했습니다. 모두 mock judge·loopback 서버·주입된 fetch를 사용한 로컬 계약 검증입니다. OpenAI Decisions wire 계약과 기본 모델 이름은 실제 API로 확인하지 않았고, 실제 Jev/OpenAI 판단 품질, skill 선택의 정확도, supervisor 조언의 유용성과 calibration은 **NOT_RUN/미입증**입니다. `local` judge는 calibration되지 않은 어휘 휴리스틱입니다.
 
+3.2.0 후속 보완(2026-11-25, 릴리스 전): (1) OpenAI Decisions judge가 Jev용 전역 `timeoutMs`를 물려받지 않고 `kernel.providers.openai.timeoutMs`(정수 50~5000, 기본 2500, env `JEV_OPENAI_DECISIONS_TIMEOUT_MS`, 오류 `INVALID_KERNEL_OPENAI_TIMEOUT`/`INVALID_JEV_OPENAI_DECISIONS_TIMEOUT_MS`)를 씁니다. 체인 예산은 체인 안 제공자 timeout의 최댓값이며 route deadline 등 호출부 상한이 항상 우선합니다. 재시도와 warm-up 요청은 없습니다. 기본 체인 `['jev']`의 예산은 그대로입니다. (2) `npm run compare:default`(`scripts/compare-default-behavior.mjs`)가 kernel 이전 커밋과 현재 트리의 기본 동작을 byte 단위로 비교합니다. 2026-11-25 실행에서 hook 출력 108개와 mock judge 호출 21건이 일치했습니다. 다루지 않는 범위는 스크립트 출력과 `docs/KERNEL.ko.md`에 있습니다. (3) 테스트 fixture가 임시 디렉터리를 `realpath`로 정규화해 macOS 기본 `TMPDIR`에서도 `npm test`가 통과합니다(수정 전 491건 중 31건 실패, 수정 후 0건). 제품의 심볼릭 링크 검사는 바꾸지 않았습니다. (4) 프로젝트의 `.claude`/`.claude/skills`가 심볼릭 링크여도 실제 경로가 프로젝트 안이면 읽습니다(`root_symlinked` 제거, 프로젝트 밖은 계속 `root_outside_project`). 프로젝트 skill의 주입 경로는 고정된 논리 경로 `.claude/skills/<검증된 폴더>/SKILL.md`이고, 모든 경로는 구간 allow-list를 통과할 때만 들어갑니다. 검증: `scripts/test-all.sh` Node **503/503**, 구문 **64개 모듈**. 모두 mock judge·loopback 서버 기반이며 실제 OpenAI/Jev 호출로 timeout 값을 측정한 것은 아닙니다.
+
 # 미릴리스 — 훅 없는 ultracode 계획 보조, 2026-09-26
 
 repository-local `CLAUDE.md`·약 3KiB의 `jev-ultracode` skill과 `bin/jev-plan.mjs`를 추가했습니다. 원래 Workflow 계획 초안의 목표·수용 기준·1~8개 task를 Jev에 한 번의 batch로 자문하고, Astra가 typed 권고의 채택과 실제 Workflow 옵션을 결정합니다. 기존 installer, hooks, controller 및 사용자 HOME 설정은 변경하지 않습니다.
