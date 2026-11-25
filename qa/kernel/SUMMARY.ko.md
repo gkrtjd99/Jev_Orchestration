@@ -1,4 +1,4 @@
-# Decision kernel QA 요약 (2026-11-25, branch `qa/kernel-eval`, 제품 트리 `c09cd2e`)
+# Decision kernel QA 요약 (2026-11-25, branch `qa/kernel-eval`, 제품 트리 `8c5c33e`)
 
 ## 결론
 
@@ -10,17 +10,19 @@
 - 권한 모드 `auto`에서는 host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출합니다. 재작성된 위임마다 Main 왕복이 한 번 더 듭니다. 이 확장은 이 거부를 우회하지 않습니다.
 - pilot에서 찾은 결함(다시 발행된 위임을 한 번 더 판단. judge 요청 94건 중 46건)은 고쳤습니다(`6ac6014`, `87a72a4`). 수정 뒤 실제 세션 1개에서 재발행 3건에 judge 요청이 0건이었습니다(`results/real-session-reissue-20261125/summary.json`).
 - judge 토큰을 처음 쟀습니다. 그 세션 1회(위임 3건, skill 60개 카탈로그)에서 위임 1건당 입력 약 14,134.3·출력 1,734 토큰입니다(네 지점 합 42,403 / 5,202를 3으로 나눔). 금액은 계산하지 않았습니다.
+- 세션이 끝난 뒤 결정과 결과를 잇는 **결과 수집기**와, 별칭 registry를 위한 `resolvesTo` 선언이 생겼습니다. 수집기는 로컬에서만 읽고 쓰며 그 자체로는 라우팅을 바꾸지 않습니다. 측정 도구이지 측정이 아니어서 항목 1(실제 효과)은 그대로 미해결입니다(아래 "결과 수집기와 `resolvesTo` 선언").
+- **평가 저장소는 여전히 0행입니다.** 수집 경로는 있지만 자료가 없습니다. pilot 세션 2개에 수집기를 돌린 결과 위임 16건에서 평가 행은 0건이고, 라벨은 arm B의 약한 라벨 384개뿐입니다(`results/collector-20261125-r2/`).
 - 숫자는 근거 파일의 표기를 그대로 옮겼습니다. 측정하지 않은 값은 "미측정"으로 적었습니다.
 
 ## 6개 항목 상태
 
 | # | 항목 | 상태 | 확인한 것 (근거 파일) | 남은 것 |
 |---|---|---|---|---|
-| 1 | 실제 효과 (작업 품질·시간·비용) | **미해결** | 판정 일치도만 측정. 합성 데이터, 개발 세트와 held-out 세트 1개 (`results/dev-retrieval-decision-1/`, `results/holdout-1-score-1/`, `results/20261125-full/`). 주입 있음/없음 paired pilot 1회: 실제 세션 2개, 합성 프로젝트(skill 60개), 위임 8건씩. 규칙 검사 통과는 두 arm 모두 skill 과제 6/6. 주입이 없는 arm에서도 서브에이전트 6개 전부가 harness의 skill 목록에서 target을 스스로 load함 (`results/pilot-20261125/`, 아래 "Skill 주입 paired pilot") | 이득은 여전히 미측정. pilot은 baseline이 만점이라 차이가 날 자리가 없었음(천장 효과). 이득이 없다는 증거도 아님. 짝 6개, arm당 1회, 합성 과제. 관찰된 비용 절감 없음(차이가 실행 간 편차 안). pilot의 judge 토큰은 미측정. 재확인 세션(`results/real-session-reissue-20261125/summary.json`)은 hook 동작만 확인했고 작업 결과를 채점하지 않음 |
+| 1 | 실제 효과 (작업 품질·시간·비용) | **미해결** | 판정 일치도만 측정. 합성 데이터, 개발 세트와 held-out 세트 1개 (`results/dev-retrieval-decision-1/`, `results/holdout-1-score-1/`, `results/20261125-full/`). 주입 있음/없음 paired pilot 1회: 실제 세션 2개, 합성 프로젝트(skill 60개), 위임 8건씩. 규칙 검사 통과는 두 arm 모두 skill 과제 6/6. 주입이 없는 arm에서도 서브에이전트 6개 전부가 harness의 skill 목록에서 target을 스스로 load함 (`results/pilot-20261125/`, 아래 "Skill 주입 paired pilot") | 이득은 여전히 미측정. pilot은 baseline이 만점이라 차이가 날 자리가 없었음(천장 효과). 이득이 없다는 증거도 아님. 짝 6개, arm당 1회, 합성 과제. 관찰된 비용 절감 없음(차이가 실행 간 편차 안). pilot의 judge 토큰은 미측정. 재확인 세션(`results/real-session-reissue-20261125/summary.json`)은 hook 동작만 확인했고 작업 결과를 채점하지 않음. 결과 수집기는 재는 도구일 뿐이고 그것으로 모은 평가 행은 0건 |
 | 2 | 실제 hook / 실제 세션 종단 실행 | **부분 해결** | 설치된 entrypoint 직접 호출 100회(그중 실제 judge 시나리오 88회, 나머지 12회는 loopback 장애 주입): 기대 214개 중 212 PASS / 0 FAIL / soft miss 2 (`results/20261125-e2e/hooks.txt`, `hooks.json`). 실제 데스크톱 세션 4회, `advisory` 모드: 실제 Agent 호출에서 hook 실행, 실제 Jev로 라우팅·skill 선택, hand-back 경로에서 supervisor 판정, 세션 4에서 조언이 Main에 전달 (`results/real-session-20261125/summary.json`). pilot의 실제 세션 2개(`active` 모드): 위임 16건 중 15건에서 재작성된 호출이 실행됨(`results/pilot-20261125/`). 재발행 수정 뒤 실제 세션 1개(`active` 모드, 기본 임계값, 위임 3건): 3건 모두 재작성, host 거부, 재발행 인식(judge 요청 0건), 실행, supervisor 판정, Main으로 조언 전달(확신 0.88, 1.00, 0.99). `hook_error`·`failure`·`unverified_prompt` 이벤트 없음 (`results/real-session-reissue-20261125/summary.json`) | 실제 세션에서 미확인: Codex(실행 없음), 결합 수정 뒤 harness 알림 줄이 있는 hand-back prompt 형태(fixture로만 확인. 재확인 세션에서 나왔는지 알 수 없음), 120초보다 늦은 재발행, `auto`가 아닌 권한 모드의 `active`. Codex와 알림 줄 형태가 남아 있어 "해결"로 올리지 않음 |
 | 3 | OpenAI 첫 호출 timeout | **부분 해결** | 제공자별 timeout 추가, 기본 2500 ms. 실제 요청 280건 최대 928 ms (`results/20261125-full/summary.txt`), cold 프로세스 요청 14건 최대 778 ms (`results/20261125-e2e/hooks.json` s17). timeout 0건 | 2500 ms는 분포에서 정한 값이 아닌 초기값. 설정 근거는 1200 ms를 넘긴 cold 호출 1건이고 그 지속 시간은 기록되지 않음(`orchestration/src/kernel/judges.mjs`의 주석). 그 뒤 확인한 cold 표본은 14건뿐(최대 778 ms). 그 뒤 OpenAI를 실제로 다시 부르지 않음 |
-| 4 | 기본 동작 바이트 비교 | **해결** | 이 문서를 쓰며 다시 실행: `npm run compare:default` IDENTICAL, hook 출력 168개·judge 호출 21건, HEAD `2d987ae` (`orchestration/scripts/compare-default-behavior.mjs`) | 없음. 검사가 다루지 않는 범위(기본값이 아닌 kernel 설정, 실제 호출 등)는 주장하지 않음 |
-| 5 | macOS 기본 `TMPDIR`에서 `npm test` | **해결** | 이 문서를 쓰며 다시 실행: `TMPDIR=/var/folders/...` 그대로 608/608 통과 (HEAD `2d987ae`) | 없음 |
+| 4 | 기본 동작 바이트 비교 | **해결** | 이 문서를 쓰며 다시 실행: `npm run compare:default` IDENTICAL, hook 출력 168개·judge 호출 21건, HEAD `50e86eb` (`orchestration/scripts/compare-default-behavior.mjs`) | 없음. 검사가 다루지 않는 범위(기본값이 아닌 kernel 설정, 실제 호출 등)는 주장하지 않음 |
+| 5 | macOS 기본 `TMPDIR`에서 `npm test` | **해결** | 이 문서를 쓰며 다시 실행: `TMPDIR=/var/folders/...` 그대로 653/653 통과 (HEAD `50e86eb`) | 없음 |
 | 6 | 심볼릭 링크된 skill 폴더 | **부분 해결** | 프로젝트 안을 가리키는 링크는 따라가서 읽음 (commit `95e30f1`, `orchestration/test/kernel-skills.test.mjs`) | 프로젝트 밖으로 풀리는 링크는 읽지 않음. 의도된 제한이며 `JEV_SKILL_DIRS`로 지정해야 함. 실제 프로젝트에서는 미확인 |
 
 ## Skill 라우팅: 개발 세트와 held-out 세트
@@ -162,6 +164,29 @@ OpenAI·`local`·`chain` arm과 `adaptive`는 held-out에서 돌리지 않았습
 
 **이 재확인이 다루지 않은 것:** 서브에이전트의 작업이 맞았는지(채점하지 않음. hook 동작만 확인), harness 알림 줄이 있는 hand-back prompt 형태(이 세션에서 나왔는지 알 수 없음), Codex runtime, 120초보다 늦은 재발행. 원자료(hook 상태, transcript)는 저장소 밖 임시 디렉터리에만 두었고 위 파일은 검토된 요약입니다.
 
+## 결과 수집기와 `resolvesTo` 선언 (`results/collector-20261125-r2/`, `results/collector-alias-20261125-r2/`)
+
+**결과 수집기**(`orchestration/scripts/collect.mjs`, `orchestration/src/collector.mjs`)는 세션이 끝난 뒤 hook 상태와 그 세션의 대화 기록을 로컬에서 읽어 세 가지를 씁니다: 위임별 관찰 기록, 기록된 결정의 결과 라벨(라벨마다 근거가 얼마나 강한지 말하는 출처가 붙음), 평가 행 후보. 아무것도 전송하지 않고, 후보를 자동으로 가져오지 않으며, 그 자체로는 라우팅을 바꾸지 않습니다. 이것은 재는 도구이고 측정 결과가 아닙니다.
+
+pilot 세션 2개의 hook 상태 사본과 대화 기록에 오프라인으로 돌렸습니다(`results/collector-20261125-r2/README.md`). 앞선 폴더 `results/collector-20261125/`는 검토 이전 수집기의 결과이고 이 수치로 대체됐습니다.
+
+| | arm A (skill 지점 off) | arm B (skill 지점 active) |
+|---|---|---|
+| 위임 / 대화 기록에 이은 위임 | 8 / 8 | 8 / 8 |
+| 라우팅된 위임 | 7 (1건은 `route_deferred`) | 8 |
+| 쓴 라벨 | 0 | 384, 전부 약한 라벨: `observed-load` 124, `observed-load-after-injection` 248, `external-verification-with-load` 3, `external-verification-with-load-after-injection` 9 |
+| 라벨이 붙은 결정 / skill 지점의 결정 | 해당 없음 | 12 / 32 |
+| 관찰 기록 | 8 | 8 |
+| 검증 항목 일치 | 8/8 (통과 8) | 8/8 (통과 8) |
+| 평가 행 / 보류 | 0 / 8 | 0 / 8 |
+
+- **평가 행은 위임 16건에서 0건입니다.** 두 세션은 기본 평가 context(`native-default-unvalidated`)로 실행됐고, 라우팅된 15건은 host가 기록한 모델 id(`claude-opus-5-5`, `claude-sonnet-5-5`)가 registry의 `backend`(`opus`, `sonnet`)와 문자열이 달랐습니다.
+- **calibration.** 실제 세션에서 나온 첫 수치가 있습니다(arm B, `delegation.skills`). 전부 약한 라벨이고, 합성 pilot 세션 1개(실행 1회)에서 나왔으며, 보고서의 `sufficient`는 모든 묶음에서 `false`(`weak_labels`)입니다. 임계값에 참고할 수 있는 묶음(블록 없음, `observed-load`)은 결정 4개(위임 2건)입니다. 수치는 근거 폴더의 README에 있고 여기에는 옮기지 않았습니다.
+- **`resolvesTo` 선언.** registry 항목에 "host가 이 항목을 이 id로 기록한다"를 사용자가 적는 필드입니다. 가져오기는 실제로 돈 모델이 프로필의 `backend`와 같거나 그 항목에 선언된 id 중 하나와 완전히 같을 때만 평가 행을 받습니다. 선언을 바꾸면 그 프로필의 이전 자료는 세지 않습니다. 서로 다른 구체 모델의 실행은 한 표본으로 합치지 않습니다. 수집기는 선언을 쓰지 않습니다.
+- **선언을 넣어 다시 돌려도 0행입니다**(`results/collector-alias-20261125-r2/README.md`. 앞선 폴더 `results/collector-alias-20261125/`는 대체됨). 세 경우(기록된 config 그대로, context 이름만 줌, context 이름과 선언을 함께 줌) 모두 두 arm에서 0행입니다. pilot 세션이 기본 context로, 그리고 선언 이전에 실행됐기 때문이며 설계된 동작입니다. 선언된 id로 행이 만들어지고 가져와지는 경로는 합성 세션 테스트로만 확인했습니다(`orchestration/test/collector.test.mjs`).
+- **자료가 라우팅에 닿으려면** 사용자가 평가 context에 이름을 붙이고, host가 기록하는 id를 선언하고, 다시 설치하고, `active` 모드로 세션을 돌리고, 외부 검증 결과를 주고, 수집기를 돌리고, 후보를 검토해 명시적으로 가져와야 합니다. 그 뒤에도 프로필마다 같은 과제 집합에서 `minimumSamples` 30건과 성공률의 Wilson 95% 하한 0.85 이상이 필요합니다(`docs/KERNEL.ko.md`의 "평가 행이 만들어지려면"). 지금 저장소는 0행입니다.
+- **한계.** Codex 대화 기록은 지원하지 않습니다. 대화 기록 읽기는 Claude Code 데스크톱 한 버전(`2.1.330`, 권한 모드 `auto`, 세션 2개)에서 본 형태에 의존합니다. `observed-load` 라벨은 서브에이전트의 행동이라 서브에이전트가 만들어 낼 수 있습니다. 라벨은 실행되고, 라우팅되고, 대화 기록에 이을 수 있는 위임의 결정에만 붙습니다.
+
 ## QA에서 찾아 고친 결함
 
 각 수정에 회귀 테스트가 있습니다. 상세는 `orchestration/CHANGELOG.md`와 `docs/KERNEL.ko.md`.
@@ -180,28 +205,33 @@ OpenAI·`local`·`chain` arm과 `adaptive`는 held-out에서 돌리지 않았습
 | `6ac6014` | pilot에서 발견: 권한 모드 `auto`에서 host가 거부한 뒤 Main이 다시 발행한 위임을 hook이 한 번 더 라우팅·skill 판정하고, 서브에이전트가 받지 않은 결정을 기록함(pilot의 judge 요청 94건 중 46건) → 재발행을 인식해 judge를 부르지 않고 원래 결정에 연결. 수정 뒤 실제 세션에서 확인: 재발행 3건에 judge 요청 0건(`results/real-session-reissue-20261125/summary.json`) |
 | `87a72a4` | 위 수정의 리뷰 지적. packet 모양 글이 든 관리 프로필 호출이 라우팅을 건너뜀 → 모양만으로는 아무것도 건너뛰지 않음. 재발행된 호출이 실패한 뒤의 같은 입력 재시도가 연결되지 않음 → 반복으로 연결. 재발행 연결이 host가 알린 실패를 지움, 깨진 색인·잠금이 hook 오류가 됨, 연결된 id의 다른 입력 재사용에 경고 없음 |
 
-## 이 문서를 쓰며 다시 실행한 검사 (2026-11-25, Node v24.19.0, HEAD `2d987ae`, 재확인 결과를 반영하며 재실행)
+| `9519e8b` | 결과 수집기의 리뷰 지적. `need` 라벨을 요청 자신의 skill이 아니라 위임 전체의 load로 붙임(검토 이전 결과의 `need` false negative 7건 중 6건이 이 규칙에서 나옴) → 요청별로 붙임. 블록이 주입된 위임의 라벨이 다른 라벨과 한 출처에 섞임 → `-after-injection` 출처로 분리. 약한 라벨 496개(결정 16개)에 calibration 보고서가 `sufficient: true` → 라벨이 붙은 결정 수로 세고 약한 라벨에는 항상 `false`. 프로젝트 루트의 재귀 검색을 "skill 접근 없음"으로 읽음 → 판정 불가. 그 밖에: 적용되지 않은 route나 프로필과 다른 agent type에는 평가 행을 만들지 않음, 끝이 확인되지 않은 서브에이전트 기록은 잇지 않음, 고쳐진 검증 결과는 이전 라벨을 철회함 |
+| `24d6898` | `resolvesTo`의 리뷰 지적 → 다른 항목의 `backend`인 id의 선언을 거부, 선언을 바꾼 뒤 같은 과제를 다시 가져올 수 있게 함, 한 표본에 두 모델의 실행을 합치지 않음 |
+| `8c5c33e` | 선언 이전에 실행된 세션을 `declared`로 분류함(대체된 결과에서 15건) → `declared-not-in-force`로 분류. 수집기 요약에 registry 조각(`wouldNeed`)이 들어 있었음 → 제거 |
+
+## 이 문서를 쓰며 다시 실행한 검사 (2026-11-25, Node v24.19.0, HEAD `50e86eb`, 수집기와 선언을 반영하며 재실행)
 
 실제 API는 한 건도 부르지 않았습니다.
 
 | 명령 | 관측 결과 |
 |---|---|
-| `bash scripts/test-all.sh` | 종료 코드 0. Node 608/608(실패 0, skip 0), 구문 68개 모듈, Python 검증기 72건 OK, offline suite PASS 31·NOT_RUN 1(live 단계)·FAIL 0 |
-| `cd orchestration && npm test` | 종료 코드 0. 608/608, 실패 0, skip 0 (`TMPDIR=/var/folders/...`) |
+| `bash scripts/test-all.sh` | 종료 코드 0. Node 653/653(실패 0, skip 0), 구문 74개 모듈, Python 검증기 72건 OK, offline suite PASS 31·NOT_RUN 1(live 단계)·FAIL 0 |
+| `cd orchestration && npm test` | 종료 코드 0. 653/653, 실패 0, skip 0 (`TMPDIR=/var/folders/...`) |
 | `cd orchestration && npm run compare:default` | 종료 코드 0. `RESULT: IDENTICAL`, hook 출력 168개, judge 호출 21건, 예외 출력 0 |
-| `node --test qa/kernel/test/*.test.mjs` (API 키 없이) | 종료 코드 0. 25/25 |
+| `node --test qa/kernel/test/*.test.mjs` (API 키 없이) | 종료 코드 0. 26/26 |
 
 ## 병합 전 남은 일
 
-1. **실제 효과를 잰다.** 첫 pilot(`results/pilot-20261125/`)은 두 arm 모두 6/6이어서 효과를 볼 수 없었다. 다음 실험은 (가) baseline만 먼저 돌려 통과가 만점이 아닌 과제 세트를 확인하고(harness 목록이 잘릴 만큼 큰 카탈로그, 목록에 실리지 않는 skill, 설명이 과제 문장과 닮지 않은 skill), (나) arm당 여러 번 실행하고, (다) 두 arm의 profile·모델·effort를 같게 고정하고, (라) decision log의 judge 토큰(`usage`)을 함께 보고하고, (마) 사용자 수준 skill 검색 도구를 꺼야 한다. skill 60개에서는 서브에이전트가 스스로 skill을 찾았다. 이것 없이는 이 기능이 도움이 된다는 근거가 없다.
-2. **`active` 모드의 남은 확인.** 중복 판단은 고쳤고 실제 세션에서 확인했다(위 재확인). 남은 것: `auto`가 아닌 권한 모드, 120초보다 늦은 재발행, 실패 뒤 Main이 어떤 입력으로 재시도하는지. `auto`에서 재작성된 위임마다 드는 Main 왕복 한 번은 host의 안전 장치라 없앨 수 없다. 받아들일지 소유자가 정한다(`active`에는 사용자 수준 `~/.claude/agents`의 `jev4_*` 프로필도 필요).
-3. **harness 알림 줄이 있는 hand-back prompt**를 수정 뒤 실제 세션에서 확인한다. 지금은 fixture뿐이다. 재확인 세션에서 그 형태가 나왔는지는 알 수 없다.
-4. **Codex runtime**의 skill·supervisor 경로를 확인한다. 실제 실행이 없다.
-5. **64개를 넘는 카탈로그에서 한국어 recall 하락의 원인을 확인한다.** held-out 1은 다시 쓸 수 없으므로 새 세트가 필요하다.
-6. **`full`의 비용을 받아들일지 정한다.** 요청 2건, 입력 토큰 수 배, 큰 카탈로그에서 p95가 예산에 근접. 실제 세션 1회에서 위임 1건당 judge 입력 약 14,134.3 토큰(그중 skill 판정 약 8,699.7). 금액은 미계산.
-7. **supervisor의 "retry를 complete로" 오판**(Jev 6/30, 틀린 조언 2건 표시)을 받아들일지, 임계값 0.65를 유지할지 정한다.
-8. **사람이 라벨 표본을 검토한다.** 지금 정확도는 전부 모델이 만든 라벨 기준이다.
-9. **OpenAI timeout 2500 ms**를 cold 표본을 더 모아 확인한다. 지금 값은 분포에서 정한 것이 아니고 cold 표본은 14건뿐이다.
-10. **실제 API 실행의 승인 기록을 정리한다.** `20261125-full`(683건)과 e2e(75건)는 저장소 안에서 승인 기록이 확인되지 않는다(`REPORT.ko.md`). 결과를 근거로 쓸지는 소유자가 정한다.
+1. **실제 효과를 잰다.** 첫 pilot(`results/pilot-20261125/`)은 두 arm 모두 6/6이어서 효과를 볼 수 없었다. 다음 실험은 (가) baseline만 먼저 돌려 통과가 만점이 아닌 과제 세트를 확인하고(harness 목록이 잘릴 만큼 큰 카탈로그, 목록에 실리지 않는 skill, 설명이 과제 문장과 닮지 않은 skill), (나) arm당 여러 번 실행하고, (다) 두 arm의 profile·모델·effort를 같게 고정하고, (라) decision log의 judge 토큰(`usage`)을 함께 보고하고(결과 수집기의 관찰 보고서가 `usage`가 있는 log에서 judge 토큰 비중을 냄), (마) 사용자 수준 skill 검색 도구를 꺼야 한다. skill 60개에서는 서브에이전트가 스스로 skill을 찾았다. 이것 없이는 이 기능이 도움이 된다는 근거가 없다.
+2. **수집 경로에 자료를 채운다.** 결과 수집기와 가져오기 경로는 있지만 평가 저장소는 0행이다. 평가 context 이름과 `resolvesTo` 선언을 정한 뒤 새 `active` 세션을 돌리고, 외부 검증 결과와 함께 수집해 검토하고 가져와야 한다(프로필마다 같은 과제 집합에서 30건). pilot 세션 2개는 어떤 설정으로도 가져올 수 없다. 수집기 자체의 남은 확인: 재발행 수정 이후 형태의 실제 자료 수집(테스트만 있음), hook이 남긴 모델 id와 대화 기록의 대조(테스트만 있음), "그 skill이 필요했는가"의 검증된 라벨을 만드는 방법(없음).
+3. **`active` 모드의 남은 확인.** 중복 판단은 고쳤고 실제 세션에서 확인했다(위 재확인). 남은 것: `auto`가 아닌 권한 모드, 120초보다 늦은 재발행, 실패 뒤 Main이 어떤 입력으로 재시도하는지. `auto`에서 재작성된 위임마다 드는 Main 왕복 한 번은 host의 안전 장치라 없앨 수 없다. 받아들일지 소유자가 정한다(`active`에는 사용자 수준 `~/.claude/agents`의 `jev4_*` 프로필도 필요).
+4. **harness 알림 줄이 있는 hand-back prompt**를 수정 뒤 실제 세션에서 확인한다. 지금은 fixture뿐이다. 재확인 세션에서 그 형태가 나왔는지는 알 수 없다.
+5. **Codex runtime**의 skill·supervisor 경로를 확인한다. 실제 실행이 없다.
+6. **64개를 넘는 카탈로그에서 한국어 recall 하락의 원인을 확인한다.** held-out 1은 다시 쓸 수 없으므로 새 세트가 필요하다.
+7. **`full`의 비용을 받아들일지 정한다.** 요청 2건, 입력 토큰 수 배, 큰 카탈로그에서 p95가 예산에 근접. 실제 세션 1회에서 위임 1건당 judge 입력 약 14,134.3 토큰(그중 skill 판정 약 8,699.7). 금액은 미계산.
+8. **supervisor의 "retry를 complete로" 오판**(Jev 6/30, 틀린 조언 2건 표시)을 받아들일지, 임계값 0.65를 유지할지 정한다.
+9. **사람이 라벨 표본을 검토한다.** 지금 정확도는 전부 모델이 만든 라벨 기준이다.
+10. **OpenAI timeout 2500 ms**를 cold 표본을 더 모아 확인한다. 지금 값은 분포에서 정한 것이 아니고 cold 표본은 14건뿐이다.
+11. **실제 API 실행의 승인 기록을 정리한다.** `20261125-full`(683건)과 e2e(75건)는 저장소 안에서 승인 기록이 확인되지 않는다(`REPORT.ko.md`). 결과를 근거로 쓸지는 소유자가 정한다.
 
 상세: `docs/KERNEL.ko.md`의 "검증 상태"와 "결정 기록". 초기 실행의 전체 수치는 `qa/kernel/REPORT.ko.md`.

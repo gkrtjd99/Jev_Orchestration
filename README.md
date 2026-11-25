@@ -44,6 +44,7 @@ Jev Orchestration은 Claude Code의 `PreToolUse` hook(훅)에서 서브에이전
 | 모델·effort 선택 | 위임 작업의 성격을 판단하고, 확인된 프로필 중 하나를 고르거나 보류 | 외부 전송 허용 + registry에서 `confirmed`로 표시한 모델 |
 | skill 라우팅 | 프로젝트 skill 중 이 작업에 필요한 것을 확률로 선택 | `JEV_SKILLS_MODE=active` (기본 `off`) |
 | 보고 검토 | subagent 보고를 complete / retry / replan / escalate로 분류해 조언 | `JEV_SUPERVISOR_MODE=active` (기본 `off`) |
+| 결과 수집 (선택) | 세션이 끝난 뒤 로컬 기록을 읽어, 판단이 실제로 어떻게 됐는지 위임별로 정리. 아무것도 전송하지 않고 그 자체로는 라우팅을 바꾸지 않음 | 직접 실행: `node orchestration/scripts/collect.mjs` ([결과 수집기](docs/KERNEL.ko.md#결과-수집기)) |
 
 `JEV_MODE`가 전체 상한이고, 개별 설정은 그 안에서 기능을 켜고 끕니다. 새로 설치하면 `JEV_MODE=shadow`, `JEV_ALLOW_EGRESS=false`입니다. `JEV_ALLOW_EGRESS=true`로 바꾸기 전에는 어떤 기능도 judge를 부르지 않고, `JEV_MODE`를 `advisory`나 `active`로 바꾸기 전에는 Main에게 아무것도 보이지 않으며 위임도 바뀌지 않습니다.
 
@@ -157,6 +158,7 @@ Jev supervisor (advisory): complete (confidence 0.75, reported evidence level 1 
 - 실제 세션 확인은 배선 확인까지입니다. Claude Code 데스크톱 세션 4회(`advisory`)에서 실제 `Agent` 호출에 hook이 실행되고 실제 judge가 skill을 고르는 것을 확인했습니다. 4회 모두 subagent가 스스로 맞는 skill을 읽었으므로 이 세션들은 효과를 보여 주지 않습니다. [실제 세션 요약](qa/kernel/results/real-session-20261125/summary.json)
 - 실제 세션의 `active` 모드(subagent 지시문 재작성)는 권한 모드 `auto`에서만 확인했습니다. 고쳐진 호출이 실행된 것은 pilot 세션 2개의 위임 16건 중 15건, 재확인 세션 1개의 3건 중 3건입니다. `auto`에서는 host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출하므로 그런 위임마다 Main 왕복이 한 번 더 듭니다. Jev Orchestration은 이 거부를 우회하지 않습니다. [재확인 요약](qa/kernel/results/real-session-reissue-20261125/summary.json)
 - 그 재확인 세션에서 supervisor 조언은 기본 임계값으로 위임 3건 중 3건에서 Main에 전달됐습니다. 이 세션은 hook 동작만 확인했고 subagent의 작업이 맞았는지는 채점하지 않았습니다.
+- 세션 결과를 판단 기록에 잇는 수집 경로는 생겼지만 모인 자료가 없습니다. 모델·effort 선택에 쓰이는 평가 저장소는 0행이고, pilot 세션 2개에 수집기를 돌려도 위임 16건에서 평가 행은 0건이었습니다. 실제 세션에서 나온 calibration 수치는 합성 pilot 세션 1개의 약한 라벨(skill 판단 32개 중 12개)뿐이고, 보고서도 충분하지 않다고 표시합니다. 수집기는 Claude Code 데스크톱 한 버전의 기록 형태만 읽고 Codex 기록은 읽지 못합니다. [수집기 결과](qa/kernel/results/collector-20261125-r2/README.md), [평가 행이 만들어지려면](docs/KERNEL.ko.md#평가-행이-만들어지려면)
 - Codex 런타임은 확인하지 않았습니다. harness 알림 줄이 붙은 hand-back과 120초보다 늦은 재호출도 실제 세션에서 확인하지 않았습니다.
 - judge 호출에 드는 금액은 계산하지 않았고, 반복 실행의 편차도 재지 않았습니다.
 - 한국어 recall은 skill 40개 개발 세트의 0.939에서 skill 72개 held-out 세트의 0.796으로 떨어졌습니다. 한 번에 판단하는 skill 수 상한(64개)이 원인으로 의심되지만 확인하지 못했습니다.
@@ -221,7 +223,7 @@ Jev Orchestration은 `shadow`나 `advisory`로 먼저 지켜보기를 권합니�
 ## 더 읽을거리
 
 - [설치·환경·인증](docs/SETUP.ko.md): 키, 모델 registry, 활성화 순서, 이전과 해제, 문제 해결.
-- [Decision kernel 설계](docs/KERNEL.ko.md): 결정 지점, judge 체인, skill 라우팅, supervisor, decision log.
+- [Decision kernel 설계](docs/KERNEL.ko.md): 결정 지점, judge 체인, skill 라우팅, supervisor, decision log, 결과 수집기.
 - [보안·한계](docs/SECURITY.ko.md): 신뢰 경계, 저장되는 상태, 네트워크.
 - [측정 결과 전체](qa/kernel/SUMMARY.ko.md)와 [평가 보고서](qa/kernel/REPORT.ko.md).
 

@@ -44,6 +44,7 @@ Jev Orchestration does model routing for subagents through a Claude Code `PreToo
 | Model and effort selection | Judges the nature of the delegated task and selects one confirmed profile, or abstains | Allow sending + models marked `confirmed` in the registry |
 | Skill routing | Selects, by probability, the project skills this task needs | `JEV_SKILLS_MODE=active` (default `off`) |
 | Report review | Classifies the subagent report as complete / retry / replan / escalate and advises | `JEV_SUPERVISOR_MODE=active` (default `off`) |
+| Outcome collection (optional) | After a session, reads the local records and sets out per delegation how the judgments turned out. Sends nothing and does not change routing by itself | Run by hand: `node orchestration/scripts/collect.mjs` ([outcome collector](docs/KERNEL.ko.md#결과-수집기), Korean) |
 
 `JEV_MODE` is the overall ceiling, and the individual settings switch features on and off inside it. A fresh install uses `JEV_MODE=shadow` and `JEV_ALLOW_EGRESS=false`. Until you set `JEV_ALLOW_EGRESS=true`, no feature calls a judge; until you set `JEV_MODE` to `advisory` or `active`, Main sees nothing and no delegation is changed.
 
@@ -157,6 +158,7 @@ What has been measured is how often Jev Orchestration's judgments agree with ref
 - Real-session checks cover the wiring only. In 4 Claude Code desktop sessions (`advisory`), hooks fired on real `Agent` calls and the live judge selected a skill. In every session the subagent loaded the right skill by itself, so these sessions show no benefit. [real session summary](qa/kernel/results/real-session-20261125/summary.json)
 - `active` mode in a real session (rewriting the subagent's instructions) has been checked only in the `auto` permission mode. The rewritten call ran for 15 of 16 delegations in the 2 pilot sessions and for 3 of 3 in 1 re-check session. In `auto` the host refuses the rewritten call once and Main issues it again, so each such delegation costs one extra Main round trip. Jev Orchestration does not bypass that refusal. [re-check summary](qa/kernel/results/real-session-reissue-20261125/summary.json)
 - In that re-check session, supervisor advice reached Main for 3 of 3 delegations at the default threshold. The session checked hook behaviour only; whether the subagents' work was correct was not scored.
+- A path that links session outcomes to the recorded judgments now exists, but it holds no data. The evidence store used for model and effort selection has 0 rows, and running the collector on the 2 pilot sessions produced 0 evaluation rows from 16 delegations. The only calibration figures from a real session are weak labels from 1 synthetic pilot session (12 of 32 skill judgments), and the report marks them as not sufficient. The collector reads only the record shapes of one Claude Code desktop version and cannot read Codex records. [collector results](qa/kernel/results/collector-20261125-r2/README.md), [what an evaluation row requires](docs/KERNEL.ko.md#평가-행이-만들어지려면) (Korean)
 - The Codex runtime has not been checked. A hand-back carrying the harness notice line and a re-issue later than 120 s have not been checked in a real session either.
 - The monetary cost of judge calls has not been calculated, and run-to-run variance has not been measured.
 - Korean recall fell from 0.939 on the 40-skill development set to 0.796 on the 72-skill held-out set. The 64-skill judging limit is suspected but not confirmed.
@@ -223,7 +225,7 @@ Start by watching Jev Orchestration in `shadow` or `advisory`. Judgment agreemen
 The linked documents are written in Korean.
 
 - [Setup, environment and authentication](docs/SETUP.ko.md): keys, model registry, activation order, migration and uninstall, troubleshooting.
-- [Decision kernel design](docs/KERNEL.ko.md): decision points, judge chain, skill routing, supervisor, decision log.
+- [Decision kernel design](docs/KERNEL.ko.md): decision points, judge chain, skill routing, supervisor, decision log, outcome collector.
 - [Security and limits](docs/SECURITY.ko.md): trust boundaries, stored state, network.
 - [All measured results](qa/kernel/SUMMARY.ko.md) and the [evaluation report](qa/kernel/REPORT.ko.md).
 
