@@ -102,7 +102,7 @@ Right after the quick start (`shadow`, sending off) nothing visible happens. Cha
 
 1. `JEV_ALLOW_EGRESS=true`: judges start being called. Results are only recorded; Main sees nothing.
 2. `JEV_MODE=advisory`, `JEV_SKILLS_MODE=active`: judgments are shown to Main as advice. Delegation calls are unchanged.
-3. `JEV_MODE=active`: the profile and the skill block are applied to the delegation call. Codex also needs `JEV_CODEX_REWRITE_APPROVED=true`. This step has not been checked in a real session.
+3. `JEV_MODE=active`: the profile and the skill block are applied to the delegation call. Codex also needs `JEV_CODEX_REWRITE_APPROVED=true`. This step has been checked in real Claude Code sessions (in the `auto` permission mode the host refuses the rewritten call once and Main issues it again); it has not been checked in Codex.
 
 At step 2, when Main delegates to a subagent, Main receives advice like this (format example, shortened).
 
@@ -148,14 +148,16 @@ What has been measured is how often Jev Orchestration's judgments agree with ref
 - **Skill routing (synthetic held-out set: 72 unseen skills, 180 tasks).** On this set, 96.7% of loaded skills matched the label and 11.9% of labeled skills were not loaded (precision 0.967, recall 0.881, F1 0.922). 1 of the 63 tasks that needed no skill got a skill. [held-out summary](qa/kernel/results/holdout-1-score-1/summary.txt)
 - **Korean tasks.** On the same held-out set, recall was 0.796 on the 72 Korean tasks and 0.951 on the 81 English tasks. More skills are missed on Korean tasks.
 - **Development set (40 skills, 159 of 160 tasks where two labelers agreed).** Load F1 was 0.970. This set was used to choose the defaults, so it scores higher than the held-out set. [development summary](qa/kernel/results/dev-retrieval-decision-1/summary.txt)
-- **Latency and judge usage.** With skill routing on and a 72-skill catalog, a delegation waited about 0.8 to 0.9 s for the judge (p50 808 ms, p95 924 ms, 2 requests, about 10,341 input and 1,236 output tokens, default `full` retrieval). On the 40-skill development set p50 was 220 ms.
+- **Latency and judge usage.** With skill routing on and a 72-skill catalog, a delegation waited about 0.8 to 0.9 s for the judge (p50 808 ms, p95 924 ms, 2 requests, about 10,341 input and 1,236 output tokens, default `full` retrieval). On the 40-skill development set p50 was 220 ms. In one real session (3 delegations, 60 skills), judge tokens came to about 14,134 input and 1,734 output per delegation (the totals for classification, profile, skills and report review, 42,403 / 5,202, divided by 3). [re-check summary](qa/kernel/results/real-session-reissue-20261125/summary.json)
 - **Report classification (120 synthetic reports).** Accuracy was 93.3% over all 120, and 98.0% on the 100 reports (83.3%) confident enough to be shown to Main. The main error: 6 of 30 `retry` reports, which needed another attempt, were classified `complete`. [full run summary](qa/kernel/results/20261125-full/summary.txt)
 
 ### What is not known yet
 
 - **Whether real task quality, time or cost improves is still unknown.** In one small paired pilot with and without skill injection (2 real sessions, 6 synthetic task pairs, one run each), both sides passed the convention checks on 6 of 6 tasks, and without injection the subagent still loaded the right skill by itself. So this pilot can neither measure a benefit from injection nor show that there is none. [pilot results](qa/kernel/results/pilot-20261125/README.md) (Korean)
-- Real-session checks cover the wiring only. In 4 Claude Code desktop sessions (`advisory`), hooks fired on real `Agent` calls and the live judge selected a skill; supervisor advice reached Main once, in session 4, after a fix. In every session the subagent loaded the right skill by itself, so these sessions show no benefit. [real session summary](qa/kernel/results/real-session-20261125/summary.json)
-- `active` mode in a real session (rewriting the subagent's instructions) has been checked only in the 2 sessions of that pilot, and only in the `auto` permission mode. The Codex runtime has not been checked.
+- Real-session checks cover the wiring only. In 4 Claude Code desktop sessions (`advisory`), hooks fired on real `Agent` calls and the live judge selected a skill. In every session the subagent loaded the right skill by itself, so these sessions show no benefit. [real session summary](qa/kernel/results/real-session-20261125/summary.json)
+- `active` mode in a real session (rewriting the subagent's instructions) has been checked only in the `auto` permission mode. The rewritten call ran for 15 of 16 delegations in the 2 pilot sessions and for 3 of 3 in 1 re-check session. In `auto` the host refuses the rewritten call once and Main issues it again, so each such delegation costs one extra Main round trip. Jev Orchestration does not bypass that refusal. [re-check summary](qa/kernel/results/real-session-reissue-20261125/summary.json)
+- In that re-check session, supervisor advice reached Main for 3 of 3 delegations at the default threshold. The session checked hook behaviour only; whether the subagents' work was correct was not scored.
+- The Codex runtime has not been checked. A hand-back carrying the harness notice line and a re-issue later than 120 s have not been checked in a real session either.
 - The monetary cost of judge calls has not been calculated, and run-to-run variance has not been measured.
 - Korean recall fell from 0.939 on the 40-skill development set to 0.796 on the 72-skill held-out set. The 64-skill judging limit is suspected but not confirmed.
 
@@ -166,7 +168,7 @@ All figures, the direct hook invocation results and the remaining work are in th
 | Area | Status | Notes |
 |---|---|---|
 | Claude Code `shadow` / `advisory` | Checked | Checked in real desktop-app sessions up to `advisory` |
-| Claude Code `active` | Supported, not checked in a real session | Checked by local tests only |
+| Claude Code `active` | Checked in real sessions (`auto` permission mode only) | 3 sessions. In `auto`, each rewritten delegation costs one extra Main round trip |
 | Codex `shadow` / `advisory` / `active` | Supported, not checked in a real session | `active` needs `JEV_CODEX_REWRITE_APPROVED=true`; without it, advice only |
 | Judge: TypeSafe Jev | Checked | The default |
 | Judges: OpenAI Decisions API, `local` | Supported | OpenAI needs separate approval and a key and was not measured on the held-out set. `local` is skills only and its rule is not tuned for accuracy |
@@ -211,7 +213,7 @@ Jev is the default judge in Jev Orchestration and the only one enabled without e
 With its default settings Jev Orchestration sends nothing. Once you set `JEV_ALLOW_EGRESS=true`, the delegation text and limited document metadata go to the judge; with skill routing on, skill names and descriptions go too, and with report review on, the subagent's report text (1600 characters at most) goes too. Whole source files and whole conversations are not sent automatically.
 
 **Does Jev Orchestration skill routing save tokens or money?**
-Unknown. Savings from Jev Orchestration have not been measured, and each skill decision itself used about 10,341 input tokens on the 72-skill held-out set.
+Unknown. Savings from Jev Orchestration have not been measured, and each skill decision itself used about 10,341 input tokens on the 72-skill held-out set. In one real session (3 delegations, 60 skills), the four judgments together used about 14,134 judge input tokens per delegation.
 
 **Is Jev Orchestration ready for real work?**
 Start by watching Jev Orchestration in `shadow` or `advisory`. Judgment agreement has been measured, but the effect on real tasks has not.

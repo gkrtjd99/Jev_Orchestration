@@ -102,7 +102,7 @@ node orchestration/scripts/uninstall.mjs                 # 해제 계획. --yes 
 
 1. `JEV_ALLOW_EGRESS=true`: judge를 부르기 시작합니다. 결과는 기록만 되고 Main에게 보이지 않습니다.
 2. `JEV_MODE=advisory`, `JEV_SKILLS_MODE=active`: 판단이 Main에게 조언으로 보입니다. 위임 호출은 바뀌지 않습니다.
-3. `JEV_MODE=active`: 위임 호출에 프로필과 skill 블록이 반영됩니다. Codex는 `JEV_CODEX_REWRITE_APPROVED=true`도 필요합니다. 이 단계는 실제 세션에서 확인하지 않았습니다.
+3. `JEV_MODE=active`: 위임 호출에 프로필과 skill 블록이 반영됩니다. Codex는 `JEV_CODEX_REWRITE_APPROVED=true`도 필요합니다. 이 단계는 Claude Code의 실제 세션에서 확인했고(권한 모드 `auto`에서는 host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출합니다), Codex에서는 확인하지 않았습니다.
 
 2단계에서 Main이 subagent에게 일을 위임하면 Main은 다음과 같은 조언을 받습니다(형식 예시, 일부 생략).
 
@@ -148,14 +148,16 @@ Jev supervisor (advisory): complete (confidence 0.75, reported evidence level 1 
 - **skill 라우팅 (합성 held-out 세트: 처음 보는 skill 72개, 작업 180건).** 이 세트에서 load한 skill의 96.7%가 라벨과 일치했고, 라벨된 skill의 11.9%는 load하지 못했습니다(precision 0.967, recall 0.881, F1 0.922). skill이 필요 없는 작업 63건 중 1건에 skill이 들어갔습니다. [held-out 요약](qa/kernel/results/holdout-1-score-1/summary.txt)
 - **한국어 작업.** 같은 held-out 세트에서 한국어 작업 72건의 recall은 0.796, 영어 작업 81건은 0.951이었습니다. 한국어 작업에서 skill을 더 많이 놓칩니다.
 - **개발 세트 (skill 40개, 두 라벨이 일치한 159건 / 전체 160건).** load F1 0.970입니다. 기본값을 정하는 데 쓴 세트라 held-out보다 높게 나옵니다. [개발 세트 요약](qa/kernel/results/dev-retrieval-decision-1/summary.txt)
-- **지연과 judge 사용량.** skill 라우팅을 켜고 skill 72개 카탈로그를 쓰면 위임 1건이 judge를 0.8~0.9초쯤 기다렸습니다(p50 808 ms, p95 924 ms, 요청 2건, 입력 약 10,341 토큰·출력 약 1,236 토큰, 기본 `full` 방식). skill 40개 개발 세트에서는 p50 220 ms였습니다.
+- **지연과 judge 사용량.** skill 라우팅을 켜고 skill 72개 카탈로그를 쓰면 위임 1건이 judge를 0.8~0.9초쯤 기다렸습니다(p50 808 ms, p95 924 ms, 요청 2건, 입력 약 10,341 토큰·출력 약 1,236 토큰, 기본 `full` 방식). skill 40개 개발 세트에서는 p50 220 ms였습니다. 실제 세션 1회(위임 3건, skill 60개)에서 judge 토큰은 위임 1건당 입력 약 14,134·출력 1,734였습니다(분류·프로필·skill·보고 검토의 합 42,403 / 5,202를 3으로 나눈 값). [재확인 요약](qa/kernel/results/real-session-reissue-20261125/summary.json)
 - **보고 분류 (합성 보고 120건).** 전체 정확도는 93.3%입니다. Main에게 보일 만큼 확신한 100건(83.3%)에서는 98.0%였습니다. 재시도가 필요한 `retry` 보고 30건 중 6건을 `complete`로 분류한 것이 주된 오류입니다. [전체 실행 요약](qa/kernel/results/20261125-full/summary.txt)
 
 ### 아직 모르는 것
 
 - **실제 작업의 품질·시간·비용이 좋아지는지는 아직 모릅니다.** skill 주입 있음/없음을 짝지은 작은 pilot(실제 세션 2개, 합성 과제 6쌍, 각 1회 실행)에서는 두 쪽 모두 6개 중 6개가 규칙 검사를 통과했고, 주입이 없는 쪽에서도 subagent가 맞는 skill을 스스로 읽었습니다. 그래서 이 pilot으로는 주입의 이득을 잴 수도, 이득이 없다고 할 수도 없습니다. [pilot 결과](qa/kernel/results/pilot-20261125/README.md)
-- 실제 세션 확인은 배선 확인까지입니다. Claude Code 데스크톱 세션 4회(`advisory`)에서 실제 `Agent` 호출에 hook이 실행되고 실제 judge가 skill을 고르는 것을 확인했고, supervisor 조언이 Main에 전달된 것은 수정 뒤의 세션 4에서 1회입니다. 4회 모두 subagent가 스스로 맞는 skill을 읽었으므로 이 세션들은 효과를 보여 주지 않습니다. [실제 세션 요약](qa/kernel/results/real-session-20261125/summary.json)
-- 실제 세션의 `active` 모드(subagent 지시문 재작성)는 위 pilot의 세션 2개에서만, 권한 모드 `auto`에서만 확인했습니다. Codex 런타임은 확인하지 않았습니다.
+- 실제 세션 확인은 배선 확인까지입니다. Claude Code 데스크톱 세션 4회(`advisory`)에서 실제 `Agent` 호출에 hook이 실행되고 실제 judge가 skill을 고르는 것을 확인했습니다. 4회 모두 subagent가 스스로 맞는 skill을 읽었으므로 이 세션들은 효과를 보여 주지 않습니다. [실제 세션 요약](qa/kernel/results/real-session-20261125/summary.json)
+- 실제 세션의 `active` 모드(subagent 지시문 재작성)는 권한 모드 `auto`에서만 확인했습니다. 고쳐진 호출이 실행된 것은 pilot 세션 2개의 위임 16건 중 15건, 재확인 세션 1개의 3건 중 3건입니다. `auto`에서는 host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출하므로 그런 위임마다 Main 왕복이 한 번 더 듭니다. Jev Orchestration은 이 거부를 우회하지 않습니다. [재확인 요약](qa/kernel/results/real-session-reissue-20261125/summary.json)
+- 그 재확인 세션에서 supervisor 조언은 기본 임계값으로 위임 3건 중 3건에서 Main에 전달됐습니다. 이 세션은 hook 동작만 확인했고 subagent의 작업이 맞았는지는 채점하지 않았습니다.
+- Codex 런타임은 확인하지 않았습니다. harness 알림 줄이 붙은 hand-back과 120초보다 늦은 재호출도 실제 세션에서 확인하지 않았습니다.
 - judge 호출에 드는 금액은 계산하지 않았고, 반복 실행의 편차도 재지 않았습니다.
 - 한국어 recall은 skill 40개 개발 세트의 0.939에서 skill 72개 held-out 세트의 0.796으로 떨어졌습니다. 한 번에 판단하는 skill 수 상한(64개)이 원인으로 의심되지만 확인하지 못했습니다.
 
@@ -166,7 +168,7 @@ Jev supervisor (advisory): complete (confidence 0.75, reported evidence level 1 
 | 구분 | 상태 | 비고 |
 |---|---|---|
 | Claude Code `shadow` / `advisory` | 확인됨 | 데스크톱 앱 실제 세션에서 `advisory`까지 확인 |
-| Claude Code `active` | 지원하지만 실제 세션 미확인 | 로컬 테스트로만 확인 |
+| Claude Code `active` | 실제 세션에서 확인됨 (권한 모드 `auto`만) | 세션 3개. `auto`에서는 고쳐진 위임마다 Main 왕복 1회 추가 |
 | Codex `shadow` / `advisory` / `active` | 지원하지만 실제 세션 미확인 | `active`는 `JEV_CODEX_REWRITE_APPROVED=true` 필요. 없으면 조언만 함 |
 | judge: TypeSafe Jev | 확인됨 | 기본값 |
 | judge: OpenAI Decisions API, `local` | 지원 | OpenAI는 별도 승인과 키 필요, held-out 세트 미측정. `local`은 skill 전용이고 정확도를 맞추지 않은 규칙 |
@@ -211,7 +213,7 @@ Jev Orchestration의 기본값은 Jev이고, 추가 승인 없이 켜지는 judg
 기본 설정의 Jev Orchestration은 아무것도 전송하지 않습니다. `JEV_ALLOW_EGRESS=true`로 바꾸면 위임 텍스트와 제한된 문서 메타데이터가 judge에게 가고, skill 라우팅을 켜면 skill 이름과 설명이, 보고 검토를 켜면 subagent 보고 텍스트(최대 1600자)가 함께 갑니다. 소스 전체나 대화 전체는 자동으로 보내지 않습니다.
 
 **Jev Orchestration의 skill 라우팅이 토큰이나 비용을 아껴 주나요?**
-알 수 없습니다. Jev Orchestration의 비용 절감 효과는 측정하지 않았고, skill 판단 자체가 skill 72개 held-out 세트에서 1건당 입력 약 10,341 토큰을 썼습니다.
+알 수 없습니다. Jev Orchestration의 비용 절감 효과는 측정하지 않았고, skill 판단 자체가 skill 72개 held-out 세트에서 1건당 입력 약 10,341 토큰을 썼습니다. 실제 세션 1회(위임 3건, skill 60개)에서는 네 판단을 합쳐 위임 1건당 judge 입력 약 14,134 토큰이었습니다.
 
 **Jev Orchestration을 실제 업무에 바로 써도 되나요?**
 Jev Orchestration은 `shadow`나 `advisory`로 먼저 지켜보기를 권합니다. 판단 일치도는 측정했지만 실제 작업 개선 효과는 아직 측정하지 않았습니다.
