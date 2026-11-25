@@ -14,7 +14,7 @@ import { createKernel } from './kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
 import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
 import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, supervisorSentence, reportText } from './kernel/supervisor.mjs';
-import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptReportHash, handbackReportHash, validAgentId,
+import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptWellFormed, handbackPromptMatches, handbackReportBinding, validAgentId,
   HANDBACK_WAIT_MS, HANDBACK_HOOK_BUDGET_MS, HANDBACK_GRACE_MS, HANDBACK_POLL_MS, HANDBACK_STALE_MS, HANDBACK_PROMPT_WINDOW_MS,
   HANDBACK_DELIVERY_MAX_AGE_MS, HANDBACK_MAX_JUDGED_PER_TASK } from './kernel/handback.mjs';
 import { planContext } from './plan-context.mjs';
@@ -111,9 +111,9 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         if(!Number.isFinite(since)||Date.now()-since<HANDBACK_STALE_MS||!await ledger.claim(id,'retry'))return;
       }
       // The in-flight record is written before any lookup or judge call: the hand-back prompt hook starts
-      // about 70 ms after this one and waits only while it can see this record. reportHash binds the record
-      // to the one prompt that carries this report.
-      base={schema:1,agentId,handbackId:id,reportHash:handbackReportHash(message),seenAt:Date.now()};
+      // about 70 ms after this one and waits only while it can see this record. reportHash and the line
+      // hashes bind the record to the one prompt that carries this report (hashes only, no text).
+      base={schema:2,agentId,handbackId:id,...handbackReportBinding(message,agentId,id),seenAt:Date.now()};
       await ledger.write(agentId,{...base,status:'in_flight'});
       await ledger.prune(agentId);
       const skip=async reason=>{await ledger.write(agentId,{...base,status:'skipped',reason});await note({status:'skipped',reason});};
@@ -151,8 +151,9 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
   };
   // A Main prompt that is the harness's hand-back block for agent X, while supervisor.outcome is active.
   // Returns the hand-back record this prompt belongs to, or null; null means "handle this prompt exactly as before".
-  // The agent id is taken from the header; the body is only hashed and compared with the hash of the report
-  // the runtime's SubagentHandback event carried. A record belongs to this prompt when it is the same agent,
+  // The agent id is taken from the header; the body is only hashed, line by line, and compared with the hashes
+  // of the report the runtime's SubagentHandback event carried (handbackPromptMatches: the report's lines in
+  // order, optionally behind one indented '[harness:' notice). A record belongs to this prompt when it is the same agent,
   // the same report, the same session epoch (not from before a /clear) and it has not vouched for a
   // different prompt. Another hand-back of the same agent (an earlier one, or one already used) is not this
   // prompt's record: the hook then waits the same short grace as when there is no record at all, because the
@@ -161,8 +162,12 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
     try{
       const agentId=handbackPromptAgent(e.prompt);
       if(!agentId||kernel().point(SUPERVISOR_POINT).mode!=='active')return null;
-      const reportHash=handbackPromptReportHash(e.prompt);
-      if(!reportHash)return null; // not exactly one agent-message element: no record can belong to it
+      if(!handbackPromptWellFormed(e.prompt))return null; // not exactly one agent-message element: no record can belong to it
+      const matched=new Map(); // a record's binding never changes, so each hand-back is compared with this prompt once
+      const carries=record=>{
+        if(!matched.has(record.handbackId))matched.set(record.handbackId,handbackPromptMatches(e.prompt,record));
+        return matched.get(record.handbackId);
+      };
       const promptHash=hash(e.prompt);
       const ledger=new HandbackLedger(store.dir);
       const limit=began+HANDBACK_HOOK_BUDGET_MS;
@@ -170,7 +175,7 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       const find=async()=>{
         const mine=[];
         for(const record of await ledger.records(agentId)){
-          if(record.reportHash!==reportHash||record.seenAt<epoch)continue;
+          if(record.seenAt<epoch||!carries(record))continue;
           const vouched=await ledger.claimed(record.handbackId,'prompt');
           if(vouched!==null&&vouched!==promptHash)continue;
           mine.push({record,fresh:vouched===null&&await ledger.claimed(record.handbackId,'delivered')===null});

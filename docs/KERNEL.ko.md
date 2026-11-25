@@ -377,10 +377,10 @@ hand-back 경로의 동작입니다.
 1. **위임 연결.** `SubagentHandback`의 `agent_id`를 그 세션의 `spawn_observed` 기록(Agent `PostToolUse`의 `agentId`)으로 위임 tool id에 연결하고, 그 tool id에 저장된 route가 있을 때만 판정합니다. 같은 agent id를 여러 위임이 가리키면 가장 최근 것을 씁니다(resume은 route가 없으므로 판정하지 않음).
 2. **판정하지 않는 경우와 기록.** 아래는 judge를 부르지 않고 `supervisor` 이벤트에 `status: skipped`와 `reason`을 남깁니다: `missing_agent_id`, `handback_failed`(`tool_response.success: false` 등), `egress_not_approved`, `unknown_agent`(세션이 모르는 agent id), `unrouted_delegation`(custom·중첩·resume·보존된 위임), `spawn_failed`, `judged_inline`(같은 위임을 inline 경로가 이미 판정), `empty_report`, `secret_guard`, `handback_limit`(그 위임의 hand-back 판정 횟수를 다 씀. 아래 3). judge 실패·timeout은 `status: unavailable`과 코드입니다. 어떤 경우에도 차단(deny)하지 않고 runtime에 예외를 던지지 않으며 이 이벤트의 출력은 `{}`입니다.
 3. **한 hand-back에 판정 한 번, 위임 하나에 최대 4번.** `SubagentHandback`의 `tool_use_id`마다 한 번만 판정합니다. 같은 이벤트가 다시 오면 아무것도 바꾸지 않습니다. 이어서 실행된 agent가 새 `tool_use_id`로 다시 hand-back하면 새로 판정합니다. 다만 라우팅된 위임 하나(tool id)의 hand-back 판정은 4번까지입니다. 그 뒤의 hand-back은 judge를 부르지 않고 `handback_limit`으로 기록합니다. hand-back 판정은 라우팅이 함께 쓰는 세션 요청 상한에서 한 건씩 나가므로, 한 agent가 hand-back을 계속 보내도 그 상한을 다 쓰지 못하게 하기 위한 값입니다(실제 세션의 분포로 정한 값이 아닌 초기값). 예외 하나: hook 프로세스가 판정 도중에 죽어(강제 종료, watchdog) 기록이 `in_flight`로 남았거나 기록을 쓰기 전에 죽었으면, 7초(watchdog)가 지난 뒤 같은 이벤트가 다시 왔을 때 **한 번만** 이어받아 판정합니다. 7초 안의 재전송과 두 번째 이후의 재전송은 아무것도 바꾸지 않습니다.
-4. **대기 중 기록.** 판정 결과(outcome, 확신, 근거 수준, 표시 여부, `decisionId`, agent id, 보고의 해시, 시각)는 세션 디렉터리의 `handbacks/`(0700, 파일 0600)에 **hand-back마다** 작은 기록으로 남습니다. judge를 부르기 **전에** `in_flight` 표시를 먼저 씁니다. 보고 텍스트, prompt 텍스트, **조언 문구는 저장하지 않습니다.** agent 하나당 최근 4개의 기록만 두고, 새 hand-back을 기록할 때 그보다 오래된 기록과 그 표시 파일을 지웁니다. 위임당 판정 횟수를 세는 표시 파일(최대 4개)은 남습니다.
-5. **전달.** Main의 `UserPromptSubmit`이 hand-back 머리말로 시작하면 agent id를 엄격한 패턴(`[A-Za-z0-9_-]{1,128}`)으로 읽습니다. 나머지 prompt는 신뢰하지 않는 텍스트이고 의미를 읽지 않으며, 본문은 **해시로만** 씁니다. 조언은 아래를 모두 만족할 때 `additionalContext`로 **한 번** 돌려줍니다.
+4. **대기 중 기록.** 판정 결과(outcome, 확신, 근거 수준, 표시 여부, `decisionId`, agent id, 보고 전체의 해시, 보고 줄 수와 줄 해시 최대 128개, 시각)는 세션 디렉터리의 `handbacks/`(0700, 파일 0600)에 **hand-back마다** 작은 기록으로 남습니다. judge를 부르기 **전에** `in_flight` 표시를 먼저 씁니다. 보고 텍스트, prompt 텍스트, **조언 문구는 저장하지 않습니다.** agent 하나당 최근 4개의 기록만 두고, 새 hand-back을 기록할 때 그보다 오래된 기록과 그 표시 파일을 지웁니다. 위임당 판정 횟수를 세는 표시 파일(최대 4개)은 남습니다.
+5. **전달.** Main의 `UserPromptSubmit`이 hand-back 머리말로 시작하면 agent id를 엄격한 패턴(`[A-Za-z0-9_-]{1,128}`)으로 읽습니다. 나머지 prompt는 신뢰하지 않는 텍스트이고 의미를 읽지 않으며, 본문은 **줄 단위 해시로만** 씁니다. 조언은 아래를 모두 만족할 때 `additionalContext`로 **한 번** 돌려줍니다.
    - prompt 전체가 agent-message 요소 하나입니다(닫는 태그 뒤에 글이 붙은 prompt는 조언을 받지 않고, 전달 기회도 쓰지 않습니다).
-   - 그 세션에 **같은 agent, 같은 보고**의 hand-back 기록이 있습니다. 보고가 같은지는 `SubagentHandback`의 `tool_input.message`와 prompt 본문(머리말 다음 줄부터 닫는 태그 전까지)을 각각 "앞뒤 공백을 뗀 비어 있지 않은 줄의 목록"으로 만들어 해시를 비교합니다(harness가 보고의 줄을 들여쓰기 때문). 그 agent의 다른 hand-back(이전 것, 다른 prompt를 이미 보증한 것)은 이 prompt의 기록이 아닙니다. 그런 기록만 있으면 기록이 없을 때와 똑같이 유예(250ms) 동안 이 prompt의 기록을 기다립니다. 그래서 이전 hand-back의 조언이 다음 보고에 붙거나, 한 agent가 연달아 보낸 두 보고의 조언이 서로 바뀌지 않습니다.
+   - 그 세션에 **같은 agent, 같은 보고**의 hand-back 기록이 있습니다. 보고가 같은지는 아래 [보고와 prompt의 결합 규칙](#보고와-prompt의-결합-규칙)으로 정합니다. 그 agent의 다른 hand-back(이전 것, 다른 prompt를 이미 보증한 것)은 이 prompt의 기록이 아닙니다. 그런 기록만 있으면 기록이 없을 때와 똑같이 유예(250ms) 동안 이 prompt의 기록을 기다립니다. 그래서 이전 hand-back의 조언이 다음 보고에 붙거나, 한 agent가 연달아 보낸 두 보고의 조언이 서로 바뀌지 않습니다.
    - 기록이 마지막 `/clear`(`session_reset`) 이후의 것이고, 관측한 지 10분이 넘지 않았습니다(10분은 측정값이 아닌 초기값).
    - 지점이 `active`, 전역 모드가 `advisory`/`active`, 판정 당시 지점이 `active`, 확신이 `confidence` 이상입니다.
    - 그 hand-back의 처리 표시(`.claim`)가 있고, 세션의 `supervisor` 이벤트(`handback:<id>`)가 같은 `decisionId`·outcome·확신·근거 수준으로 `judged`입니다. 기록 파일 하나만으로는 전달되지 않습니다.
@@ -400,10 +400,51 @@ hand-back 경로의 동작입니다.
 
 유예와 대기 한도는 실제 세션의 분포로 정한 값이 아닌 초기값입니다. 기록이 없거나, 대기가 끝났거나, 무엇이든 실패하면 그 이벤트는 이 기능이 없을 때와 똑같이 처리됩니다. `SubagentHandback` hook이 아예 오지 않는 runtime에서는 hand-back prompt마다 유예 250ms가 더해질 뿐 다른 차이는 없습니다.
 
+#### 보고와 prompt의 결합 규칙
+
+hand-back 기록과 prompt는 텍스트를 저장하지 않고 해시로만 묶습니다(`handbackReportBinding()`, `handbackPromptMatches()`).
+
+**실제 세션에서 본 prompt 형태 두 가지.** 둘 다 첫 줄은 `<agent-message from="<agent id>">`, 둘째 줄은 `[Subagent hand-back] `로 시작하는 긴 한 줄, 마지막 줄은 `</agent-message>`입니다.
+
+| | 셋째 줄부터 |
+|---|---|
+| 알림 없음 (첫 번째 실제 세션) | 곧바로 보고. 모든 줄이 두 칸 들여쓰기 |
+| 알림 있음 (두 번째 실제 세션, commit `d82c345`) | 두 칸 들여쓴 `[harness: subagent output matched instruction-shaped pattern(s): ...` 한 줄, 들여쓴 빈 줄, 그다음 보고. 이 알림은 harness가 보고 안의 control tag를 `<` → `<\` 로 바꿀 수 있다고 말함 |
+
+이전 규칙(셋째 줄부터 닫는 태그 전까지를 통째로 해시)은 알림이 있는 형태에서 **절대 일치할 수 없었습니다.** 두 번째 실제 세션에서 `SubagentHandback`은 정상 판정됐지만(274ms) 70ms 뒤의 prompt는 `unverified_prompt`로 기록됐고, 그런 hand-back에서는 조언 전달도 `handback_prompt` 보증도 일어날 수 없었습니다.
+
+**기록에 남는 것.** `SubagentHandback`의 `tool_input.message`를 "앞뒤 공백을 뗀 비어 있지 않은 줄"의 목록으로 만든 뒤:
+
+- `reportHash`: 그 목록 전체의 해시. 각 줄에서 `<` 뒤에 붙은 `\`들을 뗀 형태로 계산합니다.
+- `lines.total`: 줄 수.
+- `lines.head`, `lines.tail`: 앞 64줄과 뒤 64줄의 **줄 해시**(줄마다 16진수 16자, 즉 64비트. agent id와 hand-back id를 함께 넣어 계산하므로 다른 agent·다른 hand-back의 줄 해시와 비교되지 않음). 128줄 이하의 보고는 모든 줄의 해시가 있고, 그보다 긴 보고는 가운데 줄의 줄 해시가 없습니다. 기록 파일은 보고 길이와 무관하게 4KiB 미만입니다.
+
+**prompt가 그 기록의 것인 조건.** prompt 본문은 둘째 줄 다음부터 닫는 태그 전까지의 비어 있지 않은 줄입니다. 본문이 순서대로 아래와 **정확히** 같아야 합니다.
+
+1. harness 알림 **최대 1줄**: 들여쓰기로 시작하고 그다음이 `[harness:`이며 4096자 이하이고, 그 줄의 해시가 기록의 줄 해시 어느 것과도 같지 않은 줄. 본문 맨 앞에서만 허용합니다.
+2. 보고의 줄 전부, 같은 순서로, 그 밖의 줄 없이. 본문 줄은 앞뒤 공백을 뗀 것이 보고 줄과 같거나, 거기서 `<\`를 `<`로 되돌린 것이 보고 줄과 같으면 같은 줄입니다. 줄 해시가 없는 가운데 줄은 `reportHash`로 확인합니다(`reportHash`는 모든 길이에서 함께 확인).
+
+그 밖은 모두 불일치이고, 불일치는 이 기능이 없을 때와 똑같이 처리됩니다(조언 없음, `unverified_prompt`): 줄 추가·누락·순서 변경, harness가 다른 방식으로 고친 줄(예: `<`를 `&lt;`로), 맨 앞이 아닌 곳의 알림, 들여쓰지 않은 알림, 알림 2줄 이상, 빈 보고 앞의 알림, 헤더의 agent id가 기록의 agent id와 다른 경우.
+
+**worker가 악용할 수 있는가.** worker가 정할 수 있는 것은 보고의 줄뿐입니다.
+
+- **보고 줄을 `[harness:`로 시작하게 쓰는 경우.** 그 줄은 기록에 든 보고 줄이므로 prompt에서도 제자리에 있어야 하고, 허용 범위를 넓히지 않습니다. 허용되는 알림은 "이 보고의 줄이 **아닌**" 맨 앞 한 줄뿐이어서, 보고의 `[harness:` 줄을 맨 앞에 한 번 더 넣거나 옮기거나 뺀 prompt는 일치하지 않습니다(테스트로 확인). 보고의 첫 줄이 harness의 실제 알림과 글자까지 같으면, 알림이 붙은 prompt는 일치하지 않습니다(보수적 불일치).
+- **보고에 `<\`를 미리 써 두는 경우.** 줄 해시는 그 줄 그대로 계산합니다. prompt 줄은 그 줄과 같거나 `<` 뒤에 `\`가 하나씩 더 붙은 것이어야 합니다. 반대 방향(prompt 쪽 `\`가 더 적음, 즉 worker가 무력화된 것처럼 써 둔 태그가 prompt에서 살아난 형태)은 줄 해시가 있는 줄에서는 일치하지 않습니다.
+- **다른 agent의 prompt와 맞추는 경우.** 기록은 헤더의 agent id로만 찾고, 줄 해시에 agent id와 hand-back id가 들어가므로, 같은 보고를 낸 다른 agent의 기록이나 그 기록을 다른 agent 이름으로 복사한 파일은 일치하지 않습니다(테스트로 확인).
+
+**이 규칙의 한계.**
+
+- **알림 한 줄의 내용은 확인하지 않습니다.** "보고 + 맨 앞의 들여쓴 `[harness:` 한 줄(내용 임의)"인 prompt는 그 hand-back의 prompt로 인정됩니다. 그런 prompt를 만들 수 있는 것은 Main에게 prompt를 보낼 수 있는 주체이고(worker의 보고로는 만들 수 없음), 인정되더라도 시간 창·hand-back당 prompt 하나·`.claim` 조건은 그대로이며 prompt는 저장되지도 목표가 되지도 않습니다. 알림 문구를 고정 문자열로 비교하지 않은 이유는 실제 문구를 한 번, 그것도 잘린 형태로만 봤기 때문입니다.
+- harness가 알림을 두 줄 이상 넣거나 보고 중간·뒤에 넣는 경우, `<` → `<\` 외의 방식으로 줄을 고치는 경우, 긴 보고를 잘라 넣는 경우는 본 적이 없고, 모두 불일치로 처리됩니다.
+- 한 줄 안에 worker가 쓴 `<\`와 harness가 바꾼 `<\`가 섞이면 "모든 `<\`를 되돌린" 줄이 보고 줄과 달라 불일치입니다.
+- 128줄을 넘는 보고의 가운데 줄은 줄 해시 없이 `reportHash`로만 묶입니다. 그 구간에서는 `<` 뒤 `\`의 개수 차이를 구분하지 못하고, 알림 줄이 가운데 줄과 같은 글인지도 확인하지 못합니다. 줄의 추가·누락·순서 변경·다른 내용은 그 구간에서도 불일치입니다.
+- 줄 해시는 64비트이고 비밀 키가 없습니다. 세션 상태 디렉터리(0700)를 읽을 수 있는 프로세스는 기록의 agent id·hand-back id로 **짧고 추측 가능한 줄**이 보고에 있었는지 대조해 볼 수 있습니다. 텍스트는 저장하지 않지만, 보고 전체 해시 하나만 두던 때보다 줄 단위로 추측을 확인할 수 있게 된 점은 이 변경으로 생긴 차이입니다.
+- 이전 형식의 기록(`schema: 1`)은 읽지 않습니다. 업그레이드 순간에 대기 중이던 hand-back의 prompt는 이 기능이 없을 때처럼 처리됩니다.
+
 **hand-back prompt와 prompt 출처 표시.** 첫 목표 이후에 오는 다른 prompt는 `unverified_prompt`로 기록되고, 그 뒤 route에는 plan과 목표 텍스트를 보내지 않습니다(Main의 것인지 worker의 것인지 증명할 수 없기 때문). 비동기 runtime에서는 hand-back prompt가 위임마다 오므로, 이대로면 첫 위임이 끝나는 순간 세션이 항상 unverified가 됩니다. 그래서 **지점이 `active`일 때에 한해**, 아래를 모두 만족하는 hand-back prompt는 `handback_prompt`로 기록하고 unverified로 만들지 않습니다.
 
 - 같은 세션에서 같은 agent id의 `SubagentHandback` `PostToolUse`(성공, runtime이 보낸 hook 이벤트)를 그 prompt보다 최대 10초 전에 관측함(그 이벤트의 처리 표시 `.claim`이 있어야 함)
-- prompt 본문의 해시가 그 이벤트가 전한 보고의 해시와 같음(위 5의 비교 방식). 같은 agent의 다른 보고를 담은 prompt는 보증되지 않음
+- prompt 본문이 그 이벤트가 전한 보고와 [결합 규칙](#보고와-prompt의-결합-규칙)으로 일치함(보고의 줄 전부, 같은 순서, 맨 앞의 harness 알림 최대 1줄만 추가 허용). 같은 agent의 다른 보고를 담은 prompt는 보증되지 않음
 - 그 hand-back이 아직 다른 prompt를 보증하지 않음(hand-back 하나가 prompt 하나만 보증. 같은 prompt의 재전송은 같은 것으로 봄)
 - prompt 전체가 agent-message 요소 하나임: 첫 줄이 머리말, 마지막 줄이 `</agent-message>`, 그 사이에 열 0에서 agent-message를 열거나 닫는 줄이 없음(harness가 보고의 모든 줄을 들여쓰므로 보고가 요소를 일찍 닫고 뒤에 글을 붙일 수 없음)
 
@@ -413,7 +454,7 @@ hand-back 경로의 동작입니다.
 
 - 이 완화는 지점이 `active`일 때만 적용됩니다. 기본 설정과 지점 `shadow`에서는 hand-back prompt가 계속 세션을 unverified로 만듭니다(기본 동작을 바꾸지 않기 위한 선택).
 - 10초 창은 관측된 70ms 간격에 여유를 둔 값입니다. Main이 다른 turn을 처리하는 동안 hand-back prompt가 얼마나 늦게 전달될 수 있는지는 재지 않았습니다. 창을 넘겨 도착하면 조언은 전달되지만(10분까지) prompt는 `unverified_prompt`가 됩니다.
-- prompt와 기록은 보고의 해시로 묶습니다. harness가 prompt에 넣는 보고가 `SubagentHandback`의 `tool_input.message`와 줄 단위로 다르면(예: 긴 보고를 잘라서 넣는 경우) 그 prompt는 조언을 받지 못하고 이 기능이 없을 때처럼 `unverified_prompt`가 됩니다. 실제 세션 1회에서 본 형태(머리말 한 줄, 빈 줄, 두 칸 들여쓴 보고)에서는 같습니다. 잘린 보고는 확인하지 못했습니다.
+- prompt와 기록은 보고의 줄 해시로 묶습니다([결합 규칙](#보고와-prompt의-결합-규칙)). harness가 prompt에 넣는 보고가 `SubagentHandback`의 `tool_input.message`와 그 규칙이 허용하는 것 이상으로 다르면(예: 긴 보고를 잘라서 넣는 경우) 그 prompt는 조언을 받지 못하고 이 기능이 없을 때처럼 `unverified_prompt`가 됩니다. 실제 세션 2회에서 본 두 형태(알림 없음, 알림 있음)는 일치합니다. 잘린 보고는 확인하지 못했습니다.
 - 3000ms보다 느리게 끝난 판정의 조언은 그 prompt가 다시 오지 않는 한 전달되지 않습니다. 다음 hand-back의 prompt에 붙지 않습니다.
 - 내용이 같은 보고를 한 agent가 두 번 보내면 두 prompt는 구분되지 않습니다. 각 prompt가 아직 쓰이지 않은 기록을 오래된 것부터 하나씩 씁니다.
 - `agent_id` 없이 부모의 `session_id`를 쓰는 자식 prompt가 방금 hand-back한 agent의 hand-back prompt와 본문까지 같으면 조언이 그 컨텍스트로 갈 수 있습니다. 전달되는 것은 코드가 만든 조언 한 문장뿐이고 다시 전달되지 않습니다.
@@ -596,9 +637,9 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 - 이 변경으로 달라지지 않는 것: `delegation.skills` 지점은 계속 기본 `off`입니다. `npm run compare:default`는 변경 뒤에도 차이 0입니다(아래 [기본 동작 비교](#기본-동작-비교)).
 - 이 변경으로 달라지는 것: 지점을 켠 설치는 위임마다 judge 요청이 `ceil(카탈로그 크기와 maxJudged 중 작은 값 / chunk)`개(카탈로그 32개 이하면 1개, 33~64개면 2개) 나가고, 요청 하나에 든 skill 수와 입력 토큰이 늡니다. 요청은 선택 지점의 세션 요청 상한에 각각 세어집니다.
 
-**오프라인 테스트로 확인한 것** (2026-11-25, Node v24.19.0. `cd orchestration && npm test` 577/577, 구문 67개 모듈. `qa/kernel/test`는 hand-back 리뷰 수정 때 다시 돌리지 않았고, 그 전 실행에서 25건 중 24건 통과)
+**오프라인 테스트로 확인한 것** (2026-11-25, Node v24.19.0. `cd orchestration && npm test` 586/586, 구문 67개 모듈. `qa/kernel/test`는 hand-back 리뷰 수정 때 다시 돌리지 않았고, 그 전 실행에서 25건 중 24건 통과)
 
-**`bash scripts/test-all.sh`는 현재 종료 코드 1입니다.** 그 안의 Node 577/577과 구문 검사는 통과하지만, Python 검증기 self-test 72건 중 5건이 `UNSAFE_ARCHIVE_ENTRY`로 끝납니다. commit `4de2f6b`에 든 결과 파일 `qa/kernel/results/dev-retrieval-decision-1/decision-log/skills-jev-full/labels-2026-11.jsonl`(1,217,400바이트)이 검증기의 commit 파일 크기 한도 1,000,000바이트를 넘기 때문이고, `qa/kernel/test`의 실패 1건도 같은 파일입니다. 기본값 변경과 hand-back 변경 이전부터 있던 상태이며 이 변경들로 고치지 않았습니다(결과 파일과 검증기는 수정 대상이 아님). self-test 뒤에 실행되는 offline suite는 같은 환경으로 따로 돌리면 종료 코드 0입니다(PASS 31, NOT_RUN 1: live 단계).
+**`bash scripts/test-all.sh`는 결합 규칙 변경 뒤의 트리에서 종료 코드 0입니다**(Node 586/586, 구문 67개 모듈, Python 검증기 self-test 72건 통과, offline suite PASS 31·NOT_RUN 1: live 단계). 이전에는 종료 코드 1이었습니다: commit `4de2f6b`에 든 결과 파일 `qa/kernel/results/dev-retrieval-decision-1/decision-log/skills-jev-full/labels-2026-11.jsonl`(1,217,400바이트)이 검증기의 commit 파일 크기 한도 1,000,000바이트를 넘어 self-test 72건 중 5건이 `UNSAFE_ARCHIVE_ENTRY`로 끝났고, 그 파일은 commit `bed1243`에서 내용 변경 없이 줄 단위로 나뉘었습니다(이 변경에서 한 일이 아님).
 
 모두 mock judge, 로컬 어휘 judge, loopback 서버, 주입된 fetch, 로컬 CLI의 자식 프로세스로 돌린 계약 검사입니다.
 
@@ -606,7 +647,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 - judge: OpenAI wire 변환과 응답 검증(label 기준 score 분포 포함), 동의 관문, 크기 제한, 답 검증, 선택 지점의 별도 요청 상한·circuit, 제공자별 timeout(loopback 서버로 제공자 timeout 적용·체인 예산 우선·route deadline 우선·재시도 없음 확인), 잠금 대기의 마감 준수, 연결 실패의 typed 코드
 - 후보 검색(`test/kernel-skills-retrieval.test.mjs`, 36건. `retrieval`이 없는 이전 config가 작은 요청 상한에서 `lexical`로 읽히고 설치기가 그렇게 저장하는 것, 직접 지정한 넓은 방식은 계속 거부되는 것 포함. 리뷰 뒤 추가한 8건: 낮은 어휘 신호에서도 답하는 `local`, 요청 수 제한과 직접 호출 시 잘림, 요청 상한 대비 검증, 최대 fan-out 뒤에도 남는 요청 예산, 실제 client로 공유 마감·circuit 실패 1회 계산, 마감 뒤 차례가 온 요청의 미전송·미계산, 일부 실패 표시, hook 이벤트의 일부 실패 표시): 어휘 신호의 정의(한국어·혼합 문자·전각 포함)와 BM25 0과의 동치, 방식 선택과 `minCoverage` 경계, 고른 분할·질문 문구 불변·동시 전송, 공유 마감, 일부 요청 실패와 전부 실패, `need` 최댓값, 요청을 넘나드는 상한, 추적 완전성, `maxJudged` 초과 시 `dropped`, loopback Jev로 요청별 상한 계산과 원문 없는 요청별 log record, 이전 config와 byte 단위로 같은 hook 출력, hook의 `skills` 이벤트와 재호출 재현, `local` 기권과 `local,jev` escalation, env·CLI
 - skill: 카탈로그 읽기와 건너뛰기 규칙, 프로젝트 안 심볼릭 링크 root 허용과 프로젝트 밖 root 거부, 적대적 디렉터리 이름의 주입 차단, 경로 구간 검사, BM25, 임계값·상한, 주입 블록 형식, 예산 초과 시 생략, 재호출 재현, 실패 시 미선택, 보류된 route에서의 안내
-- supervisor: 판정 조건, 조언 문구, 확신 미달 시 기존 문구 유지. hand-back 경로(`test/kernel-handback.test.mjs`, 32건. 리뷰 뒤 추가한 7건: prompt hook이 먼저 처리된 두 번째 hand-back이 자기 기록을 기다리고 이전 hand-back의 조언을 받지 않음, 한 agent의 연속 hand-back 둘이 각자의 보고에 맞는 조언을 받음, 요소 하나가 아닌 prompt·다른 보고의 prompt는 조언을 받지 않고 전달 기회를 쓰지 않음, `/clear` 이전 기록과 10분 넘은 기록 미전달, 판정 중 죽은 hook의 hand-back을 재전송 때 한 번만 이어받음, hook 없이 쓰인 기록은 전달·보증하지 않고 저장된 글은 전달되지 않음, 위임당 판정 4번과 파일 수 상한): 실제 세션의 이벤트 형태와 순서 재현, 전역 `active`/`advisory` 전달과 `shadow` 무표시, 지점 `shadow`·`off`, 낮은 확신, egress 없음, custom·중첩·resume·모르는 agent, 비밀 유사 보고, judge 실패·timeout, 판정 중 도착한 prompt의 대기와 대기 한도(3000ms), 오래된 표시, hand-back 없이 온 prompt, hand-back 재전송, 두 위임의 교차 hand-back과 동시 처리, 두 번 전달되지 않음, 다른 세션 미전달, inline 경로와의 중복 방지, 보증된 prompt만 `handback_prompt`가 되고 목표가 바뀌지 않음, 손상된 기록 무시, 상태·log에 보고 텍스트 없음, 실제 hook 프로세스 두 개를 70ms 간격으로 실행
+- supervisor: 판정 조건, 조언 문구, 확신 미달 시 기존 문구 유지. hand-back 경로(`test/kernel-handback.test.mjs`, 41건. 결합 규칙 변경으로 추가한 9건: 실제 prompt 형태 두 가지와 무력화된 `<`의 일치, 줄 추가·누락·순서 변경·다른 방식의 수정·잘못된 위치나 개수의 알림 불일치, `[harness:`로 시작하는 보고 줄과 미리 쓴 `<\`가 허용 범위를 넓히지 않음, 5000줄 보고의 기록 크기 상한과 일치, 알림이 있는 prompt의 조언 전달·`handback_prompt` 보증·재전송(`active`/`advisory`), 알림 없는 실제 형태와 낮은 확신, 불일치 prompt가 전달 기회를 쓰지 않음, 같은 보고를 낸 두 agent. 리뷰 뒤 추가한 7건: prompt hook이 먼저 처리된 두 번째 hand-back이 자기 기록을 기다리고 이전 hand-back의 조언을 받지 않음, 한 agent의 연속 hand-back 둘이 각자의 보고에 맞는 조언을 받음, 요소 하나가 아닌 prompt·다른 보고의 prompt는 조언을 받지 않고 전달 기회를 쓰지 않음, `/clear` 이전 기록과 10분 넘은 기록 미전달, 판정 중 죽은 hook의 hand-back을 재전송 때 한 번만 이어받음, hook 없이 쓰인 기록은 전달·보증하지 않고 저장된 글은 전달되지 않음, 위임당 판정 4번과 파일 수 상한): 실제 세션의 이벤트 형태와 순서 재현, 전역 `active`/`advisory` 전달과 `shadow` 무표시, 지점 `shadow`·`off`, 낮은 확신, egress 없음, custom·중첩·resume·모르는 agent, 비밀 유사 보고, judge 실패·timeout, 판정 중 도착한 prompt의 대기와 대기 한도(3000ms), 오래된 표시, hand-back 없이 온 prompt, hand-back 재전송, 두 위임의 교차 hand-back과 동시 처리, 두 번 전달되지 않음, 다른 세션 미전달, inline 경로와의 중복 방지, 보증된 prompt만 `handback_prompt`가 되고 목표가 바뀌지 않음, 손상된 기록 무시, 상태·log에 보고 텍스트 없음, 실제 hook 프로세스 두 개를 70ms 간격으로 실행
 - log·calibration: 형식 검사, 원문 미기록, 라벨 결합, 지표 계산, 지점별 실패·escalation 비율
 - hook: 분류 지점 `off`/`shadow`의 무표시 동작, 분류 체인 예산 초과 시 typed 오류와 strict deny 유지
 - 기본 동작 보존: 아래 [기본 동작 비교](#기본-동작-비교)
@@ -645,7 +686,7 @@ cd orchestration && npm run compare:default      # 또는 node scripts/compare-d
 | `adaptive`/`full` 후보 검색에서의 judge 정확도·지연·토큰 | 개발 세트에서 실제 Jev로 1회 측정(`dev-retrieval-decision-1`, [결정 기록](#결정-기록)). **held-out 세트 미채점.** 40개보다 큰 카탈로그·실제 skill 폴더·OpenAI judge에서는 미측정 |
 | 실제 트래픽에서의 calibration (Brier, ECE) | 미측정. 실제 세션의 라벨이 한 건도 없음. 합성 데이터의 값은 `qa/kernel/REPORT.ko.md` |
 | supervisor 조언의 유용성 | 미측정. 합성 120건의 outcome 일치도만 있음 |
-| supervisor hand-back 경로의 실제 세션 동작 | 미검증. 이벤트 형태는 실제 세션 1회에서 가져왔지만, 구현 뒤에는 mock·loopback·실제 hook 프로세스로만 확인. 대기·유예 한도와 10초 창은 측정값이 아닌 초기값 |
+| supervisor hand-back 경로의 실제 세션 동작 | 일부만 확인. commit `d82c345`로 돌린 실제 세션 1회에서 `SubagentHandback` 판정과 기록은 확인됐고(274ms), 그 prompt의 결합은 **실패**했습니다(harness 알림 줄, [결합 규칙](#보고와-prompt의-결합-규칙)). 결합 규칙을 고친 뒤에는 실제 세션으로 다시 확인하지 않았고, 그 세션에서 본 형태를 재현한 fixture·mock·loopback·실제 hook 프로세스로만 확인. 실제 세션에서 조언이 전달된 적은 아직 없음. 대기·유예 한도와 10초 창은 측정값이 아닌 초기값 |
 | 실제 API 비용 | 미계산. 토큰 수만 기록 |
 | 결함 수정(`e6fb770`) 뒤의 실제 Jev/OpenAI 호출 | 하지 않음 |
 | Codex runtime의 skill 주입·supervisor 경로 | 전용 테스트 없음. 기본 동작 비교에서만 다룸 |
