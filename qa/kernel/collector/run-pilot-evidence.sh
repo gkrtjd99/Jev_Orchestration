@@ -33,7 +33,13 @@ for arm in A B; do
   node "$product/scripts/collect.mjs" --state-dir "$work/state$arm" --report > "$out/observations-report-arm$arm.json"
   cat "$work/state$arm"/observations-log/observations-*.jsonl > "$out/observations-arm$arm.jsonl"
 done
-node "$product/scripts/decisions.mjs" --action report --log-dir "$work/stateB/decisions-log" --point delegation.skills --source observed-load > "$out/calibration-armB.observed-load.json"
+# Calibration of delegation.skills on arm B, one file per label source, never mixed:
+#   observed-load                  the subagent's prompt carried no skills block (the only labels that may inform a threshold)
+#   observed-load-after-injection  the prompt carried the block of the decision being labelled (decision-influenced)
+for source in observed-load observed-load-after-injection; do
+  node "$product/scripts/decisions.mjs" --action report --log-dir "$work/stateB/decisions-log" --point delegation.skills --source "$source" > "$out/calibration-armB.$source.json"
+  node "$here/calibration-by-question.mjs" --log-dir "$work/stateB/decisions-log" --source "$source" > "$out/calibration-armB.$source.by-question.json"
+done
 node "$product/scripts/decisions.mjs" --action report --log-dir "$work/stateB/decisions-log" --point delegation.skills > "$out/calibration-armB.all-sources.json"
-node "$here/calibration-by-question.mjs" --log-dir "$work/stateB/decisions-log" --source observed-load > "$out/calibration-armB.observed-load.by-question.json"
-ls "$work/candidatesA" "$work/candidatesB" 2>/dev/null | wc -l | tr -d ' ' > "$work/candidate-file-count.txt"
+# No candidate file exists when every row is withheld (the recorded outcome), so the count must not fail on a missing folder.
+find "$work/candidatesA" "$work/candidatesB" -type f 2>/dev/null | wc -l | tr -d ' ' > "$work/candidate-file-count.txt" || true

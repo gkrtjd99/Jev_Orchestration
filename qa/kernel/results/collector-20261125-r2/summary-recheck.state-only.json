@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "collector": "outcome-collector-2",
+  "dryRun": false,
+  "mode": "state-only",
+  "sessions": {
+    "inState": 3,
+    "selected": 1
+  },
+  "delegations": {
+    "seen": 3,
+    "routed": 3,
+    "joined": 0,
+    "unjoined": {
+      "no_transcripts": 3
+    },
+    "unrouted": {},
+    "refusedAndReissued": 3,
+    "reroutedAfterRefusal": 0,
+    "repeated": 0,
+    "agentCalls": 6
+  },
+  "skillQuestionMapping": {
+    "decisions": 6,
+    "mapped": 6,
+    "asked": 0,
+    "derived": 6,
+    "unmapped": {},
+    "answersCheckedAgainstLog": 180
+  },
+  "labels": {
+    "written": {},
+    "alreadyPresent": 0,
+    "retracted": {},
+    "unlabelled": {
+      "delegation_not_joined": 9
+    },
+    "indeterminateAccess": {}
+  },
+  "observations": {
+    "written": 0,
+    "alreadyPresent": 0,
+    "keptVerified": 0
+  },
+  "evaluations": {
+    "produced": 0,
+    "withheldTasks": 0,
+    "withheld": {},
+    "context": null,
+    "files": [],
+    "imported": false
+  },
+  "verification": {
+    "entries": 0,
+    "matched": 0,
+    "unmatched": 0
+  },
+  "supervisor": {
+    "judged": 3
+  },
+  "delegationIndex": [
+    {
+      "delegationId": "46a918b5b9e758decf1b28a15e9446ff242351062e0efa289cb38d036e955b8b",
+      "taskHash": null,
+      "routed": true,
+      "joined": false,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": null,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "f98174608c868192480d7e7bc2571d1f6da14f46fd34a6a25b0cc06c7039e301",
+      "taskHash": null,
+      "routed": true,
+      "joined": false,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": null,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "f95ad523311329527d57efb85f69a311e244a03ad48722d8edccc2844d6b10f0",
+      "taskHash": null,
+      "routed": true,
+      "joined": false,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": null,
+      "supersededAttempt": false
+    }
+  ],
+  "warnings": {},
+  "host": {
+    "versions": [],
+    "entrypoints": [],
+    "permissionModes": [],
+    "subagentTranscripts": null,
+    "supportedRuntimes": [
+      "claude"
+    ],
+    "codex": "unsupported: no codex transcript was ever observed, so none is parsed"
+  }
+}

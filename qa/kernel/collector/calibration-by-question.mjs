@@ -5,20 +5,23 @@
 // calibrationReport; this file only selects rows. Offline, read-only.
 //   node calibration-by-question.mjs --log-dir <absolute decisions-log dir> --source <label source>
 import { DecisionLog } from '../../../orchestration/src/kernel/log.mjs';
-import { calibrationReport } from '../../../orchestration/src/kernel/calibration.mjs';
+import { calibrationReport, applyRetractions, labelSourceInfo } from '../../../orchestration/src/kernel/calibration.mjs';
 
 const args = {};
 for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 if (!args['log-dir'] || !args.source) { console.error('usage: calibration-by-question.mjs --log-dir <dir> --source <name>'); process.exit(64); }
-const { decisions, labels } = await new DecisionLog(args['log-dir']).read({ pointId: 'delegation.skills' });
+const { decisions, labels: logged } = await new DecisionLog(args['log-dir']).read({ pointId: 'delegation.skills' });
+const { labels } = applyRetractions(logged);
 const labelled = new Set(labels.filter(l => l.source === args.source).map(l => l.decisionId));
 const part = keep => {
   const subset = decisions.filter(d => labelled.has(d.decisionId)).map(d => ({ ...d, answers: Object.fromEntries(Object.entries(d.answers).filter(([id]) => keep(id))) }));
   const report = calibrationReport({ decisions: subset, labels: labels.filter(l => keep(l.questionId)) }, { sources: [args.source] });
   const group = report.groups.find(g => g.type === 'noul');
-  return group ? { decisions: group.counts.decisions, answers: group.counts.answers, labeled: group.counts.labeled, sufficient: group.sufficient,
-    metricsLabelStrength: group.metricsLabelStrength, metrics: group.metrics } : null;
+  return group ? { labeledDecisions: group.counts.labeledDecisions, answers: group.counts.answers, labeled: group.counts.labeled, sufficient: group.sufficient,
+    sufficientReason: group.sufficientReason, metricsLabelStrength: group.metricsLabelStrength, metrics: group.metrics } : null;
 };
-console.log(JSON.stringify({ point: 'delegation.skills', source: args.source,
-  note: 'Decisions without a label of this source are left out. `need`: one question per judge request. `skill`: one question per judged skill.',
+console.log(JSON.stringify({ point: 'delegation.skills', source: args.source, sourceInfo: labelSourceInfo(args.source),
+  note: 'Labelled decisions are a non-random subset of the decisions logged at this point (decisionsAtPoint); metrics are conditional on it. '
+    + '`need`: one question per judge request, about that request\'s own skills. `skill`: one question per judged skill.',
+  decisionsAtPoint: decisions.length, labeledDecisions: labelled.size,
   need: part(id => id === 'need'), skill: part(id => id.startsWith('skill_')) }, null, 2));
