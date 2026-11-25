@@ -1,0 +1,24 @@
+Decision kernel evaluation  run=20261125-full  LIVE API  product=3.2.0@e8333f94
+failures count as "nothing selected / no advice"; tok = usage fields in the API response bodies (n/a = not returned)
+skills data: 160 tasks, 40 skills; consensus 160; labeler exact-set agreement 100.0%, any-skill kappa 1.000
+BM25 retrieval recall of gold skills: @4 68.3%  @8 70.8%  @12 75.0%  @16 79.2%  @40 100.0%
+  by language @8: en 91.5% (65/71)  ko 40.8% (20/49)
+SKILLS (gold: consensus; thresholds need 0.5, autoLoad 0.9)
+  arm     n    fail  needAcc  load P  load R  load F1  exact  F1+sugg  falseInj  miss    ECE need  ECE skill  p50ms  p95ms  maxms  tok in/out
+  jev     160  0     83.8%    1.000   0.667   0.800    77.5%  0.791    0.0%      27.9%   0.133     0.057      185    243    365    243021/26240
+  openai  160  0     83.8%    0.941   0.667   0.780    75.0%  0.764    0.0%      27.9%   0.168     0.041      516    839    928    378233/0
+  local   160  0     62.5%    n/a     0.000   n/a      35.0%  0.446    0.0%      100.0%  0.287     0.123      0      0      1      n/a/n/a
+  chain   160  0     81.9%    1.000   0.642   0.782    76.3%  0.777    0.0%      30.8%   0.190     0.041      176    235    349    187037/20172
+  jev: failures none; retried 0; injected ctx mean 395 chars vs catalog 9589; product/direct calibration agree
+  openai: failures none; retried 0; injected ctx mean 395 chars vs catalog 9589; product/direct calibration agree
+  local: failures none; retried 0; injected ctx mean 414 chars vs catalog 9589; product/direct calibration agree
+  chain: failures none; retried 0; injected ctx mean 395 chars vs catalog 9589; product/direct calibration agree; escalation 76.9%, saved calls 23.1%
+supervisor data: 120 reports; consensus 120; outcome agreement 100.0%, kappa 1.000
+SUPERVISOR (gold: consensus; surfaced when confidence >= 0.65)
+  arm     n    fail  acc    macroF1  evMAE  evExact  ECE    coverage  accSurfaced  p50ms  p95ms  maxms  tok in/out
+  jev     120  0     93.3%  0.932    0.138  92.7%    0.065  83.3%     98.0%        171    199    239    78552/7892
+  openai  120  0     96.7%  0.967    0.562  46.4%    0.129  73.3%     100.0%       459    602    797    59787/0
+  jev: failures none; skipped none; retried 0; product/direct calibration agree
+  openai: failures none; skipped none; retried 0; product/direct calibration agree
+live HTTP requests: api.typesafe.ai=403  api.openai.com=280  (total 683)
+results: qa/kernel/results/20261125-full/metrics.json

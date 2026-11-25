@@ -1,0 +1,31 @@
+scenario                    result  expectation
+install                     PASS    installer plan run exits 0 and applies nothing
+install                     PASS    installer --yes exits 0 and reports applied
+install                     PASS    every installed file is inside the disposable HOME
+install                     PASS    installed entrypoint and kernel modules exist
+install                     PASS    installed .env is mode 600
+install                     PASS    state directory is inside the disposable HOME
+install                     PASS    settings.json registers the installed entrypoint for 9 events with timeout 8
+install                     PASS    installed defaults: skills and supervisor points off, OpenAI not approved
+install                     PASS    claude profile definitions were installed
+f2-unreachable-endpoint     PASS    unreachable endpoint (connection refused): exit 0, no deny, no rewrite (native call proceeds unchanged)
+f2-unreachable-endpoint     PASS    unreachable endpoint (connection refused): Main sees a typed warning
+f2-unreachable-endpoint     PASS    unreachable endpoint (connection refused): finished in 165 ms, below 7000 ms
+f4-blackhole-max-timeouts   PASS    both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): exit 0, no deny, no rewrite (native call proceeds unchanged)
+f4-blackhole-max-timeouts   PASS    both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): Main sees a typed warning
+f4-blackhole-max-timeouts   PASS    both judges hang, every timeout at its 5000 ms maximum, routeDeadlineMs 5500 (loopback, not live): finished in 5091 ms, below 7000 ms
+f4-blackhole-max-timeouts   PASS    PostToolUseFailure with hanging judges: exit 0, no deny, 5056 ms < 7000 ms
+f5-slow-classify-then-hang  PASS    slow classification (4.8 s) + hanging selector and skills judge: exit 0, no deny, 5557 ms < 7000 ms watchdog (loopback stub, not live)
+f5-slow-classify-then-hang  PASS    the hook process was not ended by its own watchdog (no HOOK_DEADLINE on stderr)
+f6-bad-input                PASS    garbage on stdin: exit 1, "{}" on stdout, no deny
+f6-bad-input                PASS    cwd outside the allow-listed project: exit 0 and empty output
+isolation                   PASS    the real ~/.config/jev-hooks was not created or touched
+isolation                   PASS    the real ~/.claude/settings.json was not modified
+isolation                   PASS    no live-judge hook invocation approaches the watchdog (max null ms < 5000 ms)
+isolation                   PASS    no hook invocation at all reached the 7000 ms watchdog or the host timeout (max 5557 ms)
+
+expectations: 24 passed, 0 failed, 0 soft misses (WARN: live-judge choice or documented observation; of 24, 0 soft)
+hook invocations: 12 (0 in live-judge scenarios); wall clock ms  all p50 70 max 5557 | live p50 null p95 null max null | live delegation PreToolUse p50 null max null
+live requests (from decision-log trails): api.typesafe.ai=0 api.openai.com=0; loopback (not live)=8
+token usage returned by the APIs (successful responses): none
+results: qa/kernel/results/20261125-e2e-loopback-rerun/hooks.json

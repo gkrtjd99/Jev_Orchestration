@@ -6,7 +6,7 @@
 
 ```bash
 # 저장소(worktree) 루트에서. 키는 환경 변수로만 받습니다.
-node qa/kernel/run-eval.mjs --run-id 2026-11-25-full
+node qa/kernel/run-eval.mjs --run-id 20261125-full
 node qa/kernel/run-eval.mjs --run-id smoke --limit 5                     # 앞에서 5건씩만
 node qa/kernel/run-eval.mjs --run-id sk --suite skills --arms local,chain
 ```
