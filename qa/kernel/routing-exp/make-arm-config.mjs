@@ -1,10 +1,25 @@
 #!/usr/bin/env node
 // Arm configuration for the routing experiment (arms R and L; arm N has no hooks and needs nothing).
 //
-//   node make-arm-config.mjs --arm R|L --work <dir> --config <installed config.json> [--env <installed .env>] [--declare <backend>=<model id> ...]
+//   node make-arm-config.mjs --arm R|L --work <dir> --config <installed config.json> [--env <installed .env>]
+//                            --confirm-availability <backend> [--confirm-availability <backend> ...]
+//                            [--declare <backend>=<model id> ...] [--allow-undeclared] [--allow-other-base]
 //   node make-arm-config.mjs --verify --arm R|L --work <dir> --config <installed config.json>
 //
-// --config is the config.json of a DISPOSABLE install (install.mjs --home <dir under --work>). It is only read.
+// --config is the config.json of a DISPOSABLE install (install.mjs --home <dir under --work> --registry
+// base-registry.json). It is only read.
+//
+// Three things make this tool stop (exit 1) instead of producing an arm in which nothing is routed or measured:
+//   * an enabled claude entry of the arm registry whose availability is not "confirmed". The product does not
+//     rewrite a delegation to a profile of an unconfirmed entry (optimization.requireConfirmedAvailability, on by
+//     default): with none confirmed every delegation gets CAPABILITIES_UNCONFIRMED, with some confirmed the
+//     others are silently left out. Confirming is the owner's statement that this account can run that backend
+//     at the registry's efforts; it is typed, per backend, as --confirm-availability <backend>, and recorded in
+//     summary.json. This tool never confirms anything on its own.
+//   * an enabled claude entry without a declared id whose backend is not itself an id the host records
+//     (no resolvesTo): its runs would not become evaluation rows. --allow-undeclared overrides, and is recorded.
+//   * an installed registry that is not the pre-registered base-registry.json. --allow-other-base overrides, and
+//     is recorded (PROTOCOL.md section 8 then needs an entry).
 // Written, all below --work and nowhere else:
 //   <work>/routing-exp-arm-<R|L>/registry.json   the registry to hand to the installer (install.mjs --registry)
 //   <work>/routing-exp-arm-<R|L>/env-lines.txt   the four env lines of the experiment
@@ -15,8 +30,9 @@
 // the profile fingerprint, and the installed config records the fingerprint of every installed profile. Editing
 // the registry in config.json alone leaves those records stale (rewrites are then refused with
 // PROFILE_NOT_INSTALLED_OR_STALE), and arm L's smaller profile set has to be installed as such. So:
-//   1. install.mjs --home <work>/home-X --project <arm project> --runtime claude --env-file <private env> [--registry <own registry>] --yes
+//   1. install.mjs --home <work>/home-X --project <arm project> --runtime claude --env-file <private env> --registry <this folder>/base-registry.json --yes
 //   2. make-arm-config.mjs --arm X --work <work> --config <work>/home-X/.config/jev-hooks/config.json --env <work>/home-X/.config/jev-hooks/.env
+//        --confirm-availability sonnet --confirm-availability opus
 //   3. install.mjs --home <work>/home-X --project <arm project> --runtime claude --registry <work>/routing-exp-arm-X/registry.json --yes
 //   4. make-arm-config.mjs --verify --arm X --work <work> --config <work>/home-X/.config/jev-hooks/config.json
 // (README.md has the full sequence, including the project-level hooks and the user-level agent files.)
@@ -37,6 +53,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { validateRegistry, profileCatalog, SLOTS } from '../../../orchestration/src/catalog.mjs';
+import { baseRegistry } from './make-base-registry.mjs';
 
 export const EVALUATION_CONTEXT = 'desktop-auto-v1';
 export const DECLARED_IDS = Object.freeze({ sonnet: 'claude-sonnet-5-5', opus: 'claude-opus-5-5' });
@@ -45,12 +62,33 @@ export const PLACEHOLDER_ID = /^EXAMPLE-ONLY\./;
 const ARMS = ['R', 'L'];
 const fail = (message, code = 2) => Object.assign(new Error(message), { exitCode: code });
 
-/** The arm's registry and what was done to get it. Pure: the input is not modified. */
-export function armRegistry(installed, arm, declarations = DECLARED_IDS) {
+/**
+ * Names (never values) of environment variables that the hook reads BEFORE the .env file of an install and that
+ * change what the arm does. TYPESAFE_API_KEY is left out: a key in the environment replaces the key of the .env
+ * but no setting of the arm (keyFromEnvironment reports it).
+ */
+export const overridingEnvNames = (env = process.env) => Object.keys(env).filter((name) => name !== 'TYPESAFE_API_KEY' && (/^(?:JEV_|TYPESAFE_)/.test(name) || /^CLAUDE_CODE_SUBAGENT_MODEL/.test(name))).sort();
+export const keyFromEnvironment = (env = process.env) => Object.hasOwn(env, 'TYPESAFE_API_KEY');
+
+/**
+ * The arm's registry and what was done to get it. Pure: the input is not modified.
+ * `confirm` is the list of backends whose availability the caller states is confirmed (typed by the owner).
+ */
+export function armRegistry(installed, arm, declarations = DECLARED_IDS, { confirm = [] } = {}) {
   if (!ARMS.includes(arm)) throw fail('--arm must be R or L');
   const registry = structuredClone(validateRegistry(structuredClone(installed)));
   const claude = registry.models.filter((m) => m.runtime === 'claude');
-  const declared = [], notDeclared = [], removedPlaceholders = [];
+  const declared = [], notDeclared = [], removedPlaceholders = [], confirmed = [];
+  // Availability is set on the entries that are enabled in the base, before arm L disables anything, so that
+  // the registries of R and L differ in `enabled` only.
+  for (const backend of confirm) {
+    const entries = claude.filter((m) => m.enabled && m.availability !== 'unavailable' && m.backend === backend);
+    if (entries.length === 0) throw fail(`--confirm-availability ${backend}: no enabled claude entry has this backend`, 1);
+    for (const entry of entries) {
+      confirmed.push({ registryEntry: entry.id, slot: entry.slot, backend: entry.backend, was: entry.availability });
+      entry.availability = 'confirmed';
+    }
+  }
   for (const entry of claude) {
     if (Array.isArray(entry.resolvesTo) && entry.resolvesTo.some((id) => PLACEHOLDER_ID.test(id))) {
       // The example registry ships a placeholder that is not a model id. It must not travel into an experiment.
@@ -80,7 +118,16 @@ export function armRegistry(installed, arm, declarations = DECLARED_IDS) {
   registry.revision = `${installed.revision}+routing-exp-arm-${arm}`;
   validateRegistry(registry);
   const profiles = profileCatalog(registry, 'claude').map((p) => ({ profileId: p.profileId, file: `${p.profileId}.md`, slot: p.slot, role: p.role, model: p.model, backend: p.backend, effort: p.effort, fingerprint: p.fingerprint }));
-  return { registry, declared, notDeclared, removedPlaceholders, disabled, lowest: { registryEntry: lowest.id, slot: lowest.slot, backend: lowest.backend }, profiles };
+  const enabledNow = registry.models.filter((m) => m.runtime === 'claude' && m.enabled && m.availability !== 'unavailable');
+  const unconfirmed = enabledNow.filter((m) => m.availability !== 'confirmed').map((m) => ({ registryEntry: m.id, slot: m.slot, backend: m.backend, availability: m.availability }));
+  const undeclaredEnabled = notDeclared.filter((e) => enabledNow.some((m) => m.id === e.registryEntry) && e.reason.startsWith('no declaration') && e.existing === null);
+  return { registry, declared, notDeclared, removedPlaceholders, confirmed, unconfirmed, undeclaredEnabled, disabled,
+    lowest: { registryEntry: lowest.id, slot: lowest.slot, backend: lowest.backend }, profiles };
+}
+
+/** Whether a registry is the pre-registered base (base-registry.json as make-base-registry.mjs derives it). */
+export function isCommittedBase(registry) {
+  try { return JSON.stringify(validateRegistry(structuredClone(registry))) === JSON.stringify(validateRegistry(baseRegistry())); } catch { return false; }
 }
 
 /** The env text with the experiment's lines set. Other lines are passed through untouched and never inspected further. */
@@ -163,19 +210,28 @@ export function verifyInstalled(config, armResult) {
     else if (installed[id].fingerprint !== fingerprint) problems.push(`profile ${id} is installed with a stale fingerprint`);
   }
   for (const id of Object.keys(installed)) if (!want.has(id)) problems.push(`profile ${id} is installed but is not in the arm registry`);
+  // What the hook needs before it rewrites anything (hooks.mjs, optimizer.mjs): confirmed entries.
+  const enabled = (config.registry?.models ?? []).filter((m) => m.runtime === 'claude' && m.enabled && m.availability !== 'unavailable');
+  expect(enabled.length > 0, 'the installed registry has no enabled claude entry');
+  if (config.optimization?.requireConfirmedAvailability !== false) {
+    for (const m of enabled) if (m.availability !== 'confirmed') problems.push(`registry entry ${m.id} (backend ${m.backend}) is ${m.availability}, not confirmed: its profiles are never chosen`);
+  }
   return problems;
 }
 
 // ---------------------------------------------------------------- CLI
 function parseArgs(argv) {
-  const args = { declare: [] };
+  const args = { declare: [], confirm: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const key = argv[i].replace(/^--/, '');
     if (key === 'verify') { args.verify = true; continue; }
+    if (key === 'allow-undeclared') { args.allowUndeclared = true; continue; }
+    if (key === 'allow-other-base') { args.allowOtherBase = true; continue; }
     const value = argv[i + 1];
     if (!argv[i].startsWith('--') || value === undefined) throw fail(`option ${argv[i]} needs a value`);
     i += 1;
     if (key === 'declare') args.declare.push(value);
+    else if (key === 'confirm-availability') args.confirm.push(value);
     else if (['arm', 'work', 'config', 'env'].includes(key) && !(key in args)) args[key] = value;
     else throw fail(`unknown or repeated option --${key}`);
   }
@@ -207,26 +263,45 @@ export function main(argv) {
     const profiles = profileCatalog(validateRegistry(stored), 'claude').map((p) => ({ profileId: p.profileId, fingerprint: p.fingerprint }));
     const problems = verifyInstalled(config, { registry: stored, profiles });
     const files = Object.values(config.installedProfiles?.claude ?? {}).map((record) => path.basename(record.path)).sort();
+    const envNames = overridingEnvNames();
+    const egress = config.safety?.allowEgress === true;
+    if (!egress) problems.push('JEV_ALLOW_EGRESS is not true in this install: no judge is called and nothing is routed');
+    if (envNames.length) problems.push(`this process has environment variables the hook reads before the arm's .env: ${envNames.join(', ')} (names only). Unset them in the environment the desktop app starts from`);
     console.log(JSON.stringify({ arm: args.arm, ok: problems.length === 0, problems, stateDir: config.stateDir, allowedProjects: config.allowedProjects,
-      egressAllowed: config.safety?.allowEgress === true, judges: Object.fromEntries(Object.entries(config.kernel?.points ?? {}).map(([id, point]) => [id, { mode: point.mode, judges: point.judges }])),
+      egressAllowed: egress, requireConfirmedAvailability: config.optimization?.requireConfirmedAvailability ?? null,
+      enabledClaudeEntries: (config.registry?.models ?? []).filter((m) => m.runtime === 'claude' && m.enabled).map((m) => ({ registryEntry: m.id, slot: m.slot, backend: m.backend, availability: m.availability, resolvesTo: m.resolvesTo ?? null })),
+      overridingEnvironmentNames: envNames, keyFromEnvironment: keyFromEnvironment(), judges: Object.fromEntries(Object.entries(config.kernel?.points ?? {}).map(([id, point]) => [id, { mode: point.mode, judges: point.judges }])),
       profileFiles: files }, null, 2));
-    if (config.safety?.allowEgress !== true) console.error('note: JEV_ALLOW_EGRESS is not true in this install, so no judge is called and nothing will be routed.');
     return problems.length === 0 ? 0 : 1;
   }
 
-  const result = armRegistry(config.registry, args.arm, declarations);
+  // Every path is checked before anything else, and nothing is written until every check below has passed.
+  let envFile = null;
+  if (args.env !== undefined) {
+    envFile = inside(work, args.env, '--env');
+    if (regularFile(envFile, '--env').size > 32768) throw fail('--env is larger than an env file can be');
+  }
+  for (const backend of args.confirm) if (!/^[A-Za-z0-9_./:[\]-]{1,160}$/.test(backend)) throw fail('--confirm-availability takes a backend name');
+  const committedBase = isCommittedBase(config.registry);
+  if (!committedBase && !args.allowOtherBase) {
+    throw fail('the installed registry is not the pre-registered base-registry.json: install with --registry <routing-exp>/base-registry.json first (step 1), or pass --allow-other-base and record the deviation in PROTOCOL.md section 8', 1);
+  }
+  const result = armRegistry(config.registry, args.arm, declarations, { confirm: [...new Set(args.confirm)] });
+  if (result.unconfirmed.length) {
+    throw fail(`not written: ${result.unconfirmed.map((e) => `${e.registryEntry} (backend ${e.backend}, ${e.availability})`).join(', ')} ${result.unconfirmed.length === 1 ? 'is' : 'are'} enabled but not confirmed. `
+      + 'The hook never rewrites a delegation to a profile of an unconfirmed entry, so the arm would not be the arm of the protocol. '
+      + `If this account can run ${[...new Set(result.unconfirmed.map((e) => e.backend))].join(' and ')} at the registry's efforts, say so with ${[...new Set(result.unconfirmed.map((e) => `--confirm-availability ${e.backend}`))].join(' ')}.`, 1);
+  }
+  if (result.undeclaredEnabled.length && !args.allowUndeclared) {
+    throw fail(`not written: ${result.undeclaredEnabled.map((e) => `${e.registryEntry} (backend ${e.backend})`).join(', ')} ${result.undeclaredEnabled.length === 1 ? 'has' : 'have'} no declared model id. `
+      + 'Runs of such an entry become evaluation rows only if the host records exactly the backend string. Declare the id with --declare <backend>=<model id>, or pass --allow-undeclared.', 1);
+  }
   const before = new Map(Object.entries(config.installedProfiles?.claude ?? {}).map(([id, record]) => [id, record.fingerprint]));
   const changed = result.profiles.filter((p) => before.has(p.profileId) && before.get(p.profileId) !== p.fingerprint).map((p) => p.profileId);
   const added = result.profiles.filter((p) => !before.has(p.profileId)).map((p) => p.profileId);
   const removed = [...before.keys()].filter((id) => !result.profiles.some((p) => p.profileId === id));
   const reinstallRequired = changed.length > 0 || added.length > 0 || removed.length > 0 || JSON.stringify(config.registry) !== JSON.stringify(result.registry);
 
-  // Every path is checked before anything is written.
-  let envFile = null;
-  if (args.env !== undefined) {
-    envFile = inside(work, args.env, '--env');
-    if (regularFile(envFile, '--env').size > 32768) throw fail('--env is larger than an env file can be');
-  }
   writePrivate(registryFile, JSON.stringify(result.registry, null, 2) + '\n');
   writePrivate(path.join(outDir, 'env-lines.txt'), Object.entries(ENV_LINES).map(([key, value]) => `${key}=${value}`).join('\n') + '\n');
   let env = { edited: false };
@@ -238,9 +313,12 @@ export function main(argv) {
   const summary = {
     arm: args.arm, evaluationContext: EVALUATION_CONTEXT, envLines: ENV_LINES, env,
     registryFile, registryRevision: result.registry.revision,
-    declared: result.declared, typedDeclarations: typed, notDeclared: result.notDeclared, removedPlaceholders: result.removedPlaceholders,
+    baseRegistry: { isCommittedBase: committedBase, allowOtherBase: args.allowOtherBase === true, revision: config.registry?.revision ?? null },
+    availability: { confirmedOnCommandLine: [...new Set(args.confirm)], entries: result.confirmed,
+      statement: 'typed by whoever ran this tool: this account can run these backends at the efforts of the registry' },
+    declared: result.declared, typedDeclarations: typed, notDeclared: result.notDeclared, allowUndeclared: args.allowUndeclared === true, removedPlaceholders: result.removedPlaceholders,
     lowestEnabledClaude: result.lowest, disabled: result.disabled,
-    enabledClaudeEntries: result.registry.models.filter((m) => m.runtime === 'claude' && m.enabled).map((m) => ({ registryEntry: m.id, slot: m.slot, model: m.model, backend: m.backend, roles: m.roles, resolvesTo: m.resolvesTo ?? null })),
+    enabledClaudeEntries: result.registry.models.filter((m) => m.runtime === 'claude' && m.enabled).map((m) => ({ registryEntry: m.id, slot: m.slot, model: m.model, backend: m.backend, availability: m.availability, roles: m.roles, resolvesTo: m.resolvesTo ?? null })),
     reinstallRequired, profilesWithChangedFingerprint: changed, profilesToAdd: added, profilesToRemove: removed,
     profileFiles: result.profiles.map((p) => p.file).sort(),
     next: [
@@ -250,8 +328,8 @@ export function main(argv) {
   };
   writePrivate(path.join(outDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   console.log(JSON.stringify(summary, null, 2));
-  for (const entry of result.notDeclared.filter((e) => e.enabled && e.reason.startsWith('no declaration') && e.existing === null)) {
-    console.error(`note: ${entry.registryEntry} (backend ${entry.backend}) has no declared id. Its runs become evaluation rows only if the host records exactly "${entry.backend}".`);
+  for (const entry of result.undeclaredEnabled) {
+    console.error(`note (--allow-undeclared): ${entry.registryEntry} (backend ${entry.backend}) has no declared id. Its runs become evaluation rows only if the host records exactly "${entry.backend}".`);
   }
   return 0;
 }

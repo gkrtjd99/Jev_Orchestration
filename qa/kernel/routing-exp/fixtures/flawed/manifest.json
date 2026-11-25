@@ -20,7 +20,28 @@
       "intended": "hidden: an unknown cursor is rejected",
       "done": true,
       "fails": [
-        "hidden: an unknown cursor is rejected"
+        "hidden: an unknown cursor is rejected",
+        "hidden: the handler rejects an unknown cursor and listMembers is unchanged"
+      ]
+    },
+    {
+      "task": "t01",
+      "variant": "handler-empty-limit-rejected",
+      "why": "The handler turns the query text into a number itself: an empty limit becomes 0 and is rejected, where listMembers falls back to the default for an empty value.",
+      "intended": "hidden: the handler uses the default limit when limit is missing or empty, as listMembers does for its numbers",
+      "done": true,
+      "fails": [
+        "hidden: the handler uses the default limit when limit is missing or empty, as listMembers does for its numbers"
+      ]
+    },
+    {
+      "task": "t01",
+      "variant": "handler-lenient-limit",
+      "why": "Number.parseInt reads the leading digits: '2.5' becomes 2 and '5abc' becomes 5 instead of INVALID_LIMIT.",
+      "intended": "hidden: the handler rejects a limit that is not a whole number from 1 to 100",
+      "done": true,
+      "fails": [
+        "hidden: the handler rejects a limit that is not a whole number from 1 to 100"
       ]
     },
     {

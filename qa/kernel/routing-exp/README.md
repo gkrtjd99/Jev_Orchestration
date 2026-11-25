@@ -21,10 +21,12 @@
 | `checkers/probes.mjs`, `probe.mjs`, `tree.mjs` | 과제별 동작 검사, 자식 프로세스 진입점, 템플릿과의 차이 계산 |
 | `checkers/selftest.mjs` | 채점기 self-test |
 | `fixtures/reference/<id>/` | 과제마다 올바른 해법(템플릿 위에 덮어쓸 파일) |
-| `fixtures/flawed/<id>/<variant>/`, `fixtures/flawed/manifest.json` | 그럴듯하지만 틀린 해법 30개와, 각각이 왜 틀리고 어느 검사에서 걸리는지 |
-| `make-arm-config.mjs` | arm R / L의 registry 파일과 env 줄을 만들고(`--verify`로 설치 결과 확인) |
+| `fixtures/flawed/<id>/<variant>/`, `fixtures/flawed/manifest.json` | 그럴듯하지만 틀린 해법 32개와, 각각이 왜 틀리고 어느 검사에서 걸리는지 |
+| `base-registry.json`, `make-base-registry.mjs` | 두 hook arm이 출발하는 **기준 registry**(사전 등록). 제품의 예시 registry에서 활성 claude 세 항목을 alias로 바꾼 것: light = `sonnet`, standard = `opus`, strategic = `opus`. `--check`로 생성 결과와 같은지 확인 |
+| `make-arm-config.mjs` | arm R / L의 registry 파일과 env 줄을 만들고(`--verify`로 설치 결과 확인). 가용성 확인이 없거나, 선언 없는 항목이 있거나, 기준 registry가 아니면 **멈춥니다** |
+| `preflight.mjs` | 실행 전 점검(읽기 전용): arm N에 hook이 닿지 않는지, 환경 변수가 arm 설정을 덮지 않는지, 사용자 수준 agent 파일이 맞는지 |
 | `project-hooks.mjs` | 일회용 설치의 hooks를 arm의 프로젝트 사본에 프로젝트 수준 hooks로 넣음 |
-| `verify-arm-install.mjs` | 위 순서를 실제 설치기로 임시 폴더에서 돌려 보는 오프라인 확인 |
+| `verify-arm-install.mjs` | 위 순서를 실제 설치기로 임시 폴더에서 돌리고, **설치된 hook에 합성 `Agent` 이벤트를 넣어 실제로 재작성하는지** 보는 오프라인 확인(judge는 127.0.0.1의 대역) |
 | `make-verification.mjs` | 채점 결과를 결과 수집기가 받는 검증 파일로 만듦 |
 | `analyze.mjs` | arm 하나의 오프라인 분석(채점 + transcript + hook 상태) |
 | `compare.mjs` | 세 arm의 과제별 표와 arm별·등급별·모델별 합계 |
@@ -39,9 +41,11 @@
 ```bash
 cd qa/kernel/routing-exp
 node checkers/selftest.mjs          # SELFTEST PASSED
-node --test tools.test.mjs          # 15 pass (실제 설치기를 임시 홈에서 실행하는 테스트 포함)
+node --test tools.test.mjs          # 15 pass (실제 설치기와 설치된 hook을 임시 홈에서 실행하는 테스트 포함)
 node build-main-prompt.mjs --check  # main-prompt.txt matches tasks.json
+node make-base-registry.mjs --check # base-registry.json is current
 node freeze.mjs --check             # as frozen
+node verify-arm-install.mjs         # 설치 순서와 hook 재작성 결과를 JSON으로 출력(임시 폴더, 네트워크 없음)
 git rev-parse HEAD                  # PROTOCOL.md 3절에 적습니다
 ```
 
@@ -63,7 +67,7 @@ mkdir -p "$WORK/home-r" "$WORK/home-l"
 
 ### arm N
 
-할 일이 없습니다. `$WORK/arm-n`에는 `.claude/` 폴더가 없어야 합니다.
+할 일이 없습니다. `$WORK/arm-n`에는 `.claude/` 폴더가 없어야 합니다(아래 "실행 전 점검"이 확인합니다).
 
 ### arm R과 arm L (X = r, R / l, L 각각)
 
@@ -72,35 +76,52 @@ config.json의 registry만 고치면 재작성이 `PROFILE_NOT_INSTALLED_OR_STAL
 L은 설치되는 프로필 집합 자체도 달라집니다.
 
 ```bash
-# 1) 일회용 홈에 기본 설치. <개인 env>는 저장소 밖의 chmod 600 파일(TypeSafe 키, JEV_ALLOW_EGRESS=true 등).
-#    이전 실제 세션과 같은 registry를 쓰려면 그 파일을 --registry로 줍니다(주지 않으면 설치기의 기본 registry).
+# 1) 일회용 홈에 기준 registry로 설치. --registry "$EXP/base-registry.json"은 **필수**입니다(사전 등록된 기준).
+#    <개인 env>는 저장소 밖의 chmod 600 파일(TypeSafe 키, JEV_ALLOW_EGRESS=true).
 node "$REPO/orchestration/scripts/install.mjs" --home "$WORK/home-r" --project "$WORK/arm-r" --runtime claude \
-  --env-file <개인 env의 절대 경로> [--registry <쓰던 registry 파일의 절대 경로>] --yes
+  --env-file <개인 env의 절대 경로> --registry "$EXP/base-registry.json" --yes
 
 # 2) arm 설정: registry 파일을 만들고, 설치된 .env의 네 줄을 맞춥니다
 #    (JEV_MODE=active, JEV_SKILLS_MODE=off, JEV_SUPERVISOR_MODE=off, JEV_EVALUATION_CONTEXT=desktop-auto-v1).
+#    --confirm-availability는 "이 계정이 그 backend를 registry의 effort로 실행할 수 있다"는 **실행하는 쪽의 진술**입니다.
 node "$EXP/make-arm-config.mjs" --arm R --work "$WORK" \
-  --config "$WORK/home-r/.config/jev-hooks/config.json" --env "$WORK/home-r/.config/jev-hooks/.env"
+  --config "$WORK/home-r/.config/jev-hooks/config.json" --env "$WORK/home-r/.config/jev-hooks/.env" \
+  --confirm-availability sonnet --confirm-availability opus
 
 # 3) 그 registry로 다시 설치
 node "$REPO/orchestration/scripts/install.mjs" --home "$WORK/home-r" --project "$WORK/arm-r" --runtime claude \
   --registry "$WORK/routing-exp-arm-R/registry.json" --yes
 
-# 4) 확인: ok가 true여야 합니다. profileFiles, judges, egressAllowed를 PROTOCOL.md 3절에 옮겨 적습니다.
+# 4) 확인: ok가 true여야 합니다. profileFiles, enabledClaudeEntries, judges, egressAllowed를 PROTOCOL.md 3절에 옮겨 적습니다.
 node "$EXP/make-arm-config.mjs" --verify --arm R --work "$WORK" --config "$WORK/home-r/.config/jev-hooks/config.json"
 
 # 5) 프로젝트 수준 hooks. 반드시 마지막 설치 **뒤에** 합니다(설치기는 이 hooks가 있는 프로젝트를 거부합니다).
 node "$EXP/project-hooks.mjs" --work "$WORK" --home "$WORK/home-r" --project "$WORK/arm-r"
 ```
 
-arm L은 같은 다섯 줄을 `home-l`, `arm-l`, `--arm L`, `routing-exp-arm-L`로 바꿔 실행합니다.
+arm L은 같은 다섯 줄을 `home-l`, `arm-l`, `--arm L`, `routing-exp-arm-L`로 바꿔 실행합니다(`--confirm-availability`는 똑같이 둘 다).
 
+- **가용성(`availability`).** 제품은 `confirmed`가 아닌 항목의 프로필로는 위임을 재작성하지 않습니다
+  (`optimization.requireConfirmedAvailability`, 기본값 `true`). 활성 claude 항목이 하나도 `confirmed`가 아니면 모든 위임이
+  `CAPABILITIES_UNCONFIRMED`로 그대로 통과하고(라우팅 0건), 일부만 `confirmed`면 나머지 항목의 프로필이 조용히 빠져서 arm R이
+  arm L처럼 동작합니다. 설치 단계는 그래도 전부 exit 0입니다. 그래서 `make-arm-config.mjs`는 arm registry의 활성 claude 항목이
+  모두 `confirmed`가 아니면 **아무것도 쓰지 않고 exit 1**로 멈추고, 어느 항목인지 말합니다. 도구가 스스로 `confirmed`로 바꾸는 일은
+  없습니다. 기준 registry는 세 항목을 `declared`로 두고 있고, `--confirm-availability <backend>`를 적은 사람이 그 진술의
+  주체입니다(`summary.json`의 `availability`에 기록). 이 머신의 이전 실제 세션에서 `sonnet`과 `opus` 프로필이 실행된 것이 그
+  근거이며, 실행 세션이 PROTOCOL.md 3절에 확인 근거를 적습니다.
+- **기준 registry.** 1번에서 `--registry "$EXP/base-registry.json"`을 빼면 설치기의 기본 registry(구체 모델 id
+  `claude-sonnet-5`, `claude-opus-5-5`, `claude-fable-5-1`)가 설치되는데, 그것은 이 실험의 arm이 아닙니다: 선언
+  (`sonnet`/`opus`)이 아무 항목에도 걸리지 않고, arm L은 한 번도 관찰된 적 없는 모델 id에 의존하게 됩니다. `make-arm-config.mjs`는
+  설치된 registry가 `base-registry.json`과 다르면 멈춥니다(`--allow-other-base`로 넘길 수 있고, 그러면 PROTOCOL.md 8절에 적습니다).
 - `make-arm-config.mjs`는 `--work` 아래에만 씁니다. `--config`와 `--env`가 `--work` 밖이거나 실제 `~/.config`, `~/.claude`를 가리키면
   거부합니다. `.env`는 해석하지 않고, 네 줄만 바꾸거나 덧붙이며, 다른 줄은 그대로 통과시키고 아무것도 출력하지 않습니다.
-- 선언은 backend `sonnet` → `claude-sonnet-5-5`, backend `opus` → `claude-opus-5-5` 둘뿐입니다. 설치된 registry의 backend가 이 둘이
-  아니면(`summary.json`의 `notDeclared`) 그 항목의 실행은 host가 backend와 **같은 문자열**을 기록할 때만 평가 행이 됩니다. 다른 선언이
-  필요하면 `--declare <backend>=<모델 id>`로 직접 적고 PROTOCOL.md 8절에 기록합니다.
+- 선언은 backend `sonnet` → `claude-sonnet-5-5`, backend `opus` → `claude-opus-5-5` 둘뿐이고, 기준 registry의 활성 claude 세 항목에
+  모두 걸립니다. 선언이 걸리지 않는 활성 항목이 있으면(그 항목의 실행은 host가 backend와 **같은 문자열**을 기록할 때만 평가 행이
+  됨) 도구가 멈춥니다. `--declare <backend>=<모델 id>`로 직접 선언하거나 `--allow-undeclared`로 넘기고, 어느 쪽이든 PROTOCOL.md
+  8절에 기록합니다.
 - arm L은 활성 claude 항목 중 가장 낮은 slot의 backend만 남깁니다. 무엇이 꺼졌는지는 `summary.json`의 `disabled`에 나옵니다.
+  R과 L의 registry는 `enabled` 값만 다릅니다.
+- `--verify`는 설치된 config만 봅니다. 그 밖에 재작성을 막는 것(환경 변수, 사용자 수준 hook, agent 파일)은 아래 "실행 전 점검"이 봅니다.
 
 ### 사용자 수준 agent 파일 (실행 세션이 하는 일)
 
@@ -113,6 +134,33 @@ cp "$WORK/home-r/.claude/agents"/jev4_*.md ~/.claude/agents/   # 세션을 돌�
 # 세 세션이 모두 끝난 뒤, 복사한 이름만 지웁니다:
 for f in "$WORK/home-r/.claude/agents"/jev4_*.md; do rm -f ~/.claude/agents/"$(basename "$f")"; done
 ```
+
+## 실행 전 점검 (실행 세션이 하는 일)
+
+세션을 열기 직전에, **데스크톱 앱을 띄우는 것과 같은 환경에서** 실행합니다. 읽기만 하고 아무것도 쓰지 않습니다. 사용자 수준·관리
+설정 파일과 agents 폴더는 이름을 적어 준 것만 봅니다(파일 내용은 출력하지 않습니다).
+
+```bash
+node "$EXP/preflight.mjs" --work "$WORK" --agents "$HOME/.claude/agents" \
+  --settings "$HOME/.claude/settings.json" --settings "$HOME/.claude/settings.local.json" \
+  --settings "/Library/Application Support/ClaudeCode/managed-settings.json"
+# ok: true 여야 합니다. exit 1이면 problems를 읽고 고친 뒤 다시 실행합니다.
+```
+
+- 사용자 수준이나 관리 설정에 `jev-hook` 명령이 있으면 **arm N 세션에도 hook이 걸려** "라우팅 없음"이 아니게 되고, R과 L에서는
+  hook이 두 벌 실행됩니다. 실행하는 동안 그 설정에서 빼 둡니다(끝난 뒤 되돌림).
+- `$WORK/arm-n`에는 `.claude/` 폴더가 없어야 합니다.
+- hook은 `JEV_*`, `TYPESAFE_*` 값을 arm의 `.env`보다 **프로세스 환경에서 먼저** 읽습니다. 데스크톱 앱이 물려받는 환경에
+  `JEV_MODE`, `JEV_SKILLS_MODE`, `TYPESAFE_BASE_URL` 같은 변수가 있으면 arm의 고정 설정이 조용히 바뀝니다.
+  `CLAUDE_CODE_SUBAGENT_MODEL*`이 있으면 hook은 라우팅을 하지 않습니다. 점검은 이런 변수의 **이름만** 알려 줍니다. `TYPESAFE_API_KEY`가
+  환경에 있는 것은 문제로 치지 않고 `keyFromEnvironment`로만 알려 줍니다(arm 설정이 아니라 `.env`의 키를 대신함). 앱을 터미널이
+  아닌 곳에서 띄운다면 `launchctl getenv JEV_MODE`처럼 그 환경도 따로 확인합니다.
+- `--agents`: 사용자 수준 agents 폴더에 arm R의 `jev4_*` 파일 27개가 `home-r`에 설치된 것과 byte 단위로 같게 있고, 다른
+  `jev4_*` 파일은 없어야 합니다.
+- 결과(`ok`, 본 설정 파일, 환경 변수 이름 목록)를 PROTOCOL.md 3절에 적습니다.
+
+분석 뒤에도 같은 것을 한 번 더 확인합니다: `analyze.mjs`는 arm N의 기록에서 거부된 `Agent` 호출이나 `general-purpose`가 아닌 agent
+type을 보면 경고를 내고(`totals.noRoutingCheck`), `compare.mjs`가 표 위에 `WARNING: arm N did not run as a no-routing arm`을 찍습니다.
 
 ## 세션 실행
 
@@ -158,19 +206,20 @@ node compare.mjs --n "$WORK/arm-n.json" --r "$WORK/arm-r.json" --l "$WORK/arm-l.
 ## 결과 수집기 (arm R, arm L)
 
 ```bash
-C="node $REPO/orchestration/scripts/collect.mjs"
+# 변수에 명령을 담으면 zsh(macOS 기본 셸)에서는 단어로 나뉘지 않아 실행되지 않습니다. 함수로 둡니다(bash와 zsh 모두 동작).
+C() { node "$REPO/orchestration/scripts/collect.mjs" "$@"; }
 # 1) 검증 파일: 채점기의 passed, validator = routing-exp-checker@<check.mjs의 SHA-256>, artifactSha256 = 채점기 출력의 SHA-256
 node "$EXP/make-verification.mjs" --project "$WORK/arm-r" --transcripts "$WORK/transcripts-r" \
   --out "$WORK/verification-r.json" --artifact-out "$WORK/checker-r.json"
 
 # 2) 먼저 dry run (아무것도 쓰지 않음)
-$C --config "$WORK/home-r/.config/jev-hooks/config.json" --transcripts "$WORK/transcripts-r" \
+C --config "$WORK/home-r/.config/jev-hooks/config.json" --transcripts "$WORK/transcripts-r" \
   --verification "$WORK/verification-r.json" --evaluation-context desktop-auto-v1 --dry-run > "$WORK/collect-r.dry-run.json"
 
 # 3) 실제 수집: 관찰 기록과 라벨은 그 arm의 일회용 hook 상태 폴더에, 평가 행 후보는 --out 폴더에 씁니다
-$C --config "$WORK/home-r/.config/jev-hooks/config.json" --transcripts "$WORK/transcripts-r" \
+C --config "$WORK/home-r/.config/jev-hooks/config.json" --transcripts "$WORK/transcripts-r" \
   --verification "$WORK/verification-r.json" --evaluation-context desktop-auto-v1 --out "$WORK/candidates-r" > "$WORK/collect-r.json"
-$C --config "$WORK/home-r/.config/jev-hooks/config.json" --report > "$WORK/collect-r.report.json"
+C --config "$WORK/home-r/.config/jev-hooks/config.json" --report > "$WORK/collect-r.report.json"
 
 # arm L도 같은 명령을 home-l, arm-l, transcripts-l, *-l 이름으로 실행한 뒤:
 node "$EXP/compare.mjs" --n "$WORK/arm-n.json" --r "$WORK/arm-r.json" --l "$WORK/arm-l.json" \
@@ -191,5 +240,8 @@ node "$EXP/compare.mjs" --n "$WORK/arm-n.json" --r "$WORK/arm-r.json" --l "$WORK
 ## 결과를 읽을 때
 
 1차 결과는 arm별 통과 과제 수(12개 중)와 등급별 통과 수입니다. arm당 한 번, 과제 12개이므로 **기술적인 숫자일 뿐**이고 유의성이나
-일반화를 말할 수 없습니다. 세 arm이 모두 12개를 통과하면 천장이고, 그때 품질 질문은 열린 채로 남습니다. 무엇을 어떻게 보고할지는
-PROTOCOL.md의 6절과 7절을 따릅니다.
+일반화를 말할 수 없습니다. 세 arm이 모두 12개를 통과하면 천장이고, 모든 arm이 11개 이상이면 천장에 가까운 것이며, 어느 쪽이든 품질
+질문은 열린 채로 남습니다. 두 arm의 통과 수 차이가 1이면 "구별되지 않음"으로 적고, 2 이상일 때만 차이로 기술합니다(규칙 12,
+`compare.mjs`가 arm 쌍마다 찍습니다). arm L의 합계에는 route가 보류되어 Main 모델로 실행된 과제가 들어갈 수 있으므로, "낮은 모델만"에
+대한 답은 `compare.mjs`의 `L: of N passed, M ran as the routed profile` 줄과 모델별 표, 라우팅된 것끼리의 비교에서 읽습니다. 무엇을
+어떻게 보고할지는 PROTOCOL.md의 6절과 7절을 따릅니다.

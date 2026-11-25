@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "note": "SHA-256 of the pre-registered material. A tree hash is the hash of \"<path>\\0<file hash>\" lines, sorted by path.",
-  "tasks.json": "84a7ef17759b3bc88cbae16968b476a17e5537bd615f6a355fc0d78338fbe1aa",
-  "main-prompt.txt": "9ac393f0f169dff553fdd4a6678d2325e890eb08852c9f256952580335ecfe5c",
+  "tasks.json": "c77df42cc4996e649491f6c59b8ff76008611b50386b26650cbedb7a507a385c",
+  "main-prompt.txt": "0d6f6bb0674b2915afc46e1532ca29580cbb800f40de976de6c86b3c84b7125a",
   "checkers": {
     "check.mjs": "d1c4013e1870a6138cce558f4c139357e8e63b3878e1ac2d5871be4a8f03f538",
-    "probes.mjs": "169b3d66b4f0cf7ad9d187b8b17b4f9770daa88c5e67a8d95e36b7cc05a06338",
+    "probes.mjs": "36938eca34858cbe2006f95c1f62f3cf42b52053b2ffc65922cb0c930ee23970",
     "probe.mjs": "4ee0616ab0c025513d09ee8644c262e72ec99f07943f7bd74caa83326c021fd5",
     "tree.mjs": "3fa47c4de55f7ea358964ea5abc877a25806b19bf74c03328ba1892e2c2056a3"
   },
@@ -15,9 +15,11 @@
     "sha256": "56254ca5ac8c089ad940dece278c83a5b6dadebed2999dd1b950413f6e05a536"
   },
   "fixtures": {
-    "files": 43,
-    "sha256": "015709795f4d72502e12aaad54dd2d5a387a88e8f2ac84c855797499cf5629da"
+    "files": 50,
+    "sha256": "3ebc3fd7434c42601585f239814af9a82162eece2f5f05a8e02dc4507a6d33cd"
   },
-  "make-arm-config.mjs": "5ca95379abd719ec17748fe7221f8ef10fa2f7e8694640d5bb00c3dc42c9ea93",
+  "base-registry.json": "777082e9b4c43cc46f1f6314a008ac9a4e17bb84857a9a9fb96563916c9d9de5",
+  "make-arm-config.mjs": "28872228cae89b6de3d6d2ac7895985bea1cbb44997b5a97efddc61c2a95b3d2",
+  "project-hooks.mjs": "8378fa88bfef0c75f6e99a3db666ce80f2a0446b8573e3e5a697ca2fc3c2f1c9",
   "make-verification.mjs": "f99725bd18760b38dedd8acfb76cbfef17fe3b2f21e96a32c1d486ee124bc3f7"
 }

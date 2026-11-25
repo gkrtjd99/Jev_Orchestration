@@ -76,6 +76,44 @@ async function t01({ load, basic, hidden }) {
     return byDefault.items.length === 20 && byDefault.nextCursor === 'r020' && paginateAfter(items, { limit: 100 }).items.length === 25
       && [0, 101, 2.5, '5', -1].every((limit) => throwsCode(() => paginateAfter(items, { limit }), 'INVALID_LIMIT', 'ValidationError'));
   });
+  // The handler is called with a stand-in app, so that this task does not depend on modules other tasks change.
+  // It offers what listMembers uses (members.list()) plus the settings of an untouched app.
+  const appWith = (n) => {
+    const members = list(n).map((row) => ({ id: row.id, displayName: `Member ${String(row.n).padStart(3, '0')}`, createdAt: '2026-05-01T00:00:00.000Z' }));
+    return { settings: { timeZone: 'Asia/Seoul', currency: 'KRW', maxActiveBookings: 5, cacheTtlMs: 30000 }, members: { list: async () => members.map((m) => ({ ...m })) } };
+  };
+  const handlers = () => load('src/api/handlers.mjs');
+  await basic('the handler pages the member list with text query values', async () => {
+    const { listMembersAfter } = await handlers();
+    const app = appWith(5);
+    const first = await listMembersAfter(app, { limit: '2' });
+    const second = await listMembersAfter(app, { after: first.nextCursor, limit: '2' });
+    const last = await listMembersAfter(app, { after: second.nextCursor, limit: '2' });
+    return same(ids(first), ['r001', 'r002']) && first.nextCursor === 'r002' && same(ids(second), ['r003', 'r004']) && second.nextCursor === 'r004'
+      && same(ids(last), ['r005']) && last.nextCursor === null;
+  });
+  await hidden('the handler uses the default limit when limit is missing or empty, as listMembers does for its numbers', async () => {
+    const { listMembersAfter } = await handlers();
+    const app = appWith(25);
+    const [none, empty] = [await listMembersAfter(app, {}), await listMembersAfter(app, { limit: '' })];
+    return [none, empty].every((page) => page.items.length === 20 && page.nextCursor === 'r020');
+  });
+  await hidden('the handler rejects a limit that is not a whole number from 1 to 100', async () => {
+    const { listMembersAfter } = await handlers();
+    const app = appWith(5);
+    for (const limit of ['abc', '2.5', '5abc', '-1', '0', '101']) {
+      if (!(await rejectsCode(Promise.resolve().then(() => listMembersAfter(app, { limit })), 'INVALID_LIMIT', 'ValidationError'))) return false;
+    }
+    return (await listMembersAfter(app, { limit: '100' })).items.length === 5;
+  });
+  await hidden('the handler rejects an unknown cursor and listMembers is unchanged', async () => {
+    const { listMembersAfter, listMembers } = await handlers();
+    const app = appWith(5);
+    const page = await listMembers(app, { page: '2', pageSize: '2' });
+    return await rejectsCode(Promise.resolve().then(() => listMembersAfter(app, { after: 'nope', limit: '2' })), 'INVALID_CURSOR', 'ValidationError')
+      && same(ids(page), ['r003', 'r004']) && page.total === 5 && page.totalPages === 3
+      && await rejectsCode(Promise.resolve().then(() => listMembers(app, { page: 'two' })), 'INVALID_PAGE');
+  });
   await hidden('paginate is unchanged and inputs are not modified', async () => {
     const { paginate, paginateAfter } = await mod();
     const items = list(5);
@@ -340,7 +378,8 @@ async function t06({ load, basic, hidden }) {
   });
   await hidden('one payer pays everything and weights are validated', async () => {
     const { splitCharge } = await mod();
-    return same(splitCharge('19.99', 'USD', [4]), ['19.99']) && same(splitCharge('0.00', 'USD', [1, 2]), ['0.00', '0.00'])
+    // A zero total is not asked about in the task text (the ledger refuses a zero payment), so it is not checked.
+    return same(splitCharge('19.99', 'USD', [4]), ['19.99']) && same(splitCharge('0.01', 'USD', [3]), ['0.01'])
       && [[], [1, 0], [1, -1], [1.5, 1], ['2', 1], [1, Number.NaN]].every((weights) => throwsCode(() => splitCharge('10.00', 'USD', weights), 'INVALID_WEIGHTS', 'ValidationError'));
   });
 }

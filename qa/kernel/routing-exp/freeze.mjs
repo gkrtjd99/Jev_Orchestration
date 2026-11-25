@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Records what is fixed before the first session starts: the hashes of the tasks, the Main prompt, the checker,
-// the fixtures and the template. `--check` exits 1 when any of them differs from FROZEN.json.
+// the fixtures, the template, the base registry and the arm tooling. `--check` exits 1 when any of them differs from FROZEN.json.
 //   node freeze.mjs           writes FROZEN.json
 //   node freeze.mjs --check   compares
 // PROTOCOL.md rule 3: nothing listed here changes after the first session has started. PROTOCOL.md itself (its
@@ -28,7 +28,9 @@ export function snapshot() {
     validatorVersion: file(join('checkers', 'check.mjs')),
     template: tree('template'),
     fixtures: tree('fixtures'),
+    'base-registry.json': file('base-registry.json'),
     'make-arm-config.mjs': file('make-arm-config.mjs'),
+    'project-hooks.mjs': file('project-hooks.mjs'),
     'make-verification.mjs': file('make-verification.mjs'),
   };
 }

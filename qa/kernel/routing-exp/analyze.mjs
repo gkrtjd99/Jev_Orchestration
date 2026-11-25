@@ -306,6 +306,40 @@ export function analyzeArm({ arm, project, transcriptsDir, stateDir = null, task
     };
   });
 
+  // What Main was told: one general-purpose call per task. In every arm a first call of another type is a deviation.
+  const EXPECTED_TYPE = 'general-purpose';
+  const idsWhere = (test) => taskRows.filter(test).map((row) => row.id);
+  const firstAsOther = idsWhere((row) => row.delegation.firstRequestedType !== null && row.delegation.firstRequestedType !== EXPECTED_TYPE);
+  if (firstAsOther.length) warnings.push(`Main's first Agent call asked for an agent type other than ${EXPECTED_TYPE} for ${firstAsOther.join(', ')}`);
+  // Arm N must run without hooks. A refused call, a re-issue under another type or a subagent that ran as another
+  // agent type means a hook (or a visible profile Main picked) reached the session: the arm is not "no routing".
+  let noRoutingCheck = null;
+  if (!hooked) {
+    const refusedTotal = main ? taskRows.reduce((n, row) => n + (row.delegation.refusedCalls ?? 0), 0) : null;
+    const launchedAsOther = idsWhere((row) => row.delegation.launchedRequestedType !== null && row.delegation.launchedRequestedType !== EXPECTED_TYPE);
+    const ranAsOther = idsWhere((row) => row.subagent?.agentType != null && row.subagent.agentType !== EXPECTED_TYPE);
+    const typeUnknown = idsWhere((row) => row.subagent && row.subagent.agentType == null);
+    if (refusedTotal) warnings.push(`arm N: ${refusedTotal} Agent call(s) were refused. Without hooks no call is rewritten and refused: a hook reached this session, so this is not a no-routing arm`);
+    if (launchedAsOther.length) warnings.push(`arm N: the launched Agent call asked for another agent type than ${EXPECTED_TYPE} for ${launchedAsOther.join(', ')}: these delegations were routed or redirected`);
+    if (ranAsOther.length) warnings.push(`arm N: the subagent ran as another agent type than ${EXPECTED_TYPE} for ${ranAsOther.join(', ')} (host record): this is not a no-routing arm`);
+    noRoutingCheck = { clean: main ? refusedTotal === 0 && firstAsOther.length === 0 && launchedAsOther.length === 0 && ranAsOther.length === 0 : null,
+      refusedCalls: refusedTotal, firstCallAsOtherType: firstAsOther, launchedAsOtherType: launchedAsOther, ranAsOtherType: ranAsOther, agentTypeUnknown: typeUnknown };
+  }
+  // Hooked arms: which delegations really ran as the routed profile, and on which recorded models. A delegation
+  // whose route was deferred or not applied ran as the harness default (in this environment: the Main model), so
+  // an arm total can contain tasks solved by another model than the routed ones.
+  let byApplication = null;
+  if (hooked) {
+    const delegated = taskRows.filter((row) => row.delegation.delegated);
+    const applied = delegated.filter((row) => row.route?.recorded && row.route.applied === true);
+    const other = delegated.filter((row) => !applied.includes(row));
+    const modelsOf = (rows) => [...new Set(rows.map((row) => row.subagent?.model ?? 'unknown'))].sort();
+    byApplication = {
+      asRoutedProfile: { tasks: applied.length, passed: applied.filter((row) => row.counted.passed).length, models: modelsOf(applied) },
+      notAsRoutedProfile: { tasks: other.map((row) => row.id), passed: other.filter((row) => row.counted.passed).map((row) => row.id), models: modelsOf(other.filter((row) => row.subagent)) },
+    };
+  }
+
   // Agent calls that carry no task text, and subagent transcripts no task launched: counted, never attributed.
   const strayCalls = calls.filter((call) => !claimed.has(call.id)).length;
   if (strayCalls) warnings.push(`${strayCalls} Agent call(s) carry no task text of this experiment`);
@@ -366,7 +400,9 @@ export function analyzeArm({ arm, project, transcriptsDir, stateDir = null, task
         applied: taskRows.filter((row) => row.route?.applied === true).length, notApplied: taskRows.filter((row) => row.route?.applied === false).map((row) => row.id),
         reissued: taskRows.filter((row) => row.route?.reissued === true).length, profiles,
         evaluationContexts: [...new Set(taskRows.map((row) => row.route?.evaluationContext).filter(Boolean))].sort(),
+        byApplication,
       } : null,
+      noRoutingCheck,
       // Judge cost of the whole state dir (every logged decision, by decision point) and of the task routes alone.
       judge: hooked && state?.found ? { all: judgeCost(state.decisionRows), byPoint: Object.fromEntries(Object.entries(pointCost).sort().map(([point, rows]) => [point, judgeCost(rows)])),
         onTaskRoutes: { requests: sumOf((row) => row.judge?.requests), inputTokens: sumOf((row) => row.judge?.inputTokens), outputTokens: sumOf((row) => row.judge?.outputTokens), latencyMs: sumOf((row) => row.judge?.latencyMs) } } : null,

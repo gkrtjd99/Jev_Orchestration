@@ -11,7 +11,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildMainPrompt, problems, FORBIDDEN } from './build-main-prompt.mjs';
-import { armRegistry, applyEnvLines, verifyInstalled, DECLARED_IDS, ENV_LINES, EVALUATION_CONTEXT } from './make-arm-config.mjs';
+import { armRegistry, applyEnvLines, verifyInstalled, isCommittedBase, overridingEnvNames, DECLARED_IDS, ENV_LINES, EVALUATION_CONTEXT } from './make-arm-config.mjs';
+import { baseRegistry, baseRegistryText, BASE_REGISTRY_FILE } from './make-base-registry.mjs';
 import { runInstallVerification } from './verify-arm-install.mjs';
 import { buildVerification, VALIDATOR_NAME } from './make-verification.mjs';
 import { analyzeArm, mainUsage, judgeCost, addTokens } from './analyze.mjs';
@@ -30,12 +31,9 @@ test.after(() => rmSync(work, { recursive: true, force: true }));
 let counter = 0;
 const fresh = (name) => { const dir = join(work, `${name}-${counter += 1}`); mkdirSync(dir, { recursive: true }); return dir; };
 
-const aliasRegistry = () => {
-  const registry = JSON.parse(readFileSync(join(here, '..', '..', '..', 'orchestration', 'config', 'registry.example.json'), 'utf8'));
-  const alias = { 'claude-light': 'sonnet', 'claude-standard': 'opus', 'claude-strategic': 'opus' };
-  for (const entry of registry.models) if (alias[entry.id]) { entry.model = alias[entry.id]; entry.backend = alias[entry.id]; }
-  return registry;
-};
+// The pre-registered base registry (light = sonnet, standard = opus, strategic = opus, all "declared").
+const aliasRegistry = () => baseRegistry();
+const CONFIRMED = { confirm: ['sonnet', 'opus'] };
 /** A project copy: the template plus, per task, its reference solution, one flawed variant, or nothing. */
 function projectWith(solutions) {
   const dir = fresh('project');
@@ -48,8 +46,8 @@ function projectWith(solutions) {
   return dir;
 }
 const SONNET = 'claude-sonnet-5-5', OPUS = 'claude-opus-5-5';
-const armR = armRegistry(aliasRegistry(), 'R');
-const armL = armRegistry(aliasRegistry(), 'L');
+const armR = armRegistry(aliasRegistry(), 'R', DECLARED_IDS, CONFIRMED);
+const armL = armRegistry(aliasRegistry(), 'L', DECLARED_IDS, CONFIRMED);
 const catalogR = profileCatalog(armR.registry, 'claude');
 const profileOf = (role, slot, effort) => catalogR.find((p) => p.role === role && p.slot === slot && p.effort === effort);
 const profilesById = new Map(catalogR.map((p) => [p.profileId, p]));
@@ -92,6 +90,22 @@ test('arm R declares the resolved ids, arm L also disables every claude entry ab
   assert.deepEqual(armL.lowest, { registryEntry: 'claude-light', slot: 'light', backend: 'sonnet' });
   assert.deepEqual(armL.disabled.map((d) => d.registryEntry), ['claude-standard', 'claude-strategic']);
   assert.deepEqual(armL.registry.models.filter((m) => m.runtime === 'claude' && m.enabled).map((m) => [m.id, m.backend, m.resolvesTo]), [['claude-light', 'sonnet', [SONNET]]]);
+  // Availability: nothing is confirmed unless the caller says so, per backend; R and L then differ in `enabled` only.
+  assert.equal(readFileSync(BASE_REGISTRY_FILE, 'utf8'), baseRegistryText(), 'base-registry.json is what make-base-registry.mjs derives');
+  assert.ok(base.models.filter((m) => m.runtime === 'claude' && m.enabled).every((m) => m.availability === 'declared'), 'the committed base confirms nothing');
+  const plain = armRegistry(base, 'R');
+  assert.deepEqual(plain.unconfirmed.map((e) => [e.registryEntry, e.backend, e.availability]), [['claude-light', 'sonnet', 'declared'], ['claude-standard', 'opus', 'declared'], ['claude-strategic', 'opus', 'declared']]);
+  assert.deepEqual(armRegistry(base, 'R', DECLARED_IDS, { confirm: ['sonnet'] }).unconfirmed.map((e) => e.registryEntry), ['claude-standard', 'claude-strategic'], 'a partly confirmed registry is reported, not accepted');
+  assert.deepEqual(armRegistry(base, 'L', DECLARED_IDS, { confirm: ['sonnet'] }).unconfirmed, [], 'arm L needs only its own backend confirmed');
+  assert.throws(() => armRegistry(base, 'R', DECLARED_IDS, { confirm: ['sonet'] }), /no enabled claude entry has this backend/);
+  assert.deepEqual([armR.unconfirmed, armL.unconfirmed, armR.undeclaredEnabled, armL.undeclaredEnabled], [[], [], [], []]);
+  assert.deepEqual(armR.confirmed.map((e) => [e.registryEntry, e.was]), [['claude-light', 'declared'], ['claude-standard', 'declared'], ['claude-strategic', 'declared']]);
+  assert.ok(armR.registry.models.filter((m) => m.runtime === 'claude' && m.enabled).every((m) => m.availability === 'confirmed'));
+  const sameButEnabled = (registry) => JSON.stringify(registry.models.map((m) => ({ ...m, enabled: null })));
+  assert.equal(sameButEnabled(armL.registry), sameButEnabled(armR.registry), 'the registries of R and L differ in `enabled` only');
+  assert.equal(isCommittedBase(base), true); assert.equal(isCommittedBase(armR.registry), false); assert.equal(isCommittedBase(defaultRegistry()), false);
+  assert.deepEqual(overridingEnvNames({ PATH: 'x', JEV_MODE: 'shadow', TYPESAFE_BASE_URL: 'y', TYPESAFE_API_KEY: 'k', CLAUDE_CODE_SUBAGENT_MODEL: 'z', HOME: 'h' }), ['CLAUDE_CODE_SUBAGENT_MODEL', 'JEV_MODE', 'TYPESAFE_BASE_URL'],
+    'a key in the environment changes no setting of the arm and is reported separately');
   // Codex entries are left alone, and both registries are valid for the product.
   assert.deepEqual(armL.registry.models.filter((m) => m.runtime === 'codex'), base.models.filter((m) => m.runtime === 'codex'));
   validateRegistry(armR.registry); validateRegistry(armL.registry);
@@ -109,6 +123,8 @@ test('a registry with concrete model ids gets no declaration, and arm L still ke
   const r = armRegistry(shipped, 'R'), l = armRegistry(shipped, 'L');
   assert.deepEqual(r.declared, []);
   assert.equal(r.notDeclared.filter((e) => e.enabled).length, 3);
+  assert.deepEqual(r.undeclaredEnabled.map((e) => e.backend), ['claude-sonnet-5', 'claude-opus-5-5', 'claude-fable-5-1'], 'such entries stop the tool unless --allow-undeclared is given');
+  assert.deepEqual(l.undeclaredEnabled.map((e) => e.backend), ['claude-sonnet-5']);
   assert.deepEqual(l.registry.models.filter((m) => m.runtime === 'claude' && m.enabled).map((m) => m.backend), ['claude-sonnet-5']);
   // A typed declaration is applied; one that names another entry's model is refused by the product's own validation.
   assert.deepEqual(armRegistry(shipped, 'R', { ...DECLARED_IDS, 'claude-sonnet-5': SONNET }).declared.map((d) => d.resolvesTo), [[SONNET]]);
@@ -154,11 +170,33 @@ test('make-arm-config writes below --work only and prints nothing from the env f
   assert.equal(cli('--arm', 'N', '--work', dir, '--config', inside).status, 2);
   assert.equal(cli('--arm', 'R', '--work', join(dir, 'missing'), '--config', inside).status, 2);
 
-  const made = cli('--arm', 'L', '--work', dir, '--config', inside, '--env', join(dir, 'home/.config/jev-hooks/.env'));
+  // Availability is the owner's statement: without it nothing is written, with a partial one for arm R neither.
+  const envText = () => readFileSync(join(dir, 'home/.config/jev-hooks/.env'), 'utf8');
+  const unconfirmed = cli('--arm', 'L', '--work', dir, '--config', inside, '--env', join(dir, 'home/.config/jev-hooks/.env'));
+  assert.equal(unconfirmed.status, 1); assert.match(unconfirmed.stderr, /claude-light \(backend sonnet, declared\) is enabled but not confirmed/); assert.match(unconfirmed.stderr, /--confirm-availability sonnet/);
+  const partly = cli('--arm', 'R', '--work', dir, '--config', inside, '--confirm-availability', 'sonnet');
+  assert.equal(partly.status, 1); assert.match(partly.stderr, /claude-standard \(backend opus, declared\), claude-strategic \(backend opus, declared\) are enabled but not confirmed/);
+  assert.ok(!existsSync(join(dir, 'routing-exp-arm-L')) && !existsSync(join(dir, 'routing-exp-arm-R')) && envText().includes('JEV_MODE=shadow'), 'a refused run writes nothing');
+  // A registry that is not the pre-registered base, and entries without a declared id, also stop it.
+  mkdirSync(join(dir, 'other'), { recursive: true });
+  writeFileSync(join(dir, 'other/config.json'), JSON.stringify({ ...config, registry: defaultRegistry() }));
+  const shippedConfirm = ['--confirm-availability', 'claude-sonnet-5', '--confirm-availability', 'claude-opus-5-5', '--confirm-availability', 'claude-fable-5-1'];
+  const otherBase = cli('--arm', 'R', '--work', dir, '--config', join(dir, 'other/config.json'), ...shippedConfirm);
+  assert.equal(otherBase.status, 1); assert.match(otherBase.stderr, /not the pre-registered base-registry\.json/);
+  const undeclared = cli('--arm', 'R', '--work', dir, '--config', join(dir, 'other/config.json'), '--allow-other-base', ...shippedConfirm);
+  assert.equal(undeclared.status, 1); assert.match(undeclared.stderr, /claude-light \(backend claude-sonnet-5\).*no declared model id/);
+  const allowed = cli('--arm', 'R', '--work', dir, '--config', join(dir, 'other/config.json'), '--allow-other-base', '--allow-undeclared', ...shippedConfirm);
+  assert.equal(allowed.status, 0, allowed.stderr);
+  assert.deepEqual([JSON.parse(allowed.stdout).baseRegistry.isCommittedBase, JSON.parse(allowed.stdout).baseRegistry.allowOtherBase, JSON.parse(allowed.stdout).allowUndeclared], [false, true, true], 'the overrides are recorded');
+  rmSync(join(dir, 'routing-exp-arm-R'), { recursive: true });
+
+  const made = cli('--arm', 'L', '--work', dir, '--config', inside, '--env', join(dir, 'home/.config/jev-hooks/.env'), '--confirm-availability', 'sonnet', '--confirm-availability', 'opus');
   assert.equal(made.status, 0, made.stderr);
   assert.ok(!made.stdout.includes('not-a-real-key') && !made.stderr.includes('not-a-real-key'), 'nothing from the env file is printed');
   const summary = JSON.parse(made.stdout);
   assert.equal(summary.reinstallRequired, true);
+  assert.deepEqual([summary.baseRegistry.isCommittedBase, summary.availability.confirmedOnCommandLine, summary.availability.entries.map((e) => e.registryEntry)], [true, ['sonnet', 'opus'], ['claude-light', 'claude-standard', 'claude-strategic']]);
+  assert.deepEqual(summary.enabledClaudeEntries.map((e) => [e.registryEntry, e.availability, e.resolvesTo]), [['claude-light', 'confirmed', [SONNET]]]);
   assert.equal(summary.profileFiles.length, 9);
   assert.deepEqual(JSON.parse(readFileSync(join(dir, 'routing-exp-arm-L/registry.json'), 'utf8')), armL.registry);
   assert.equal(readFileSync(join(dir, 'routing-exp-arm-L/env-lines.txt'), 'utf8'), 'JEV_MODE=active\nJEV_SKILLS_MODE=off\nJEV_SUPERVISOR_MODE=off\nJEV_EVALUATION_CONTEXT=desktop-auto-v1\n');
@@ -170,43 +208,62 @@ test('make-arm-config writes below --work only and prints nothing from the env f
   assert.equal(verify.status, 1);
   const problemsFound = JSON.parse(verify.stdout).problems;
   assert.ok(problemsFound.some((p) => p.includes('mode is shadow')) && problemsFound.some((p) => p.includes('not the arm registry')) && problemsFound.some((p) => p.includes('is not installed')));
+  assert.ok(problemsFound.some((p) => p.includes('claude-light (backend sonnet) is declared, not confirmed')) && problemsFound.some((p) => p.includes('JEV_ALLOW_EGRESS is not true')), 'verify names what would leave the arm unrouted');
+  // Variables the hook reads before the arm's .env are reported by name, never by value.
+  const withEnv = spawnSync(process.execPath, [join(here, 'make-arm-config.mjs'), '--verify', '--arm', 'L', '--work', dir, '--config', inside], { encoding: 'utf8', env: { ...process.env, JEV_MODE: 'shadow-value-not-printed' } });
+  assert.ok(JSON.parse(withEnv.stdout).overridingEnvironmentNames.includes('JEV_MODE') && JSON.parse(withEnv.stdout).problems.some((p) => p.includes('JEV_MODE')) && !withEnv.stdout.includes('shadow-value-not-printed'));
   assert.deepEqual(verifyInstalled({ ...config, mode: 'active' }, armL).filter((p) => p.startsWith('mode is')), []);
 });
 
-test('the documented install order works with the real installer, and arm L installs a subset of arm R\'s profile files', async () => {
-  const [alias, shipped] = await runInstallVerification(['alias', 'shipped']);
-  for (const base of [alias, shipped]) {
-    for (const [arm, result] of Object.entries(base.arms)) {
-      const label = `${base.base} ${arm}`;
-      assert.deepEqual([result.steps.baseInstall.exit, result.steps.makeArmConfig.exit, result.steps.armInstall.exit, result.steps.verify.exit, result.steps.projectHooks.exit], [0, 0, 0, 0, 0], label);
-      assert.equal(result.steps.verify.ok, true, label);
-      assert.deepEqual(result.steps.installAfterProjectHooks, { exit: 1, error: 'COMPETING_PROJECT_JEV_HOOKS_REQUIRE_MIGRATION' }, 'the project hooks go in after the last install');
-      assert.deepEqual([result.effective.mode, result.effective.evaluationContext, result.effective.skills, result.effective.supervisor, result.effective.classify, result.effective.profile],
-        ['active', 'desktop-auto-v1', 'off', 'off', 'active', 'active'], label);
-      assert.equal(result.effective.stateDirBelowHome, true);
-      assert.deepEqual(result.env, { linesPresentOnce: true, otherLinesUnchanged: true, mode: '600' }, label);
-      assert.equal(result.rewriteCheck.verified, result.rewriteCheck.profiles, `${label}: every profile passes the hook's pre-rewrite check`);
-      assert.equal(result.projectSettings, true);
-      assert.equal(result.profileFiles.length, arm === 'R' ? 27 : 9, label);
-      assert.ok(result.profileFiles.every((name) => /^jev4_[a-z]+_[a-z]+_[a-z]+_[0-9a-f]{10}\.md$/.test(name)));
+test('the documented install order works with the real installer, the installed hook really rewrites, and arm L installs a subset of arm R\'s profile files', async () => {
+  const run = await runInstallVerification();
+  assert.equal(run.base, 'base-registry.json');
+  for (const [arm, result] of Object.entries(run.arms)) {
+    assert.deepEqual([result.steps.baseInstall.exit, result.steps.makeArmConfig.exit, result.steps.armInstall.exit, result.steps.verify.exit, result.steps.projectHooks.exit], [0, 0, 0, 0, 0], arm);
+    assert.deepEqual(result.steps.makeArmConfigWithoutConfirmation, { exit: 1, saysNotConfirmed: true, wroteNothing: true }, `${arm}: no availability statement, no arm`);
+    assert.deepEqual([result.steps.verify.ok, result.steps.verify.problems], [true, []], arm);
+    assert.deepEqual(result.steps.installAfterProjectHooks, { exit: 1, error: 'COMPETING_PROJECT_JEV_HOOKS_REQUIRE_MIGRATION' }, 'the project hooks go in after the last install');
+    assert.deepEqual([result.effective.mode, result.effective.evaluationContext, result.effective.skills, result.effective.supervisor, result.effective.classify, result.effective.profile],
+      ['active', 'desktop-auto-v1', 'off', 'off', 'active', 'active'], arm);
+    assert.equal(result.effective.stateDirBelowHome, true);
+    assert.equal(result.effective.requireConfirmedAvailability, true, 'the product default is left on');
+    assert.ok(result.effective.enabledClaude.every((m) => m.availability === 'confirmed'), `${arm}: every enabled claude entry is confirmed`);
+    assert.deepEqual([result.baseIsCommitted, result.availabilityConfirmed], [true, ['claude-light', 'claude-standard', 'claude-strategic']]);
+    assert.deepEqual(result.env, { linesPresentOnce: true, otherLinesUnchanged: true, mode: '600' }, arm);
+    assert.equal(result.rewriteCheck.verified, result.rewriteCheck.profiles, `${arm}: every profile passes the hook's pre-rewrite check`);
+    assert.equal(result.projectSettings, true);
+    assert.equal(result.profileFiles.length, arm === 'R' ? 27 : 9, arm);
+    assert.ok(result.profileFiles.every((name) => /^jev4_[a-z]+_[a-z]+_[a-z]+_[0-9a-f]{10}\.md$/.test(name)));
+    // The hook itself, through the command in the project's settings.json, with a judge stub on 127.0.0.1.
+    assert.equal(result.hookDrive.error, undefined, arm);
+    for (const scenario of result.hookDrive.scenarios) {
+      assert.equal(scenario.exit, 0, `${arm} ${scenario.scenario}`);
+      if (scenario.rewritten) assert.deepEqual([scenario.installedProfile, scenario.promptKept, /^jev4_/.test(scenario.subagentType), `${scenario.subagentType}.md`], [true, true, true, result.profileFiles.find((name) => name === `${scenario.subagentType}.md`)], `${arm} ${scenario.scenario}`);
     }
-    assert.deepEqual([base.comparison.armRFiles, base.comparison.armLFiles, base.comparison.armLIsSubsetOfArmR, base.comparison.sharedNames, base.comparison.sharedFilesByteIdentical, base.comparison.onlyInArmR.length],
-      [27, 9, true, 9, true, 18], base.base);
-    assert.equal(base.arms.R.sameNamesAndBytesAsBaseInstall, true, 'a declaration changes neither a profile file name nor its content');
-    assert.ok(base.arms.L.profileFiles.every((name) => /_light_/.test(name)));
   }
-  // Alias registry: every profile's fingerprint changes with the declaration, so a registry edited into config.json
-  // without a second install would have every rewrite refused.
-  assert.deepEqual(alias.arms.R.rewriteCheckIfRegistryWereOnlyEditedInConfig, { PROFILE_NOT_INSTALLED_OR_STALE: 27 });
-  assert.deepEqual(alias.arms.L.rewriteCheckIfRegistryWereOnlyEditedInConfig, { PROFILE_NOT_INSTALLED_OR_STALE: 9 });
-  assert.deepEqual(alias.arms.R.effective.enabledClaude.map((m) => [m.backend, m.resolvesTo]), [['sonnet', [SONNET]], ['opus', [OPUS]], ['opus', [OPUS]]]);
-  assert.deepEqual(alias.arms.L.effective.enabledClaude.map((m) => [m.backend, m.resolvesTo]), [['sonnet', [SONNET]]]);
-  assert.equal(alias.arms.R.profilesWithChangedFingerprint, 27);
-  assert.deepEqual(shipped.arms.R.declared, []);
-  assert.deepEqual(shipped.arms.L.effective.enabledClaude.map((m) => m.backend), ['claude-sonnet-5']);
+  const drive = (arm) => Object.fromEntries(run.arms[arm].hookDrive.scenarios.map((s) => [s.scenario, s.rewritten ? `${s.role}/${s.slot}/${s.backend}` : `deferred:${s.code}`]));
+  // Arm R: every delegation is rewritten to an installed profile, on either backend.
+  assert.deepEqual(drive('R'), { implement: 'implement/light/sonnet', research: 'research/light/sonnet', review: 'review/standard/opus', plan: 'plan/strategic/opus' });
+  // Arm L: rewrites go to the lowest backend only. Roles the lowest entry does not have are deferred, and such a
+  // delegation then runs as the harness default (PROTOCOL.md section 7).
+  assert.deepEqual(drive('L'), { implement: 'implement/light/sonnet', research: 'research/light/sonnet', review: 'deferred:no_compatible_profile', plan: 'deferred:no_compatible_profile' });
+  assert.deepEqual([run.comparison.armRFiles, run.comparison.armLFiles, run.comparison.armLIsSubsetOfArmR, run.comparison.sharedNames, run.comparison.sharedFilesByteIdentical, run.comparison.onlyInArmR.length], [27, 9, true, 9, true, 18]);
+  assert.equal(run.arms.R.sameNamesAndBytesAsBaseInstall, true, 'neither a declaration nor a confirmation changes a profile file name or its content');
+  assert.ok(run.arms.L.profileFiles.every((name) => /_light_/.test(name)));
+  // Every profile's fingerprint changes with the declaration, so a registry edited into config.json without a
+  // second install would have every rewrite refused.
+  assert.deepEqual(run.arms.R.rewriteCheckIfRegistryWereOnlyEditedInConfig, { PROFILE_NOT_INSTALLED_OR_STALE: 27 });
+  assert.deepEqual(run.arms.L.rewriteCheckIfRegistryWereOnlyEditedInConfig, { PROFILE_NOT_INSTALLED_OR_STALE: 9 });
+  assert.deepEqual(run.arms.R.effective.enabledClaude.map((m) => [m.backend, m.resolvesTo]), [['sonnet', [SONNET]], ['opus', [OPUS]], ['opus', [OPUS]]]);
+  assert.deepEqual(run.arms.L.effective.enabledClaude.map((m) => [m.backend, m.resolvesTo]), [['sonnet', [SONNET]]]);
+  assert.equal(run.arms.R.profilesWithChangedFingerprint, 27);
+  // An install that did not start from base-registry.json, and entries without a declared id, are refused.
+  assert.deepEqual(run.refusals, { installerDefaultRegistry: { installExit: 0, exit: 1, saysNotBase: true }, undeclaredEntries: { exit: 1, saysNoDeclaredId: true } });
+  // The pre-run checklist passes on the prepared folders and finds each kind of contamination.
+  assert.deepEqual(run.preflight.clean, { ok: true, problems: [], agents: { expected: 27, present: 27 } });
+  assert.deepEqual(run.preflight.dirty, { ok: false, problems: 6, found: { hookInSettings: true, armNClaudeFolder: true, environment: true, agentMissing: 1, agentExtra: 1, agentDiffering: 1 } });
 });
 
-// ---------------------------------------------------------------- fixtures shared by the analysis tests
 const planN = Object.fromEntries(tasks.map((task) => [task.id, { kind: 'plain', model: MAIN_MODEL, effort: 'medium' }]));
 const planR = {
   t01: routed('light', 'xhigh'), t02: routed('light', 'high'), t03: routed('standard', 'high'), t04: { kind: 'deferred', reason: 'selector_abstained', model: MAIN_MODEL, effort: 'medium' },
@@ -244,6 +301,7 @@ test('arm N: one launched call per task, the subagent is read from the host\'s o
   assert.deepEqual(Object.keys(armN.totals.subagentsByModel), [MAIN_MODEL]);
   assert.deepEqual(armN.unattributedChanges, []);
   assert.deepEqual(armN.warnings, ['1 unparsable line(s) skipped in the Main transcript']);
+  assert.deepEqual(armN.totals.noRoutingCheck, { clean: true, refusedCalls: 0, firstCallAsOtherType: [], launchedAsOtherType: [], ranAsOtherType: [], agentTypeUnknown: [] });
   assert.ok(!JSON.stringify(armN).includes('toolu_') && !JSON.stringify(armN).includes('/synthetic/') && !JSON.stringify(armN).includes(tasks[0].text.slice(0, 40)), 'no id, path or prompt text in the output');
 });
 
@@ -302,7 +360,11 @@ test('arm R: refused and re-issued calls are one delegation, the route comes fro
   assert.deepEqual(row(armRr, 't08').counted, { done: false, passed: false });
   assert.deepEqual(armRr.totals.routing, { routed: 10, deferred: ['t04'], applied: 10, notApplied: [], reissued: 10,
     profiles: { [profileOf('implement', 'light', 'xhigh').profileId]: 3, [profileOf('implement', 'light', 'high').profileId]: 3, [profileOf('implement', 'standard', 'high').profileId]: 2, [profileOf('implement', 'standard', 'xhigh').profileId]: 2 },
-    evaluationContexts: ['desktop-auto-v1'] });
+    evaluationContexts: ['desktop-auto-v1'],
+    // t04 was deferred and ran as the harness default on the Main model; it passed, but not as a routed profile.
+    byApplication: { asRoutedProfile: { tasks: 10, passed: 8, models: [OPUS, SONNET] }, notAsRoutedProfile: { tasks: ['t04'], passed: ['t04'], models: [MAIN_MODEL] } } });
+  assert.equal(armRr.totals.noRoutingCheck, null);
+  assert.deepEqual(armLl.totals.routing.byApplication, { asRoutedProfile: { tasks: 12, passed: 10, models: [SONNET] }, notAsRoutedProfile: { tasks: [], passed: [], models: [] } });
   assert.deepEqual(Object.keys(armRr.totals.subagentsByModel).sort(), [MAIN_MODEL, OPUS, SONNET]);
   assert.deepEqual([armRr.totals.subagentsByModel[SONNET].tasks, armRr.totals.subagentsByModel[OPUS].tasks, armRr.totals.subagentsByModel[MAIN_MODEL].tasks], [6, 4, 1]);
   assert.deepEqual([armRr.totals.subagentsByModel[OPUS].passed, armRr.totals.subagentsByModel[OPUS].done], [2, 3]);
@@ -358,6 +420,14 @@ test('damaged or missing records become null plus a note, never a guess', () => 
   assert.ok(empty.warnings.some((w) => w.includes('no Main transcript')));
   const hookedN = analyzeArm({ arm: 'N', project: projectN, transcriptsDir: fixtureR.transcripts, stateDir: fixtureR.stateDir, check: fake });
   assert.ok(hookedN.warnings.some((w) => w.includes('did not run without hooks')));
+  // A hooked session handed in as arm N WITHOUT its state dir is still recognised, from the transcripts alone.
+  const contaminated = analyzeArm({ arm: 'N', project: projectN, transcriptsDir: fixtureR.transcripts, check: fake });
+  const routedIds = ['t01', 't02', 't03', 't05', 't06', 't07', 't08', 't09', 't10', 't11'];
+  assert.deepEqual(contaminated.totals.noRoutingCheck, { clean: false, refusedCalls: 10, firstCallAsOtherType: [], launchedAsOtherType: routedIds, ranAsOtherType: routedIds, agentTypeUnknown: [] });
+  assert.ok(contaminated.warnings.some((w) => w.includes('arm N: 10 Agent call(s) were refused')) && contaminated.warnings.some((w) => w.includes('launched Agent call asked for another agent type'))
+    && contaminated.warnings.some((w) => w.includes('subagent ran as another agent type')));
+  const shownN = render(compareArms({ N: contaminated, R: armRr, L: armLl }));
+  assert.ok(shownN.includes('WARNING: arm N did not run as a no-routing arm (refused calls: 10;') && shownN.includes('[RAN AS implement_light_xhigh: not a no-routing run]'), shownN);
   assert.throws(() => analyzeArm({ arm: 'X', project: projectN, transcriptsDir: fixtureN.transcripts, check: fake }), /N, R or L/);
   assert.deepEqual(judgeCost([]), { decisions: 0, requests: 0, cached: 0, requestsWithUsage: 0, inputTokens: null, outputTokens: null, latencyMs: null });
 });
@@ -379,7 +449,22 @@ test('compare shows the three arms per task, totals per arm, by tier and by mode
     `R    ${SONNET}`, `R    ${OPUS}`, `L    ${SONNET}`, 'No cost estimate: no --prices file was given', 'Left out: t04, t12', 'N no routing', 'cache creation']) {
     assert.ok(text.includes(expected), `missing "${expected}" in:\n${text}`);
   }
-  assert.ok(!text.includes('CEILING'));
+  assert.ok(!text.includes('CEILING') && !text.includes('WARNING: arm N'));
+  // Small differences are read by the rule fixed in advance: 12 vs 9 and 12 vs 10 are described, 9 vs 10 is not.
+  assert.deepEqual(result.smallDifferences.pairs.map((pair) => [pair.arms.join(''), pair.difference, pair.verdict]),
+    [['NR', 3, 'described as a difference'], ['NL', 2, 'described as a difference'], ['RL', 1, 'not distinguishable']]);
+  assert.deepEqual(result.smallDifferences.pairs[2].passedOnlyIn, { R: ['t06', 't10'], L: ['t03', 't08', 't12'] });
+  assert.equal(result.nearCeiling, false);
+  for (const expected of ['R vs L: 9 vs 10, difference 1 -> not distinguishable (passed only in R: t06, t10; passed only in L: t03, t08, t12)', 'N vs L: 12 vs 10, difference 2 -> described as a difference',
+    'R: of 9 passed, 8 ran as the routed profile (recorded models: opus-5-5, sonnet-5-5); 1 passed without an applied route (t04; ran as the harness default on: fable-5-2).',
+    'L: of 10 passed, 10 ran as the routed profile (recorded models: sonnet-5-5); 0 passed without an applied route. Only the first number is a lower-model-only result']) {
+    assert.ok(text.includes(expected), `missing "${expected}" in:\n${text}`);
+  }
+  // Near ceiling: every arm fails at most one task. Reported as such, and the one-task differences as not distinguishable.
+  const oneDown = (arm, id) => ({ ...arm, tasks: arm.tasks.map((task) => (task.id === id ? { ...task, counted: { ...task.counted, passed: false } } : task)), totals: { ...arm.totals, passed: arm.totals.passed - 1 } });
+  const near = compareArms({ N: armN, R: { ...armN, arm: 'R' }, L: oneDown({ ...armN, arm: 'L' }, 't08') });
+  assert.deepEqual([near.ceiling, near.nearCeiling, near.smallDifferences.pairs.map((pair) => pair.verdict)], [false, true, ['not distinguishable', 'not distinguishable', 'not distinguishable']]);
+  assert.ok(render(near).includes('NEAR CEILING: every arm failed at most one task. The quality question stays open'));
   assert.ok(!/\$|USD/.test(text), 'no money without --prices');
   const t03 = text.split('\n').find((line) => line.startsWith('t03 '));
   assert.match(t03, /^t03\s+en\s+hard\s+P\s+fable-5-2\/medium\s+D\s+implement_standard_high -> opus-5-5\/high\s+P\s+/);
@@ -426,6 +511,14 @@ test('a cost estimate exists only with a prices file, per model, and is withheld
   assert.equal(cli.status, 0, cli.stderr);
   assert.equal(cli.stdout, render(compareArms({ N: armN, R: armRr, L: armLl })));
   assert.equal(spawnSync(process.execPath, [join(here, 'compare.mjs'), '--n', join(dir, 'n.json')], { encoding: 'utf8' }).status, 64);
+  // A collector file that a failed command left empty, or that is not a collector summary, is named; no stack trace.
+  writeFileSync(join(dir, 'empty.json'), '');
+  writeFileSync(join(dir, 'other.json'), '{"x":1}');
+  const three = ['--n', join(dir, 'n.json'), '--r', join(dir, 'r.json'), '--l', join(dir, 'l.json')];
+  const emptyCollector = spawnSync(process.execPath, [join(here, 'compare.mjs'), ...three, '--collector-r', join(dir, 'empty.json')], { encoding: 'utf8' });
+  assert.equal(emptyCollector.status, 1); assert.match(emptyCollector.stderr, /^--collector-r: .* is empty \(the command that should have written it failed/); assert.ok(!emptyCollector.stderr.includes('SyntaxError'));
+  const notSummary = spawnSync(process.execPath, [join(here, 'compare.mjs'), ...three, '--collector-l', join(dir, 'other.json')], { encoding: 'utf8' });
+  assert.equal(notSummary.status, 1); assert.match(notSummary.stderr, /not a summary printed by collect\.mjs/);
 });
 
 // ---------------------------------------------------------------- verification file and the collector

@@ -77,7 +77,7 @@ function armSummary(arm, prices, collector) {
     arm: arm.arm, name: arm.armName, tasks: t.tasks, delegated: t.delegated, done: t.done, passed: t.passed, byDifficulty: tiers,
     subagentsByModel: models, mainByModel: mainModels, mainApiTurns: arm.main?.apiTurns ?? null, mainWallMs: arm.main?.wallMs ?? null,
     mainEfforts: arm.main?.efforts ?? null, agentCalls: arm.main?.agentCalls ?? null, refusedCalls: arm.main?.refusedCalls ?? null,
-    subagentWallMs: t.subagentWallMs, subagentEndToEndMs: t.subagentEndToEndMs, routing: t.routing, judge: t.judge,
+    subagentWallMs: t.subagentWallMs, subagentEndToEndMs: t.subagentEndToEndMs, routing: t.routing, judge: t.judge, noRoutingCheck: t.noRoutingCheck ?? null,
     unlinkedSubagents: t.unlinkedSubagents, host: arm.host, warnings: arm.warnings.length, taskNotes: arm.tasks.reduce((n, row) => n + row.notes.length, 0),
     unattributedChanges: arm.unattributedChanges?.length ?? null, cost,
     collector: collector ? { context: collector.evaluations?.context ?? null, produced: collector.evaluations?.produced ?? null,
@@ -119,10 +119,23 @@ export function compareArms(arms, { prices = null, collectors = {} } = {}) {
   }));
   const summaries = Object.fromEntries(present.map((key) => [key, armSummary(arms[key], prices, collectors[key] ?? null)]));
   const allPassed = present.length === 3 && present.every((key) => summaries[key].passed === summaries[key].tasks);
+  // Pre-registered reading of small differences (PROTOCOL.md rule 12): with one run per arm a difference of one
+  // task between two arms is reported as not distinguishable; only two or more is described as a difference.
+  const pairs = [];
+  for (let i = 0; i < present.length; i += 1) for (let j = i + 1; j < present.length; j += 1) {
+    const [a, b] = [present[i], present[j]];
+    const difference = Math.abs(summaries[a].passed - summaries[b].passed);
+    const onlyIn = (x, y) => tasks.filter((row) => row[x]?.passed && !row[y]?.passed).map((row) => row.id);
+    pairs.push({ arms: [a, b], passed: [summaries[a].passed, summaries[b].passed], difference, verdict: difference >= 2 ? 'described as a difference' : 'not distinguishable',
+      passedOnlyIn: { [a]: onlyIn(a, b), [b]: onlyIn(b, a) } });
+  }
+  const nearCeiling = present.length === 3 && !allPassed && present.every((key) => summaries[key].tasks - summaries[key].passed <= 1);
   return {
     schema: 1, arms: present, sameCheckerAndTasks: versions.size === 1, tasks, summaries,
     routedComparison: { excludedTasks: excluded, rule: 'tasks whose route was deferred or not applied in arm R or arm L are left out here and kept in the arm totals', arms: routedOnly },
     ceiling: present.length === 3 ? allPassed : null,
+    nearCeiling: present.length === 3 ? nearCeiling : null,
+    smallDifferences: { rule: 'a difference of one passed task between two arms is not distinguishable in single runs; two or more is described as a difference (descriptive, no significance)', pairs },
     reading: 'Descriptive only: one run per arm, twelve model-authored synthetic tasks. No significance claim and no generalisation.',
   };
 }
@@ -140,7 +153,7 @@ export function render(result) {
   const how = (cell, key) => {
     if (!cell || cell.delegated === false) return '-';
     const setting = `${shortModel(cell.model)}/${show(cell.effort)}`;
-    if (key === 'N') return setting;
+    if (key === 'N') return cell.agentType && cell.agentType !== 'general-purpose' ? `${setting} [RAN AS ${shortProfile(cell.agentType)}: not a no-routing run]` : setting;
     return cell.routed ? `${shortProfile(cell.profile)}${cell.applied === false ? ' (NOT APPLIED)' : ''} -> ${setting}` : `${cell.deferred ? `deferred:${show(cell.deferReason)}` : 'no route'} -> ${setting}`;
   };
   out.push(table(['task', 'lang', 'tier', ...arms.flatMap((key) => [key, `${key} ran as`])],
@@ -156,6 +169,27 @@ export function render(result) {
     return [`${key} ${s.name}`, `${s.passed}/${s.tasks}`, `${s.done}/${s.tasks}`, `${s.delegated}/${s.tasks}`, ...TIERS.map((tier) => (s.byDifficulty[tier] ? `${s.byDifficulty[tier].passed}/${s.byDifficulty[tier].tasks}` : '-'))];
   })));
   if (result.ceiling === true) out.push('CEILING: every arm passed every task. The quality question stays open: these tasks did not separate the arms.');
+  if (result.nearCeiling === true) out.push('NEAR CEILING: every arm failed at most one task. The quality question stays open: a single task in a single run does not separate the arms.');
+  if (result.smallDifferences?.pairs.length) {
+    out.push(`Reading of differences (fixed in advance): ${result.smallDifferences.rule}.`);
+    for (const pair of result.smallDifferences.pairs) {
+      const [a, b] = pair.arms;
+      const only = [a, b].filter((key) => pair.passedOnlyIn[key].length).map((key) => `passed only in ${key}: ${pair.passedOnlyIn[key].join(', ')}`).join('; ');
+      out.push(`  ${a} vs ${b}: ${pair.passed[0]} vs ${pair.passed[1]}, difference ${pair.difference} -> ${pair.verdict}${only ? ` (${only})` : ''}`);
+    }
+  }
+  const nCheck = result.summaries.N?.noRoutingCheck;
+  if (nCheck && nCheck.clean === false) {
+    out.push(`WARNING: arm N did not run as a no-routing arm (refused calls: ${show(nCheck.refusedCalls)}; first call as another agent type: ${nCheck.firstCallAsOtherType.join(', ') || 'none'}; launched as another agent type: ${nCheck.launchedAsOtherType.join(', ') || 'none'}; ran as another agent type: ${nCheck.ranAsOtherType.join(', ') || 'none'}). Its numbers are not a no-routing baseline.`);
+  }
+  for (const key of arms.filter((k) => k !== 'N')) {
+    const split = result.summaries[key].routing?.byApplication;
+    if (!split) continue;
+    const off = split.notAsRoutedProfile;
+    out.push(`${key}: of ${result.summaries[key].passed} passed, ${split.asRoutedProfile.passed} ran as the routed profile (recorded models: ${split.asRoutedProfile.models.map(shortModel).join(', ') || '-'}); `
+      + `${off.passed.length} passed without an applied route${off.passed.length ? ` (${off.passed.join(', ')}; ran as the harness default on: ${off.models.map(shortModel).join(', ') || '-'})` : ''}.`
+      + (key === 'L' ? ' Only the first number is a lower-model-only result; see the routed comparison and the by-model table.' : ''));
+  }
   out.push('');
   out.push(`Routed comparison (${result.routedComparison.rule}). Left out: ${result.routedComparison.excludedTasks.join(', ') || 'none'}.`);
   out.push(table(['arm', 'tasks kept', 'passed', ...TIERS.map((tier) => `${tier} passed`)], arms.map((key) => {
@@ -225,10 +259,21 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     if (key === 'json') args.json = true; else { args[key] = argv[i + 1]; i += 1; }
   }
   if (!args.n || !args.r || !args.l) { console.error('usage: compare.mjs --n <armN.json> --r <armR.json> --l <armL.json> [--prices <file>] [--collector-r <file>] [--collector-l <file>] [--json]'); process.exit(64); }
-  const read = (file) => JSON.parse(readFileSync(resolve(file), 'utf8'));
-  const result = compareArms({ N: read(args.n), R: read(args.r), L: read(args.l) }, {
+  const read = (file, what) => {
+    let text;
+    try { text = readFileSync(resolve(file), 'utf8'); } catch { console.error(`${what}: cannot read ${file}`); process.exit(1); }
+    if (text.trim() === '') { console.error(`${what}: ${file} is empty (the command that should have written it failed; run it again and look at its error)`); process.exit(1); }
+    try { return JSON.parse(text); } catch { console.error(`${what}: ${file} is not JSON`); process.exit(1); }
+    return null;
+  };
+  const collector = (key) => {
+    const summary = read(args[key], `--${key}`);
+    if (!isObject(summary) || !isObject(summary.evaluations)) { console.error(`--${key}: ${args[key]} is not a summary printed by collect.mjs (no "evaluations")`); process.exit(1); }
+    return summary;
+  };
+  const result = compareArms({ N: read(args.n, '--n'), R: read(args.r, '--r'), L: read(args.l, '--l') }, {
     prices: args.prices ? loadPrices(resolve(args.prices)) : null,
-    collectors: { ...(args['collector-r'] ? { R: read(args['collector-r']) } : {}), ...(args['collector-l'] ? { L: read(args['collector-l']) } : {}) },
+    collectors: { ...(args['collector-r'] ? { R: collector('collector-r') } : {}), ...(args['collector-l'] ? { L: collector('collector-l') } : {}) },
   });
   process.stdout.write(args.json ? JSON.stringify(result, null, 2) + '\n' : render(result));
 }
