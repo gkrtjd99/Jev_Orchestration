@@ -1,3 +1,12 @@
+> **Superseded.** This folder is the output BEFORE independent review (`outcome-collector-3`). Three things in it
+> are wrong or no longer produced: (1) scenario (c) labels the 15 routed delegations `declared`, although those
+> sessions ran before any declaration existed - they are now `declared-not-in-force` and do not count in the
+> observation report's `acceptedRate`; (2) the summaries carry a `wouldNeed` registry fragment per observed id,
+> which was removed; (3) the temp config of (c) was built mechanically from the summary of (b), which the demo
+> helper no longer does. The row counts (0 of 16) and the reasons of (a) and (b) are unchanged. Use
+> [`../collector-alias-20261125-r2/`](../collector-alias-20261125-r2/README.md) instead. The files here are kept
+> only so the correction can be traced.
+
 # Declared resolved model ids on the pilot evidence, 2026-11-25
 
 Output of `orchestration/scripts/collect.mjs` (`outcome-collector-3`) run offline on COPIES of the hook state of the

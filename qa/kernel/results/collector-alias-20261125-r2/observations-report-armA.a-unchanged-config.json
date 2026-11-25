@@ -1,0 +1,279 @@
+{
+  "schema": 1,
+  "note": "Descriptive only. A loaded skill is what a subagent did, not proof the skill was needed; a pass rate exists only where an external verification result was supplied; nothing in this report changes routing.",
+  "delegations": 8,
+  "routed": 7,
+  "requestedVsEffective": {
+    "profile": {
+      "compared": 7,
+      "matched": 7,
+      "rate": 1
+    },
+    "model": {
+      "compared": 7,
+      "exact": 0,
+      "declared": 0,
+      "declaredNotInForce": 0,
+      "aliasUndeclared": 7,
+      "alias": 7,
+      "mismatch": 0,
+      "exactRate": 0,
+      "acceptedRate": 0,
+      "exactOrAliasRate": 1
+    },
+    "effort": {
+      "compared": 7,
+      "matched": 7,
+      "rate": 1
+    }
+  },
+  "byProfile": [
+    {
+      "profile": "(not-routed)",
+      "delegations": 1,
+      "verified": 1,
+      "passed": 1,
+      "passRate": 1,
+      "conventionChecked": 1,
+      "conventionPassRate": 1,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 8,
+            "measured": 1
+          },
+          "output": {
+            "mean": 4143,
+            "measured": 1
+          },
+          "cacheRead": {
+            "mean": 173079,
+            "measured": 1
+          },
+          "cacheCreation": {
+            "mean": 64431,
+            "measured": 1
+          },
+          "total": {
+            "mean": 241661,
+            "measured": 1
+          }
+        },
+        "apiTurns": {
+          "mean": 4,
+          "measured": 1
+        },
+        "toolCalls": {
+          "mean": 5,
+          "measured": 1
+        },
+        "wallMs": {
+          "mean": 40664,
+          "measured": 1
+        },
+        "endToEndMs": {
+          "mean": 42179,
+          "measured": 1
+        }
+      }
+    },
+    {
+      "profile": "jev4_implement_light_xhigh_ff567b09c6",
+      "delegations": 1,
+      "verified": 1,
+      "passed": 1,
+      "passRate": 1,
+      "conventionChecked": 1,
+      "conventionPassRate": 1,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 22,
+            "measured": 1
+          },
+          "output": {
+            "mean": 13318,
+            "measured": 1
+          },
+          "cacheRead": {
+            "mean": 694174,
+            "measured": 1
+          },
+          "cacheCreation": {
+            "mean": 81236,
+            "measured": 1
+          },
+          "total": {
+            "mean": 788750,
+            "measured": 1
+          }
+        },
+        "apiTurns": {
+          "mean": 11,
+          "measured": 1
+        },
+        "toolCalls": {
+          "mean": 13,
+          "measured": 1
+        },
+        "wallMs": {
+          "mean": 96468,
+          "measured": 1
+        },
+        "endToEndMs": {
+          "mean": 110522,
+          "measured": 1
+        }
+      }
+    },
+    {
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "delegations": 6,
+      "verified": 6,
+      "passed": 6,
+      "passRate": 1,
+      "conventionChecked": 4,
+      "conventionPassRate": 1,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 12.333333333333334,
+            "measured": 6
+          },
+          "output": {
+            "mean": 4743.666666666667,
+            "measured": 6
+          },
+          "cacheRead": {
+            "mean": 350237.5,
+            "measured": 6
+          },
+          "cacheCreation": {
+            "mean": 38009.5,
+            "measured": 6
+          },
+          "total": {
+            "mean": 393003,
+            "measured": 6
+          }
+        },
+        "apiTurns": {
+          "mean": 6.166666666666667,
+          "measured": 6
+        },
+        "toolCalls": {
+          "mean": 9.333333333333334,
+          "measured": 6
+        },
+        "wallMs": {
+          "mean": 44472.666666666664,
+          "measured": 6
+        },
+        "endToEndMs": {
+          "mean": 51264.333333333336,
+          "measured": 6
+        }
+      }
+    }
+  ],
+  "all": {
+    "delegations": 8,
+    "verified": 8,
+    "passed": 8,
+    "passRate": 1,
+    "conventionChecked": 6,
+    "conventionPassRate": 1,
+    "perDelegation": {
+      "tokens": {
+        "input": {
+          "mean": 13,
+          "measured": 8
+        },
+        "output": {
+          "mean": 5740.375,
+          "measured": 8
+        },
+        "cacheRead": {
+          "mean": 371084.75,
+          "measured": 8
+        },
+        "cacheCreation": {
+          "mean": 46715.5,
+          "measured": 8
+        },
+        "total": {
+          "mean": 423553.625,
+          "measured": 8
+        }
+      },
+      "apiTurns": {
+        "mean": 6.5,
+        "measured": 8
+      },
+      "toolCalls": {
+        "mean": 9.25,
+        "measured": 8
+      },
+      "wallMs": {
+        "mean": 50496,
+        "measured": 8
+      },
+      "endToEndMs": {
+        "mean": 57535.875,
+        "measured": 8
+      }
+    }
+  },
+  "judge": {
+    "requests": {
+      "total": 28,
+      "perDelegation": {
+        "mean": 3.5,
+        "measured": 8
+      }
+    },
+    "tokens": {
+      "reportedDecisions": 0,
+      "judge": null,
+      "workers": 3388429,
+      "judgeShare": null
+    },
+    "time": {
+      "measured": 7,
+      "routerMs": 8363.311416,
+      "endToEndMs": 418108,
+      "routerShare": 0.020002753872205268
+    }
+  },
+  "skills": {
+    "crossTab": {
+      "blockPresent": {
+        "loadedAny": 0,
+        "loadedNone": 0
+      },
+      "blockAbsent": {
+        "loadedAny": 4,
+        "loadedNone": 0
+      },
+      "blockUnknown": 0,
+      "loadUnknown": 4
+    },
+    "blocksNamingALoadSkill": 0,
+    "blocksWhoseLoadSkillsWereAllLoaded": 0
+  },
+  "records": 8,
+  "corruptLines": 0,
+  "evidenceStore": {
+    "schema": 1,
+    "rows": 0,
+    "current": 0,
+    "stale": 0,
+    "byMatch": {
+      "exact": 0,
+      "declared": 0,
+      "unrecorded": 0
+    },
+    "byProfile": {},
+    "mixedModelProfiles": []
+  }
+}

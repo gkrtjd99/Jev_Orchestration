@@ -1,0 +1,35 @@
+{
+  "revision": "DEMO-NOT-FOR-INSTALL",
+  "evaluationContext": "native-default-unvalidated",
+  "declared": [],
+  "registry": [
+    {
+      "id": "claude-micro",
+      "model": "haiku",
+      "backend": "haiku",
+      "enabled": false,
+      "resolvesTo": null
+    },
+    {
+      "id": "claude-light",
+      "model": "sonnet",
+      "backend": "sonnet",
+      "enabled": true,
+      "resolvesTo": null
+    },
+    {
+      "id": "claude-standard",
+      "model": "opus",
+      "backend": "opus",
+      "enabled": true,
+      "resolvesTo": null
+    },
+    {
+      "id": "claude-strategic",
+      "model": "opus",
+      "backend": "opus",
+      "enabled": true,
+      "resolvesTo": null
+    }
+  ]
+}
