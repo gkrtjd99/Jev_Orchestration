@@ -46,12 +46,12 @@ R과 L은 같은 기준 registry(`base-registry.json`)에서 출발하고, 차�
 | Main prompt | `main-prompt.txt` 그대로 한 번(해시는 `FROZEN.json`) | 같음 | 같음 |
 | 프로젝트 | `template/`의 새 사본, 저장소 밖 폴더 | 같음(다른 폴더) | 같음(다른 폴더) |
 | 권한 모드 | `auto` | `auto` | `auto` |
-| Main 모델 | 실행 세션이 기입 | N과 같음 | N과 같음 |
-| Main effort | 실행 세션이 기입 | N과 같음 | N과 같음 |
-| Claude Code 데스크톱 버전 | 실행 세션이 기입 | N과 같음 | N과 같음 |
-| 제품(`orchestration/`) 커밋 | 해당 없음 | 실행 세션이 기입 | R과 같음 |
-| 실험 자료 커밋(이 폴더) | 실행 세션이 기입(`node freeze.mjs --check` 통과) | 같음 | 같음 |
-| 세션 시작 시각 | 실행 세션이 기입 | 실행 세션이 기입 | 실행 세션이 기입 |
+| Main 모델 | 시작하는 세션의 값을 상속: `claude-fable-5-2`. 실제 값은 실행 뒤 transcript에서 확인해 보고 | N과 같음 | N과 같음 |
+| Main effort | 시작하는 세션의 값을 상속(앞선 실제 세션들에서 관측된 값은 `medium`). 실제 값은 실행 뒤 hook 이벤트/transcript에서 확인해 보고 | N과 같음 | N과 같음 |
+| Claude Code 데스크톱 버전 | 데스크톱 앱 `6.28899.6`, Agent SDK `0.3.330`(이 표를 채운 세션의 환경 변수 기준. 실제 값은 transcript에서 확인) | N과 같음 | N과 같음 |
+| 제품(`orchestration/`) 커밋 | 해당 없음 | `orchestration/` 트리 `e4049248b6d22300368a2044868bfb7888527516`(이 폴더를 채운 시점의 HEAD `17ce2b7`; 제품 코드를 마지막으로 바꾼 커밋은 `8c5c33e`, 버전 3.2.0). 이 트리에서 일회용 홈에 설치 | R과 같음 |
+| 실험 자료 커밋(이 폴더) | `17ce2b7`(`node freeze.mjs --check` 통과: tasks.json `c77df42cc499`, main-prompt.txt `0d6f6bb0674b`, check.mjs `d1c4013e1870`). 이 표만 채운 커밋이 그 위에 하나 더 있음 | 같음 | 같음 |
+| 세션 시작 시각 | 세 세션을 소유자가 요청한 한 턴 안에서 N, R, L 순서로 잇달아 시작(폴더 신뢰 확인 창이 하나씩 떠야 해서 동시에 호출하지 않음. 간격은 수 초~수십 초). 실제 시각은 transcript의 첫 행에서 읽어 결과에 기재 | 같음 | 같음 |
 | 프로젝트 수준 hooks(`.claude/settings.json`) | 없음 | 일회용 설치(`home-r`)를 가리킴 | 일회용 설치(`home-l`)를 가리킴 |
 | 전역 모드 `JEV_MODE` | 해당 없음 | `active` | `active` |
 | `delegation.skills` (`JEV_SKILLS_MODE`) | 해당 없음 | `off` | `off` |
@@ -61,22 +61,22 @@ R과 L은 같은 기준 registry(`base-registry.json`)에서 출발하고, 차�
 | 기준 registry | 해당 없음 | `base-registry.json`(해시는 `FROZEN.json`): 제품의 예시 registry에서 활성 claude 세 항목을 alias로 바꾼 것. light = `sonnet`, standard = `opus`, strategic = `opus` | 같음 |
 | arm registry | 해당 없음 | 기준 registry + 아래 선언 + 아래 가용성 | R의 registry에서 backend가 `sonnet`이 아닌 활성 claude 항목(standard, strategic)을 `enabled: false`. 그 밖에는 R과 같음 |
 | `resolvesTo` 선언 | 해당 없음 | backend `sonnet` → `claude-sonnet-5-5`, backend `opus` → `claude-opus-5-5`. 기준 registry의 활성 claude 세 항목 모두에 걸림(선언 없는 활성 항목 0개) | 같음(활성인 light 항목에 `claude-sonnet-5-5`) |
-| 활성 claude 항목의 `availability` | 해당 없음 | 셋 다 `confirmed`. 도구가 정하지 않고, 실행 세션이 `--confirm-availability sonnet --confirm-availability opus`로 진술. 확인 근거: 실행 세션이 기입 | light 항목 `confirmed`(같은 명령) |
+| 활성 claude 항목의 `availability` | 해당 없음 | 셋 다 `confirmed`. 도구가 정하지 않고, 실행 세션이 `--confirm-availability sonnet --confirm-availability opus`로 진술. 확인 근거: 이 머신의 2026-11-25 실제 세션들(pilot 두 세션과 재확인 세션)에서 `jev4_*` 프로필로 실행된 서브에이전트의 모델이 host 기록상 `claude-sonnet-5-5`와 `claude-opus-5-5`였음(`qa/kernel/results/pilot-20261125/`, `collector-alias-20261125-r2/`). effort `max`는 그 세션들에서 실행된 적이 없어 확인되지 않음 | light 항목 `confirmed`(같은 명령) |
 | `optimization.requireConfirmedAvailability` | 해당 없음 | `true`(제품 기본값, 바꾸지 않음) | `true` |
-| 설치된 registry의 claude 항목(slot, backend, availability, resolvesTo) | 해당 없음 | light/`sonnet`, standard/`opus`, strategic/`opus`. 실행 세션이 `make-arm-config.mjs --verify`의 `enabledClaudeEntries`로 확인해 기입 | light/`sonnet`. 실행 세션이 확인해 기입 |
+| 설치된 registry의 claude 항목(slot, backend, availability, resolvesTo) | 해당 없음 | light/`sonnet`, standard/`opus`, strategic/`opus`. `--verify` 결과: `ok: true`, 활성 claude 항목 3개, 프로필 파일 27개 | light/`sonnet`. `--verify` 결과: `ok: true`, 활성 항목 1개(`claude-light`, `confirmed`, `resolvesTo: [claude-sonnet-5-5]`), 프로필 파일 9개 |
 | 설치된 프로필 파일 수 | 해당 없음 | 27(이 기준 registry에서. 이름은 `routing-exp-arm-R/summary.json`의 `profileFiles`). 실행 세션이 확인 | 9(R의 27개 중 `_light_` 9개, 내용 동일). 실행 세션이 확인 |
 | `JEV_ALLOW_EGRESS` | 해당 없음 | `true`(아니면 judge를 부르지 않아 라우팅이 없음) | `true` |
 | judge 체인(classify·profile) | 해당 없음 | `jev`(설치 기본값). 실행 세션이 설치값을 확인해 기입 | R과 같음 |
-| judge 모델 `JEV_MODEL` | 해당 없음 | `jev-latest`(기본값). 실행 세션이 기입 | R과 같음 |
-| `timeoutMs` / `routeDeadlineMs` | 해당 없음 | 1200 / 3000(기본값). 실행 세션이 기입 | R과 같음 |
-| `minimumConfidence` / `selectionConfidence` / `selectionMargin` | 해당 없음 | 0.55 / 0.65 / 0.15(기본값). 실행 세션이 기입 | R과 같음 |
-| `objective` / `failureMode` | 해당 없음 | `balanced` / `native`(기본값). 실행 세션이 기입 | R과 같음 |
+| judge 모델 `JEV_MODEL` | 해당 없음 | `jev-latest`(설치된 `.env`의 값) | R과 같음 |
+| `timeoutMs` / `routeDeadlineMs` | 해당 없음 | 1200 / 3000(기본값, 바꾸지 않음) | R과 같음 |
+| `minimumConfidence` / `selectionConfidence` / `selectionMargin` | 해당 없음 | 0.55 / 0.65 / 0.15(기본값, 바꾸지 않음) | R과 같음 |
+| `objective` / `failureMode` | 해당 없음 | `balanced` / `native`(기본값, 바꾸지 않음) | R과 같음 |
 | hook 상태 폴더 | 없음 | `home-r` 아래, 이 arm 전용 | `home-l` 아래, 이 arm 전용 |
 | 사용자 수준 `~/.claude/agents`의 `jev4_*` 파일 | arm R의 집합이 있음(세 세션이 같은 시각에 돌기 때문) | arm R의 집합 | arm R의 집합(L은 그 부분집합만 고름) |
-| 사용자 수준 skill·plugin·MCP | 실행 세션이 기입 | N과 같음 | N과 같음 |
-| 사용자 수준·관리 설정의 `jev-hook` 명령 | 없음(`preflight.mjs`로 확인. 본 파일 목록: 실행 세션이 기입) | 없음(프로젝트 수준 hooks만) | 없음(프로젝트 수준 hooks만) |
-| 앱이 물려받는 환경의 `JEV_*`, `TYPESAFE_*`, `CLAUDE_CODE_SUBAGENT_MODEL*` 변수 | 없음 | 없음(hook은 환경을 `.env`보다 먼저 읽음). `preflight.mjs` 결과: 실행 세션이 기입 | 없음 |
-| `preflight.mjs` 결과 | `ok: true`(실행 세션이 기입) | 같음 | 같음 |
+| 사용자 수준 skill·plugin·MCP | **끄지 않음**(소유자의 실제 설정을 바꾸지 않음). 사용자 수준 skill과 MCP 서버가 켜져 있고 세 arm에 똑같이 적용됨. 프로젝트 템플릿에는 skill이 없음 | N과 같음 | N과 같음 |
+| 사용자 수준·관리 설정의 `jev-hook` 명령 | 없음(`preflight.mjs`로 확인. 본 파일 목록: `~/.claude/settings.json`, `~/.claude/settings.local.json`, `/Library/Application Support/ClaudeCode/managed-settings.json`) | 없음(프로젝트 수준 hooks만) | 없음(프로젝트 수준 hooks만) |
+| 앱이 물려받는 환경의 `JEV_*`, `TYPESAFE_*`, `CLAUDE_CODE_SUBAGENT_MODEL*` 변수 | 없음 | 없음(hook은 환경을 `.env`보다 먼저 읽음). `preflight.mjs` 결과: `overridingEnvironmentNames: []`, `keyFromEnvironment: true`(환경의 `TYPESAFE_API_KEY`가 `.env`의 키를 대신함. arm 설정은 덮지 않음) | 없음 |
+| `preflight.mjs` 결과 | 설정 파일·환경 변수 점검은 이 표를 채울 때 `ok: true`. 사용자 수준 agents 폴더 점검은 프로필을 복사한 직후, 세션 시작 직전에 다시 돌리고 `ok: true`가 아니면 시작하지 않음(결과는 결과 폴더에 기재) | 같음 | 같음 |
 | 프로젝트의 `.claude/skills`, `CLAUDE.md` | 없음 | 없음 | 없음 |
 
 ## 4. 과제
