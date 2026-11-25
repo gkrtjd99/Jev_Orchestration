@@ -57,18 +57,18 @@ subagent가 하는 일과 결과물이 객관적 검사를 통과하는지가 �
 
 | 항목 | 값 (두 arm 공통, 표시한 곳만 다름) |
 |---|---|
-| arm 순서 | **A(baseline)를 먼저, 끝난 뒤 B(assisted).** 동시에 돌리지 않습니다 |
-| Main 모델 id / effort | 실행 세션이 기입 |
+| arm 순서 | **A(baseline)와 B(assisted)를 같은 턴에 서로 다른 폴더에서 동시에 시작합니다.** (첫 세션 전 변경, 2026-11-25: 실제 세션은 소유자가 직접 요청한 턴에서만 시작할 수 있어 순차 실행이 불가능합니다. 두 arm은 별도 프로젝트 사본·별도 hook 상태 디렉터리를 쓰므로 서로의 파일을 건드리지 않습니다. 동시 실행은 wall time에 영향을 줄 수 있으나 두 arm에 대칭입니다. wall time은 보조 지표이며 이 영향을 보고서에 적습니다.) |
+| Main 모델 id / effort | 시작하는 세션의 값을 상속: 모델 `claude-fable-5-2`, effort는 상속값(앞선 실제 세션에서 hook 이벤트로 관측된 값은 `medium`). 두 arm 동일. 실제 값은 실행 뒤 hook 이벤트/세션 기록에서 확인해 보고 |
 | subagent 모델 / effort | hook의 route가 정함(`route` 이벤트의 `model`, `effort`로 과제별 기록). 두 arm의 kernel 설정이 같아야 함 |
-| 권한 모드 | 실행 세션이 기입. 조건: 프로젝트 안 파일 편집과 `node --test` 실행에 **확인 창이 뜨지 않는** 모드. 확인 창 때문에 소유자가 개입했다면 규칙 4의 위반으로 보고 |
-| Claude Code(데스크톱) 버전 | 실행 세션이 기입 |
-| hooks 버전 | 이 pilot 커밋과 같은 저장소 커밋의 `orchestration/` (기입 시 `git rev-parse HEAD` 값) |
+| 권한 모드 | 시작하는 세션의 모드를 상속(앞선 실제 세션에서 관측된 값은 `auto`). 두 arm 동일. 조건: 프로젝트 안 파일 편집과 `node --test` 실행에 **확인 창이 뜨지 않는** 모드. 확인 창 때문에 소유자가 개입했다면 규칙 4의 위반으로 보고 |
+| Claude Code(데스크톱) 버전 | 데스크톱 앱 `6.28899.6`, Agent SDK `0.3.330` (이 표를 채운 세션의 환경 변수 기준) |
+| hooks 버전 | 이 pilot 커밋과 같은 저장소 커밋의 `orchestration/` (기입 시 `git rev-parse HEAD` 값). 기입: `orchestration/` 트리 해시 `382fa5634c81efcae6678b33a76eaf2f07c44469` (커밋 `287d08d`와 `e879a38`에서 동일, 버전 3.2.0). 두 arm 모두 이 트리에서 일회용 HOME에 설치한 runtime을 프로젝트 수준 hook으로 연결. `jev4_*` agent 프로필 27개는 실행 동안만 사용자 수준 `~/.claude/agents`에 복사하고 끝나면 제거 |
 | 전역 모드 | `active` (두 arm) |
 | `delegation.skills` 지점 | **A: `off` / B: `active`.** 두 arm의 kernel 설정에서 다른 것은 이 한 줄뿐 |
-| skills judge 체인과 `escalateBelow` | 실행 세션이 기입 (예: `jev` 단독, 또는 `local,jev`와 임계값). B의 주입 내용을 정하므로 첫 세션 뒤에는 바꾸지 않음 |
+| skills judge 체인과 `escalateBelow` | **`jev` 단독, `escalateBelow` 0** (제품 기본값), 임계값도 기본값(need 0.5, autoLoad 0.9, suggest 0.5, maxLoaded 3). (예: `jev` 단독, 또는 `local,jev`와 임계값). B의 주입 내용을 정하므로 첫 세션 뒤에는 바꾸지 않음 |
 | skills retrieval / `maxJudged` / `chunk` | 제품 기본값 `full` / 64 / 32 (바꾸면 기입). 60개는 64 안쪽이라 모든 skill이 judge에게 감 |
-| 그 밖의 kernel 지점(supervisor 등) | 실행 세션이 기입. 두 arm 동일 |
-| 사용자 수준 skill, plugin, MCP | 가능하면 두 arm 모두 **끈 상태**(특히 skill 검색용 MCP와 그것을 쓰라고 하는 skill). 끌 수 없으면 켜져 있던 목록을 여기에 기입. 두 arm 동일 |
+| 그 밖의 kernel 지점(supervisor 등) | 제품 기본값: `delegation.classify`·`delegation.profile`·`failure.classify` active, `supervisor.outcome` off, 읽기 조언 off. 외부 전송 동의 `JEV_ALLOW_EGRESS=true`, judge는 실제 Jev. 두 arm 동일 |
+| 사용자 수준 skill, plugin, MCP | 가능하면 두 arm 모두 **끈 상태**(특히 skill 검색용 MCP와 그것을 쓰라고 하는 skill). 끌 수 없으면 켜져 있던 목록을 여기에 기입. 두 arm 동일. 기입: **끄지 않았습니다**(소유자의 실제 설정을 바꾸지 않기로 함). 소유자 환경에는 사용자 수준 skill과 MCP 서버가 켜져 있고, 그중에는 skill 검색용 MCP(`skill-rag`)와 그것을 쓰라고 안내하는 skill이 있습니다. 두 arm에 똑같이 적용되지만, subagent가 이 경로로 skill을 찾으면 주입 효과가 가려질 수 있습니다. 분석에서 subagent의 해당 도구 호출 여부를 과제별로 세어 보고합니다 |
 | hook 상태 폴더 | arm마다 새 빈 폴더 |
 
 ## 재료
