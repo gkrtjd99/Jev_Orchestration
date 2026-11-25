@@ -73,6 +73,16 @@ export class SessionStore{
     const state=await readJSON(this.projectionFile,null);const entries=Object.values(state?.failures?.[signature]?.attempts||{}).sort((a,b)=>a.time-b.time);
     return entries.length?{...entries.at(-1),count:entries.length}:null;
   }
+  /** The stored event recorded with this id (events recorded with an id replace their predecessor), or null. */
+  getEvent(type,id){return readJSON(path.join(this.dir,'events',hash([type,id])+'.json'),null);}
+  /** The delegation whose spawn acknowledgement (spawn_observed) named this agent id; the most recent one wins. */
+  async taskForAgent(agentId){
+    if(typeof agentId!=='string'||!agentId)return null;
+    await this.snapshot(); // builds the projection when it does not exist yet
+    const state=await readJSON(this.projectionFile,null);
+    const hit=Object.values(state?.tasks||{}).filter(t=>t.agentId===agentId&&typeof t.taskId==='string').sort((x,y)=>y.time-x.time)[0];
+    return hit?{taskId:hit.taskId,status:hit.status}:null;
+  }
   taskFile(id){return path.join(this.dir,'decisions',hash(id)+'.json');}
   getTask(id){return readJSON(this.taskFile(id),null);}
   putTask(id,value){return writeJSON(this.taskFile(id),value);}

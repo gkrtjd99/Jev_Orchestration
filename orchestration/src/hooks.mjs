@@ -14,9 +14,11 @@ import { createKernel } from './kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
 import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
 import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, reportText } from './kernel/supervisor.mjs';
+import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptWellFormed, validAgentId, validAdviceText,
+  HANDBACK_WAIT_MS, HANDBACK_HOOK_BUDGET_MS, HANDBACK_GRACE_MS, HANDBACK_POLL_MS, HANDBACK_STALE_MS, HANDBACK_PROMPT_WINDOW_MS } from './kernel/handback.mjs';
 import { planContext } from './plan-context.mjs';
 import { handleControllerHook,controllerManagedTool } from './controller-hooks.mjs';
-import { hash, object, redact, withLock } from './util.mjs';
+import { hash, object, redact, sleep, withLock } from './util.mjs';
 
 function errorCode(error){return /^[A-Z0-9_]+$/.test(error.code||error.message||'')?(error.code||error.message):'JEV_UNAVAILABLE';}
 function warning(event,code){
@@ -82,6 +84,100 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       return null;
     }
   };
+  // The same check for a report that arrives as a SubagentHandback PostToolUse (runtimes that launch every
+  // Agent call asynchronously). This event fires in the finishing subagent's context, so nothing is returned
+  // from it: the advice is parked in the session's private hand-back record and delivered to Main by
+  // promptHandback/deliverAdvice below. Never throws, never denies; every outcome is recorded.
+  const superviseHandback=async()=>{
+    let mode='off',id=null,agentId=null,taskId=null,ledger=null,base=null;
+    const note=async data=>{try{await store.record('supervisor',{taskId,mode,...data,source:'handback',agentId},'handback:'+id);}catch{/* advisory bookkeeping only */}};
+    try{
+      mode=kernel().point(SUPERVISOR_POINT).mode;
+      if(mode==='off')return;
+      const message=typeof e.input?.message==='string'?e.input.message:'';
+      agentId=validAgentId(e.agent_id)?e.agent_id:null;
+      id=handbackId(e.tool_use_id,agentId,message);
+      if(!agentId){await note({status:'skipped',reason:'missing_agent_id'});return;}
+      if(failedResponse(e)){await note({status:'skipped',reason:'handback_failed'});return;}
+      ledger=new HandbackLedger(store.dir);
+      // One judgment per hand-back: a replayed event finds the marker and changes nothing.
+      if(!await ledger.claim(id,'claim'))return;
+      // The in-flight marker is written before any lookup or judge call: the hand-back prompt hook starts
+      // about 70 ms after this one and waits only while it can see this marker.
+      base={schema:1,agentId,handbackId:id,seenAt:Date.now()};
+      await ledger.write(agentId,{...base,status:'in_flight'});
+      const skip=async reason=>{await ledger.write(agentId,{...base,status:'skipped',reason});await note({status:'skipped',reason});};
+      if(!cfg.safety.allowEgress){await skip('egress_not_approved');return;}
+      const task=await store.taskForAgent(agentId);
+      if(!task){await skip('unknown_agent');return;}
+      // custom, nested, resumed and otherwise preserved delegations have no stored route and were never sent to a judge
+      const prior=await store.getTask(task.taskId);
+      if(!prior?.route){await skip('unrouted_delegation');return;}
+      taskId=task.taskId;
+      if(task.status==='spawn_failed'){await skip('spawn_failed');return;}
+      // A runtime that also returned this report inline was already judged on the Agent PostToolUse.
+      if((await store.getEvent('supervisor',taskId))?.status==='judged'){await skip('judged_inline');return;}
+      const text=message.trim();
+      if(!text){await skip('empty_report');return;}
+      if(secretLike(text,apiKey)||secretLike(text,runtimeEnv?.OPENAI_API_KEY||'')){await skip('secret_guard');return;}
+      const decision=await kernel().decide(SUPERVISOR_POINT,{state:{report:redact(text,kernel().kernel.supervisor.maxReportChars)},
+        questions:supervisorQuestions(),scope,limits:{timeoutMs:kernel().budget(SUPERVISOR_POINT)},subject:prior.route.taskSignature||null});
+      const a=supervisorAdvice(decision.response.answers,kernel().kernel.supervisor);
+      await ledger.write(agentId,{...base,status:'judged',taskId,mode,apply:decision.apply===true,outcome:a.outcome,confidence:a.confidence,
+        evidence:a.evidence,advisory:a.advisory,text:a.text,decisionId:decision.decisionId,time:Date.now()});
+      await note({status:'judged',outcome:a.outcome,confidence:a.confidence,evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId});
+    }catch(error){
+      const code=errorCode(error);
+      // Ends the wait of a hand-back prompt hook that is polling the in-flight marker.
+      if(ledger&&base){try{await ledger.write(agentId,{...base,status:'unavailable',code});}catch{/* the waiter stops at its own cap */}}
+      await note({status:'unavailable',code});
+    }
+  };
+  // A Main prompt that is the harness's hand-back block for agent X, while supervisor.outcome is active.
+  // Returns the session's hand-back record for X or null; null means "handle this prompt exactly as before".
+  // Only the agent id is taken from the prompt. Never throws.
+  const promptHandback=async()=>{
+    try{
+      const agentId=handbackPromptAgent(e.prompt);
+      if(!agentId||kernel().point(SUPERVISOR_POINT).mode!=='active')return null;
+      const ledger=new HandbackLedger(store.dir);
+      const limit=began+HANDBACK_HOOK_BUDGET_MS;
+      let record=await ledger.read(agentId);
+      const grace=Math.min(limit,performance.now()+HANDBACK_GRACE_MS);
+      while(!record&&performance.now()<grace){await sleep(HANDBACK_POLL_MS);record=await ledger.read(agentId);}
+      return record?{agentId,ledger,record,limit}:null;
+    }catch{return null;}
+  };
+  // True once per trusted SubagentHandback event: same session, same agent id, seen at most
+  // HANDBACK_PROMPT_WINDOW_MS ago, and the prompt is a single well-formed agent-message element.
+  // A replay of the very prompt that was corroborated (same hash) stays corroborated; any other prompt does not.
+  const corroborated=async h=>{
+    try{
+      if(!handbackPromptWellFormed(e.prompt))return false;
+      const promptHash=hash(e.prompt);
+      if(await h.ledger.claimed(h.record.handbackId,'prompt')===promptHash)return true;
+      const age=Date.now()-h.record.seenAt;
+      if(age<0||age>HANDBACK_PROMPT_WINDOW_MS)return false;
+      // Losing the race for the marker to a concurrent delivery of the same prompt is still that prompt.
+      return await h.ledger.claim(h.record.handbackId,'prompt',promptHash)||await h.ledger.claimed(h.record.handbackId,'prompt')===promptHash;
+    }catch{return false;}
+  };
+  // The parked advice for this hand-back, at most once. Waits a bounded time for a judgment that is still
+  // running; an expired wait, a quiet judgment (shadow at judgment time, low confidence) or any error is null.
+  const deliverAdvice=async h=>{
+    try{
+      if(!visible)return null;
+      let record=h.record;
+      const until=Math.min(h.limit,performance.now()+HANDBACK_WAIT_MS);
+      while(record?.status==='in_flight'&&Date.now()-record.seenAt<HANDBACK_STALE_MS&&performance.now()<until){
+        await sleep(HANDBACK_POLL_MS);record=await h.ledger.read(h.agentId);
+      }
+      if(!record||record.status!=='judged'||record.apply!==true||record.advisory!==true||!validAdviceText(record.text))return null;
+      if(!await h.ledger.claim(record.handbackId,'delivered'))return null;
+      try{await store.record('supervisor_delivered',{taskId:record.taskId??null,agentId:h.agentId,decisionId:record.decisionId??null,event:e.event},'handback:'+record.handbackId);}catch{/* advisory bookkeeping only */}
+      return record.text;
+    }catch{return null;}
+  };
   try{
     if(cfg.mode==='controller')return runtime==='claude'?await handleControllerHook(e,cfg,store,{project,apiKey,client,runtimeEnv}):{};
     if(e.event==='SessionStart'){
@@ -92,15 +188,31 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
     if(e.event==='UserPromptSubmit'){
       if(e.agent_id||e.agent_type)return {}; // Child prompts must not replace the parent goal.
       // Native child prompts may omit agent_id and share the parent's session_id.
-      const before=await store.snapshot();
-      if(before.goalHash){
-        if(before.goalHash!==hash(e.prompt||''))await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});
-        return visible?contextOutput(e.event,'Jev cannot prove whether a later prompt in this session came from Main or a worker. The original parent goal is preserved, but plan and stored goal text will not be sent to Jev for subsequent routes. Start a new native session to establish a new goal.'):{};
-      }
-      if(before.tasks.length||before.agents.length){await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});return {};}
-      await store.record('user_prompt',{prompt:cfg.safety.retainPromptText?redact(e.prompt,700):'',goalHash:hash(e.prompt||''),actor:e.agent_id||'first-prompt-unreported'});
-      const planHint=cfg.safety.sharePlanContext?` If safe and useful, Main may write a concise private .jev/routing-plan.json (schema=1, goalHash=${hash(e.prompt||'')}, summary, acceptance, delegations) before delegating. Do not include secrets. Jev reads it only for supported native Agent/Task or Codex spawn calls; Workflow's internal agents cannot be routed by these hooks.`:'';
-      return visible?contextOutput(e.event,'Use native delegation for substantial specialist work. Hooks evaluate supported calls. Active mode applies verified eligible profiles; advisory mode only advises and leaves the pending call unchanged. No Skill command is required. Parent Main owns sequencing, integration and real verification.'+planHint):{};
+      const submitted=async()=>{
+        const before=await store.snapshot();
+        if(before.goalHash){
+          if(before.goalHash!==hash(e.prompt||''))await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});
+          return visible?contextOutput(e.event,'Jev cannot prove whether a later prompt in this session came from Main or a worker. The original parent goal is preserved, but plan and stored goal text will not be sent to Jev for subsequent routes. Start a new native session to establish a new goal.'):{};
+        }
+        if(before.tasks.length||before.agents.length){await store.record('unverified_prompt',{promptHash:hash(e.prompt||'')});return {};}
+        await store.record('user_prompt',{prompt:cfg.safety.retainPromptText?redact(e.prompt,700):'',goalHash:hash(e.prompt||''),actor:e.agent_id||'first-prompt-unreported'});
+        const planHint=cfg.safety.sharePlanContext?` If safe and useful, Main may write a concise private .jev/routing-plan.json (schema=1, goalHash=${hash(e.prompt||'')}, summary, acceptance, delegations) before delegating. Do not include secrets. Jev reads it only for supported native Agent/Task or Codex spawn calls; Workflow's internal agents cannot be routed by these hooks.`:'';
+        return visible?contextOutput(e.event,'Use native delegation for substantial specialist work. Hooks evaluate supported calls. Active mode applies verified eligible profiles; advisory mode only advises and leaves the pending call unchanged. No Skill command is required. Parent Main owns sequencing, integration and real verification.'+planHint):{};
+      };
+      // null unless supervisor.outcome is active and this session holds a hand-back record for the agent the prompt names.
+      const handback=await promptHandback();
+      let output;
+      if(handback&&await corroborated(handback)){
+        // A hand-back the runtime itself just reported for this agent is a worker report being delivered, not a
+        // new instruction of unknown origin. It is recorded as such: it never becomes the goal, never changes
+        // goal or goalHash, and does not mark the session's prompt provenance unverified.
+        await store.record('handback_prompt',{promptHash:hash(e.prompt||''),agentId:handback.agentId});
+        output={};
+      }else output=await submitted();
+      const advice=handback?await deliverAdvice(handback):null;
+      if(!advice)return output;
+      const shown=output.hookSpecificOutput?.additionalContext||'';
+      return contextOutput(e.event,shown&&shown.length+2+advice.length<=cfg.maxContextChars?shown+'\n\n'+advice:advice);
     }
     if(e.event==='PreCompact'){
       await store.record('compaction_observed',{trigger:e.trigger||'unknown'});
@@ -247,7 +359,10 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
     }
     if(['PostToolUse','PostToolUseFailure'].includes(e.event)){
       if(e.tool_name==='SubagentHandback'){
-        await store.record('handback_observed',{agentId:e.agent_id||null,reportHash:hash(e.input?.message||''),verification:'not_inferred'});return {};
+        await store.record('handback_observed',{agentId:e.agent_id||null,reportHash:hash(e.input?.message||''),verification:'not_inferred'});
+        // Hook output of this event would reach the finishing subagent, not Main, so it is always empty.
+        if(e.event==='PostToolUse')await superviseHandback();
+        return {};
       }
       if(!isDelegation(e))return {};
       const failed=failedResponse(e);

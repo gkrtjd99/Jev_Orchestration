@@ -16,9 +16,10 @@ test('default kernel config is byte-identical to the pre-kernel tree for the com
   const report = JSON.parse(r.stdout);
   assert.equal(report.status, 'identical');
   assert.deepEqual(report.differences, []);
-  // 2 settings profiles x 3 hook modes x 2 runtimes x 9 events; the judged profile must really reach the judge.
-  assert.equal(report.comparedOutputs, 108);
-  assert.equal(report.perVariant.judged.outputs, 54);
+  // 2 settings profiles x 3 hook modes x 2 runtimes x 14 events (9 routing events plus the 5-event hand-back
+  // sequence, which makes no judge call with the default config); the judged profile must really reach the judge.
+  assert.equal(report.comparedOutputs, 168);
+  assert.equal(report.perVariant.judged.outputs, 84);
   assert.equal(report.perVariant.judged.judgeCalls, 21);
   assert.equal(report.perVariant.untouched.judgeCalls, 0);
   assert.equal(report.thrownOutputs, 0);
