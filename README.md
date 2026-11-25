@@ -153,9 +153,9 @@ Jev supervisor (advisory): complete (confidence 0.75, reported evidence level 1 
 
 ### 아직 모르는 것
 
-- **실제 작업의 품질·시간·비용이 좋아지는지는 측정하지 않았습니다.** skill 주입 있음/없음을 짝지어 비교한 적이 없습니다.
+- **실제 작업의 품질·시간·비용이 좋아지는지는 아직 모릅니다.** skill 주입 있음/없음을 짝지은 작은 pilot(실제 세션 2개, 합성 과제 6쌍, 각 1회 실행)에서는 두 쪽 모두 6개 중 6개가 규칙 검사를 통과했고, 주입이 없는 쪽에서도 subagent가 맞는 skill을 스스로 읽었습니다. 그래서 이 pilot으로는 주입의 이득을 잴 수도, 이득이 없다고 할 수도 없습니다. [pilot 결과](qa/kernel/results/pilot-20261125/README.md)
 - 실제 세션 확인은 배선 확인까지입니다. Claude Code 데스크톱 세션 4회(`advisory`)에서 실제 `Agent` 호출에 hook이 실행되고 실제 judge가 skill을 고르는 것을 확인했고, supervisor 조언이 Main에 전달된 것은 수정 뒤의 세션 4에서 1회입니다. 4회 모두 subagent가 스스로 맞는 skill을 읽었으므로 이 세션들은 효과를 보여 주지 않습니다. [실제 세션 요약](qa/kernel/results/real-session-20261125/summary.json)
-- 실제 세션에서 `active` 모드(subagent 지시문 재작성)와 Codex 런타임은 확인하지 않았습니다.
+- 실제 세션의 `active` 모드(subagent 지시문 재작성)는 위 pilot의 세션 2개에서만, 권한 모드 `auto`에서만 확인했습니다. Codex 런타임은 확인하지 않았습니다.
 - judge 호출에 드는 금액은 계산하지 않았고, 반복 실행의 편차도 재지 않았습니다.
 - 한국어 recall은 skill 40개 개발 세트의 0.939에서 skill 72개 held-out 세트의 0.796으로 떨어졌습니다. 한 번에 판단하는 skill 수 상한(64개)이 원인으로 의심되지만 확인하지 못했습니다.
 

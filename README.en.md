@@ -153,9 +153,9 @@ What has been measured is how often Jev Orchestration's judgments agree with ref
 
 ### What is not known yet
 
-- **Whether real task quality, time or cost improves has not been measured.** No paired comparison with and without skill injection has been run.
+- **Whether real task quality, time or cost improves is still unknown.** In one small paired pilot with and without skill injection (2 real sessions, 6 synthetic task pairs, one run each), both sides passed the convention checks on 6 of 6 tasks, and without injection the subagent still loaded the right skill by itself. So this pilot can neither measure a benefit from injection nor show that there is none. [pilot results](qa/kernel/results/pilot-20261125/README.md) (Korean)
 - Real-session checks cover the wiring only. In 4 Claude Code desktop sessions (`advisory`), hooks fired on real `Agent` calls and the live judge selected a skill; supervisor advice reached Main once, in session 4, after a fix. In every session the subagent loaded the right skill by itself, so these sessions show no benefit. [real session summary](qa/kernel/results/real-session-20261125/summary.json)
-- `active` mode in a real session (rewriting the subagent's instructions) and the Codex runtime have not been checked.
+- `active` mode in a real session (rewriting the subagent's instructions) has been checked only in the 2 sessions of that pilot, and only in the `auto` permission mode. The Codex runtime has not been checked.
 - The monetary cost of judge calls has not been calculated, and run-to-run variance has not been measured.
 - Korean recall fell from 0.939 on the 40-skill development set to 0.796 on the 72-skill held-out set. The 64-skill judging limit is suspected but not confirmed.
 

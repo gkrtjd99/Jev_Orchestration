@@ -5,15 +5,16 @@
 - **이 브랜치는 push도 merge도 하지 않았습니다.** 병합할지는 저장소 소유자가 정합니다. 이 문서는 판단 근거만 적습니다.
 - 6개 미결 항목: **해결 2, 부분 해결 3, 미해결 1.** 미해결은 가장 중요한 항목(실제 효과)입니다.
 - 확인된 것: 합성 데이터에서 skill 판정이 라벨과 얼마나 일치하는가(개발 세트와 held-out 세트 1개), 실제 데스크톱 세션에서 hook이 동작하고 supervisor 조언이 Main에 전달되는 것(`advisory` 모드), 오프라인 테스트 전체 통과, 기본 동작 불변.
-- 확인되지 않은 것: **이 기능이 실제 작업의 품질·시간·비용을 개선하는가.** 한 건도 재지 않았습니다. 실제 세션의 `active` 모드(서브에이전트 prompt에 skill 블록 주입)와 Codex도 확인하지 않았습니다.
+- 확인되지 않은 것: **이 기능이 실제 작업의 품질·시간·비용을 개선하는가.** 주입 있음/없음을 짝지은 작은 pilot(합성 과제, arm당 1회)을 한 번 돌렸지만 두 arm 모두 6/6이어서 이득을 잴 수도 배제할 수도 없었습니다. Codex도 확인하지 않았습니다.
+- 그 pilot에서 실제 세션의 `active` 모드(서브에이전트 prompt 재작성)가 동작하는 것은 확인했습니다. 권한 모드 `auto`에서는 harness가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출하는 흐름을 거칩니다.
 - 숫자는 근거 파일의 표기를 그대로 옮겼습니다. 측정하지 않은 값은 "미측정"으로 적었습니다.
 
 ## 6개 항목 상태
 
 | # | 항목 | 상태 | 확인한 것 (근거 파일) | 남은 것 |
 |---|---|---|---|---|
-| 1 | 실제 효과 (작업 품질·시간·비용) | **미해결** | 판정 일치도만 측정. 합성 데이터, 개발 세트와 held-out 세트 1개 (`results/dev-retrieval-decision-1/`, `results/holdout-1-score-1/`, `results/20261125-full/`) | 미측정. 주입 있음/없음을 짝지은 비교를 하지 않음. 실제 세션에서는 서브에이전트가 skill 4개짜리 프로젝트에서 맞는 skill을 스스로 load해서 주입의 이득을 알 수 없음 |
-| 2 | 실제 hook / 실제 세션 종단 실행 | **부분 해결** | 설치된 entrypoint 직접 호출 100회(그중 실제 judge 시나리오 88회, 나머지 12회는 loopback 장애 주입): 기대 214개 중 212 PASS / 0 FAIL / soft miss 2 (`results/20261125-e2e/hooks.txt`, `hooks.json`). 실제 데스크톱 세션 4회, `advisory` 모드: 실제 Agent 호출에서 hook 실행, 실제 Jev로 라우팅·skill 선택, hand-back 경로에서 supervisor 판정, 세션 4에서 조언이 Main에 전달 (`results/real-session-20261125/summary.json`) | 실제 세션에서 미확인: `active` 모드(서브에이전트 prompt 재작성), 결합 수정 뒤 harness 알림 줄이 있는 prompt 형태(fixture로만 확인), Codex |
+| 1 | 실제 효과 (작업 품질·시간·비용) | **미해결** | 판정 일치도만 측정. 합성 데이터, 개발 세트와 held-out 세트 1개 (`results/dev-retrieval-decision-1/`, `results/holdout-1-score-1/`, `results/20261125-full/`). 주입 있음/없음 paired pilot 1회: 실제 세션 2개, 합성 프로젝트(skill 60개), 위임 8건씩. 규칙 검사 통과는 두 arm 모두 skill 과제 6/6. 주입이 없는 arm에서도 서브에이전트 6개 전부가 harness의 skill 목록에서 target을 스스로 load함 (`results/pilot-20261125/`, 아래 "Skill 주입 paired pilot") | 이득은 여전히 미측정. pilot은 baseline이 만점이라 차이가 날 자리가 없었음(천장 효과). 이득이 없다는 증거도 아님. 짝 6개, arm당 1회, 합성 과제. 관찰된 비용 절감 없음(차이가 실행 간 편차 안). judge 토큰 미측정 |
+| 2 | 실제 hook / 실제 세션 종단 실행 | **부분 해결** | 설치된 entrypoint 직접 호출 100회(그중 실제 judge 시나리오 88회, 나머지 12회는 loopback 장애 주입): 기대 214개 중 212 PASS / 0 FAIL / soft miss 2 (`results/20261125-e2e/hooks.txt`, `hooks.json`). 실제 데스크톱 세션 4회, `advisory` 모드: 실제 Agent 호출에서 hook 실행, 실제 Jev로 라우팅·skill 선택, hand-back 경로에서 supervisor 판정, 세션 4에서 조언이 Main에 전달 (`results/real-session-20261125/summary.json`) pilot의 실제 세션 2개(`active` 모드)에서 서브에이전트 prompt 재작성이 전달됨(`results/pilot-20261125/`) | 실제 세션에서 미확인: 결합 수정 뒤 harness 알림 줄이 있는 prompt 형태(fixture로만 확인), Codex. `active` 모드는 권한 모드 `auto`에서만 봤고, 그때 위임마다 "거부 후 재호출"이 생겨 hook과 judge가 두 번 실행됨 |
 | 3 | OpenAI 첫 호출 timeout | **부분 해결** | 제공자별 timeout 추가, 기본 2500 ms. 실제 요청 280건 최대 928 ms (`results/20261125-full/summary.txt`), cold 프로세스 요청 14건 최대 778 ms (`results/20261125-e2e/hooks.json` s17). timeout 0건 | 2500 ms는 분포에서 정한 값이 아닌 초기값. 설정 근거는 1200 ms를 넘긴 cold 호출 1건이고 그 지속 시간은 기록되지 않음(`orchestration/src/kernel/judges.mjs`의 주석). 그 뒤 확인한 cold 표본은 14건뿐(최대 778 ms). 그 뒤 OpenAI를 실제로 다시 부르지 않음 |
 | 4 | 기본 동작 바이트 비교 | **해결** | 이 문서를 쓰며 다시 실행: `npm run compare:default` IDENTICAL, hook 출력 168개·judge 호출 21건 (`orchestration/scripts/compare-default-behavior.mjs`) | 없음. 검사가 다루지 않는 범위(기본값이 아닌 kernel 설정, 실제 호출 등)는 주장하지 않음 |
 | 5 | macOS 기본 `TMPDIR`에서 `npm test` | **해결** | 이 문서를 쓰며 다시 실행: `TMPDIR=/var/folders/...` 그대로 590/590 통과 | 없음 |
@@ -108,6 +109,27 @@ OpenAI·`local`·`chain` arm과 `adaptive`는 held-out에서 돌리지 않았습
 
 원자료(hook 상태, 수집한 이벤트)는 로컬 경로와 세션 메타데이터가 들어 있어 저장소에 넣지 않았습니다. 위 파일은 검토된 요약입니다.
 
+## Skill 주입 paired pilot (`results/pilot-20261125/`)
+
+실제 데스크톱 세션 2개를 동시에 시작했습니다. arm A는 `delegation.skills` off, arm B는 active이고 전역 모드는 둘 다 `active`, judge는 실제 Jev입니다. 합성 프로젝트(skill 60개: target 6, distractor 54)에서 세션마다 위임 8건(skill 과제 6, control 2)을 했습니다. `jev4_*` 프로필 27개는 실행 동안만 사용자 수준에 설치하고 끝난 뒤 제거했습니다. 프로토콜은 세션 전에 고정했습니다(`pilot/PROTOCOL.md`). arm당 1회 실행이라 아래는 기술 값입니다.
+
+| | arm A (주입 없음) | arm B (주입 있음) |
+|---|---|---|
+| 1차 결과: 규칙 검사 통과 (skill 과제) | 6 / 6 | 6 / 6 |
+| control 완료 | 2 / 2 | 2 / 2 |
+| target skill이 서브에이전트의 skill 목록에 있었음 | 6 / 6 | 6 / 6 |
+| 서브에이전트가 target을 load (`Skill` 도구) | 6 / 6 | 6 / 6 |
+| target load가 첫 도구 호출 | 5 / 6 | 5 / 6 |
+| skill 과제에 블록 주입 / control에 잘못 주입 | 미측정 (지점 off) | 5 / 6, 0 / 2 |
+| 서브에이전트 도구 호출 / 토큰 / 시간, 조건이 같은 7개 짝 | 69 / 3,146,768 / 363.3초 | 62 / 3,241,312 / 363.4초 |
+| skill judge 요청 / 지연 합 / 토큰 | 0 | 32건 / 12,008 ms / 미측정 |
+
+- **읽는 법:** 주입이 없어도 서브에이전트가 스스로 skill을 load해 규칙을 지켰으므로 이 설정에서 블록은 겹쳤습니다. baseline이 만점이라 이 pilot은 이득을 잴 수도, 이득이 없다고 할 수도 없습니다.
+- **비용:** 블록이 어느 쪽에도 없던 짝(t01, t03, t07)의 토큰 차이가 −7.7%, +23.7%, +1.7%였습니다. 블록이 간 짝의 차이는 이 범위 안이라 절감도 증가도 블록 때문이라고 할 수 없습니다.
+- **조건이 달랐던 짝:** t04는 arm A에서 라우팅이 보류되어 `general-purpose` / `claude-fable-5-2` / effort `medium`, arm B에서 `jev4_implement_standard_xhigh` / `claude-opus-5-5` / effort `xhigh`로 실행됐습니다. 위 표의 비용 행에서 뺐습니다.
+- **프로토콜과 달랐던 것:** 권한 모드 `auto`에서 harness가 hook이 고친 Agent 호출을 거부하고 Main이 다시 호출해, 16건 중 15건이 호출 2개가 됐습니다. 분석기는 세션 뒤에 두 번 고쳤고(읽기 방식·연결 규칙, 독립 검증 뒤의 표시), 2차 측정은 모두 사후에 정한 연결 규칙으로 읽은 값입니다. arm A는 앞선 세션에 쓰던 폴더 경로를 다시 썼습니다(내용은 새 사본).
+- 원자료(transcript, hook 상태)는 저장소에 넣지 않았습니다. 전체 내용은 `results/pilot-20261125/notes.txt`와 `compare.txt`에 있습니다.
+
 ## QA에서 찾아 고친 결함
 
 각 수정에 회귀 테스트가 있습니다. 상세는 `orchestration/CHANGELOG.md`와 `docs/KERNEL.ko.md`.
@@ -137,8 +159,8 @@ OpenAI·`local`·`chain` arm과 `adaptive`는 held-out에서 돌리지 않았습
 
 ## 병합 전 남은 일
 
-1. **실제 효과를 잰다.** 같은 작업을 skill 주입 있음/없음으로 짝지어 품질·시간·비용을 비교한다. 서브에이전트가 스스로 skill을 찾기 어려운 크기의 카탈로그가 필요하다. 이것 없이는 이 기능이 도움이 된다는 근거가 없다.
-2. **실제 세션에서 `active` 모드를 확인한다.** 사용자 수준(`~/.claude/agents`)의 `jev4_*` 프로필이 필요하다. 프로젝트 수준 사본은 설계상 거부된다.
+1. **실제 효과를 잰다.** 첫 pilot(`results/pilot-20261125/`)은 두 arm 모두 6/6이어서 효과를 볼 수 없었다. 다음 실험은 (가) baseline만 먼저 돌려 통과가 만점이 아닌 과제 세트를 확인하고(harness 목록이 잘릴 만큼 큰 카탈로그, 목록에 실리지 않는 skill, 설명이 과제 문장과 닮지 않은 skill), (나) arm당 여러 번 실행하고, (다) 두 arm의 profile·모델·effort를 같게 고정하고, (라) judge 토큰을 기록하고, (마) 사용자 수준 skill 검색 도구를 꺼야 한다. skill 60개에서는 서브에이전트가 스스로 skill을 찾았다. 이것 없이는 이 기능이 도움이 된다는 근거가 없다.
+2. **`active` 모드의 "거부 후 재호출"을 정리한다.** pilot에서 `active` 모드의 prompt 재작성이 전달되는 것은 확인했다(사용자 수준 `~/.claude/agents`의 `jev4_*` 프로필 필요). 권한 모드 `auto`에서는 위임마다 Agent 호출이 두 번이 되고 hook과 judge도 두 번 실행된다(pilot arm B: skill judge 요청 32건 중 16건은 적용되지 않은 두 번째 판단). 다른 권한 모드에서는 확인하지 않았다.
 3. **harness 알림 줄이 있는 hand-back prompt**를 수정 뒤 실제 세션에서 확인한다. 지금은 fixture뿐이다.
 4. **Codex runtime**의 skill·supervisor 경로를 확인한다. 실제 실행이 없다.
 5. **64개를 넘는 카탈로그에서 한국어 recall 하락의 원인을 확인한다.** held-out 1은 다시 쓸 수 없으므로 새 세트가 필요하다.
