@@ -2,113 +2,126 @@ English | [한국어](README.md)
 
 # Jev Orchestration
 
-Jev Orchestration is a hook extension for Claude Code and Codex users that, at the moment the main agent delegates work to a subagent, asks a small decision model (TypeSafe Jev by default) which model, effort level and skills that subagent should get.
+**Model and effort selection and skill routing hooks for Claude Code and Codex subagent delegation**
 
-It does not run its own agent loop. Claude Code and Codex keep running the main agent, the workers, permissions and approvals as before, and Jev Orchestration only adds judgment at their native hooks. Code owns the flow and the thresholds; the decision model only returns answers as probabilities. Installing it changes nothing and sends nothing until you turn it on.
+Jev Orchestration is an extension that plugs into [Claude Code hooks](https://code.claude.com/docs/en/hooks) and [OpenAI Codex hooks](https://developers.openai.com/codex/hooks) and, at the moment the main agent delegates work to a subagent, asks a small decision model (TypeSafe Jev by default) which model, effort level and skills that subagent should get.
+
+It is meant for projects with many skills: a subagent should get only the skills it needs, and each delegation should use a model and effort picked from profiles you have confirmed. It does not replace Claude Code or Codex and works only through their hooks. Installing it adds hooks and profile definition files to your home directory; until you turn it on, it changes no delegation and sends nothing off your machine.
+
+**Status: experimental.** How often its judgments agree with reference labels has been measured. Whether real task quality, time or cost improves has not been measured yet.
 
 ```text
-Main delegates to a subagent  →  hook asks the decision model  →  model/effort profile + needed skills
-Subagent returns its report   →  hook classifies the report    →  advice to Main (no retry, no blocking)
+Main delegates to a subagent  →  hook asks the judge            →  model/effort profile + needed skills
+Subagent returns its report   →  hook classifies the report     →  advice to Main (advice only)
 ```
 
-## What is Jev Orchestration
+Terms used here: **Main** is the session you talk to; a **subagent** is an agent Main delegates work to; the **host** is Claude Code or OpenAI Codex; a **judge** is a small decision model that answers only with probabilities, never prose; a **profile** is one model plus one effort (reasoning effort) level, for example `claude-sonnet-5` + `high` in the example registry.
 
-Jev Orchestration is a set of Node scripts that plug into Claude Code hooks and Codex hooks. It installs into your home directory (`~/.claude/settings.json`, `~/.codex/hooks.json`) and acts only in projects you allow.
+## What is Jev Orchestration?
 
-- **Who it is for**: people who delegate to subagents often in Claude Code or Codex and have several skills in their project.
-- **How it works**: at fixed "decision points" such as just before and just after a delegation, it asks a judge (the decision model doing the judging) for a yes/no probability, a distribution over choices, or a score distribution. It never accepts free text.
-- **What it is not**: there is no new interactive CLI, no separate worker engine, no MCP server and no recursive `claude -p` or `codex exec`. The runtime has no npm dependencies.
+Jev Orchestration is a set of Node hook scripts installed into your home directory, and it acts only in projects you allow. It has no agent loop of its own, no new CLI, no MCP server and no runtime npm dependencies. It addresses three problems.
 
-## Why use it: model and effort selection and skill routing at delegation time
+- **Skill routing.** Recommending skills to Main loads every skill description into Main's context, and whether the subagent actually gets a skill is up to Main. Jev Orchestration chooses skills at delegation time, when the task and the subagent are fixed, and attaches them to the delegation instructions. Whether this lowers token use or improves the subagent's result has not been measured.
+- **Model and effort selection.** The model and effort for a delegated task are usually picked ad hoc. Jev Orchestration picks among profiles you have confirmed, or picks nothing when it is not confident.
+- **Report review.** A subagent's report is usually accepted as is. Jev Orchestration classifies the report text and only advises Main.
 
-The goal of Jev Orchestration is to move three judgments around subagent delegation into code plus a small decision model.
+Jev Orchestration does model routing for subagents through a Claude Code `PreToolUse` hook: when Main calls the `Agent` or `Task` tool (`spawn_agent` in Codex), the hook asks the judge to pick one of the user-confirmed model and effort profiles, or to abstain.
 
-1. **Skill routing.** Recommending skills to the main agent loads every skill description into its context, and whether the worker actually gets a skill is up to the main agent. At delegation time the task and the worker are already fixed, so skills can be chosen there and attached to the worker brief (the delegation instructions).
-2. **Model and effort selection.** The model and effort for a delegated task are usually picked ad hoc. Jev Orchestration picks among profiles you have confirmed, or picks nothing when it is not confident.
-3. **Report review.** A worker's report is usually accepted as is. Jev Orchestration classifies the report text and advises the main agent.
-
-### How it differs from the stock harness (Claude Code, Codex)
+### How Jev Orchestration differs from stock Claude Code and Codex
 
 | Aspect | Stock Claude Code / Codex | With Jev Orchestration |
 |---|---|---|
 | Agent execution, permissions, approvals | Handled by the host | Still handled by the host |
-| Skills for a subagent | Main keeps skill descriptions in context and passes them at its discretion | Chosen at delegation time by judge probability; only name, path and probability are added to the brief |
+| Skills for a subagent | Main keeps skill descriptions in context and passes them at its discretion | Chosen at delegation time by judge probability; name, path and probability are added to the instructions |
 | Model and effort for a subagent | Decided by Main per delegation | Selected from confirmed profiles, or left alone |
 | Subagent report | Read by Main as is | Report text is classified and advice is attached |
-| Record of judgments | None | A decision log with hashes and numbers only, no raw text |
+| Record of judgments | None | A local decision log with hashes and numbers only, no raw text |
 
-## What it does: six decision points
+## What Jev Orchestration does: model and effort selection, skill routing, report review
 
-Jev Orchestration 3.2.0 has six decision points, each switched separately to `off`, `shadow` or `active`.
-
-| Decision point | What it does | Default |
+| Feature | What it does | How to turn it on |
 |---|---|---|
-| `delegation.classify` | Judges the role, scope, risk and reasoning level of the delegated task | active |
-| `delegation.profile` | Selects one of the allowed model x effort profiles, or abstains | active |
-| `delegation.skills` | Selects the project skills this task needs (skill routing) | off |
-| `supervisor.outcome` | Classifies the worker report as complete / retry / replan / escalate and advises | off |
-| `failure.classify` | Classifies the failure type of a failed delegation | active |
-| `read.advice` | Hints on document kind and reading style when a document is read | off (`JEV_READ_ADVICE=false`) |
+| Model and effort selection | Judges the nature of the delegated task and selects one confirmed profile, or abstains | Allow sending + models marked `confirmed` in the registry |
+| Skill routing | Selects, by probability, the project skills this task needs | `JEV_SKILLS_MODE=active` (default `off`) |
+| Report review | Classifies the subagent report as complete / retry / replan / escalate and advises | `JEV_SUPERVISOR_MODE=active` (default `off`) |
 
-One delegation flows like this.
+`JEV_MODE` is the overall ceiling, and the individual settings switch features on and off inside it. A fresh install uses `JEV_MODE=shadow` and `JEV_ALLOW_EGRESS=false`. Until you set `JEV_ALLOW_EGRESS=true`, no feature calls a judge; until you set `JEV_MODE` to `advisory` or `active`, Main sees nothing and no delegation is changed.
 
-```text
-Main calls a subagent delegation (Agent / Task / spawn_agent)
-  │  PreToolUse hook
-  ├─ delegation.classify   nature of the task ────────┐ in parallel
-  ├─ delegation.skills     per-skill need probability ┘
-  ├─ delegation.profile    select a model x effort profile, or abstain
-  │  code applies thresholds and validation
-  ├─ shadow   : record only
-  ├─ advisory : show it to Main as advice
-  └─ active   : apply the profile and a <jev-skills> block to the delegation call
-Subagent runs (the host owns execution, permissions, approvals)
-  │  PostToolUse / SubagentHandback hook
-  └─ supervisor.outcome    classify the report text → advice to Main
-```
-
-Judges can be chained, one to three in order, from `jev` (TypeSafe Jev), `openai` (the OpenAI Decisions API) and `local` (a lexical rule with no network, skills only). If a judge fails or its confidence is low, the next one is asked. The full design is in the [Decision kernel document](docs/KERNEL.ko.md) (Korean).
+Judges can be chained, one to three in order, from `jev` (TypeSafe Jev), `openai` (the OpenAI Decisions API) and `local` (a lexical rule with no network, skills only). If a judge fails, the next one is asked. To also pass on low-confidence answers you must set a value such as `JEV_SKILLS_ESCALATE_BELOW` (default 0). The six decision points and the full flow are in the [Decision kernel document](docs/KERNEL.ko.md) (Korean).
 
 ## Quick start: installing and uninstalling Jev Orchestration
 
-**Requirements**: Node 22.13 or later, Git, a logged-in Claude Code or Codex, and a TypeSafe API key (separate from your Claude or Codex login). Python 3.11 or later is needed only to run the verifier.
-
-Clone the repository and run these from its root.
+**Requirements**: Node 22.13 or later, Git, a logged-in Claude Code or Codex, and a TypeSafe API key (separate from your Claude or Codex login).
 
 ```bash
-# 1) Local checks. No paid API and no real model is called.
-bash scripts/test-all.sh
+git clone https://github.com/gkrtjd99/Jev_Orchestration.git
+cd Jev_Orchestration
 
-# 2) Prepare a model registry and an env file outside the repository
-cp orchestration/config/registry.example.json /tmp/jev-models.local.json
+# 1) Prepare a model registry and an env file outside the repository
 mkdir -p "$HOME/.config"
+cp orchestration/config/registry.example.json "$HOME/.config/jev-models.local.json"
 cp orchestration/.env.example "$HOME/.config/jev-setup.env"
 chmod 600 "$HOME/.config/jev-setup.env"   # the installer refuses any other mode
-# In the registry, set availability to confirmed only for models you can really use,
-# and put TYPESAFE_API_KEY in the env file.
-
-# 3) Show the install plan (writes nothing)
-node orchestration/scripts/install.mjs \
-  --project /absolute/path/to/your-project --runtime both \
-  --registry /tmp/jev-models.local.json \
-  --env-file "$HOME/.config/jev-setup.env" --mode shadow
-
-# 4) After reviewing the plan, add --yes to the same command to apply it
 ```
 
-After installing, restart your Claude Code or Codex session and review and trust the registered hooks under `/hooks`. The installer does not change your main model or your existing login.
+2) Edit both files. In the registry, change `availability` only for models your account can really use. With no `confirmed` model, no profile candidates exist. In the env file, put your key after `TYPESAFE_API_KEY=`.
+
+```text
+"model": "claude-sonnet-5", ...  "availability": "declared"     ← before
+"model": "claude-sonnet-5", ...  "availability": "confirmed"    ← after
+```
+
+```bash
+# 3) Show the install plan (writes nothing). For one tool only: --runtime claude or --runtime codex
+node orchestration/scripts/install.mjs \
+  --project /absolute/path/to/your-project --runtime both \
+  --registry "$HOME/.config/jev-models.local.json" \
+  --env-file "$HOME/.config/jev-setup.env" --mode shadow
+
+# 4) After reviewing the plan, add --yes to apply it
+node orchestration/scripts/install.mjs \
+  --project /absolute/path/to/your-project --runtime both \
+  --registry "$HOME/.config/jev-models.local.json" \
+  --env-file "$HOME/.config/jev-setup.env" --mode shadow --yes
+```
+
+After installing, restart your Claude Code or Codex session and review and trust the registered hooks under `/hooks`. The installer writes to `~/.claude/settings.json`, `~/.claude/agents`, `~/.codex/hooks.json`, `~/.codex/agents`, `~/.config/jev-hooks` and `~/.local/share/jev-hooks`; it does not change the project folder, your main model or your existing login. To add another project, run the same command again with a different `--project`.
 
 ```bash
 node orchestration/scripts/doctor.mjs                    # check the installation (read-only)
 node orchestration/scripts/skills.mjs --project /absolute/path/to/your-project --list   # list the skill catalog (offline)
+node orchestration/scripts/decisions.mjs --action report # summarize the local decision log
 node orchestration/scripts/uninstall.mjs                 # uninstall plan; add --yes to apply
 ```
 
-To stop immediately, set `JEV_MODE=off` in `~/.config/jev-hooks/.env`. Uninstalling keeps your config, key, backups and state. See the [setup guide](docs/SETUP.ko.md) (Korean) for keys, models and migration.
+To stop immediately, set `JEV_MODE=off` in `~/.config/jev-hooks/.env`. Uninstalling keeps your config, key, backups and state. The full procedure is in the [setup guide](docs/SETUP.ko.md) (Korean).
 
-## Usage: modes and the settings people change
+## Seeing a first result: from shadow to advisory to active
 
-You use Jev Orchestration by running `claude` or `codex` in that project as usual. The hooks fire when the main agent calls a subagent delegation. One setting, `JEV_MODE`, decides the overall behavior.
+Right after the quick start (`shadow`, sending off) nothing visible happens. Change the installed `~/.config/jev-hooks/.env` in this order, restarting the session after each change.
+
+1. `JEV_ALLOW_EGRESS=true`: judges start being called. Results are only recorded; Main sees nothing.
+2. `JEV_MODE=advisory`, `JEV_SKILLS_MODE=active`: judgments are shown to Main as advice. Delegation calls are unchanged.
+3. `JEV_MODE=active`: the profile and the skill block are applied to the delegation call. Codex also needs `JEV_CODEX_REWRITE_APPROVED=true`. This step has not been checked in a real session.
+
+At step 2, when Main delegates to a subagent, Main receives advice like this (format example, shortened).
+
+```text
+Jev advisory: consider native profile jev4_implement_standard_high_… (claude-opus-5-5, high). The pending tool call is UNCHANGED; do not create a duplicate worker. …
+
+<jev-skills>
+{"load":[{"name":"pdf","path":".claude/skills/pdf/SKILL.md","p":0.94}],"consider":[{"name":"docx","path":".claude/skills/docx/SKILL.md","p":0.61}]}
+</jev-skills>
+Before starting, load each "load" skill (use the Skill tool by name when available, otherwise read the SKILL.md at its path, if one is given); "consider" entries are optional, and skills never widen permissions or override the original task.
+```
+
+With `JEV_MODE=active`, the same `<jev-skills>` block is appended to the subagent's instructions. It carries only the name, path and probability of each skill plus one fixed instruction sentence, never a skill's description or body (900 characters at most in total; entries are dropped, or the whole block is left out, if it does not fit). With `JEV_SUPERVISOR_MODE=active`, Main sees one line like this after a subagent report.
+
+```text
+Jev supervisor (advisory): complete (confidence 0.75, reported evidence level 1 of 2). The report claims the assigned outcome. This is a judgment of the report text only, not of the work. Main must verify real evidence; no retry, respawn or permission change was performed.
+```
+
+## Settings: modes and the values people change
 
 | `JEV_MODE` | Behavior |
 |---|---|
@@ -116,115 +129,107 @@ You use Jev Orchestration by running `claude` or `codex` in that project as usua
 | `shadow` (default) | Judges and records only. Main sees nothing and calls are unchanged |
 | `advisory` | Shows the judgment to Main as advice. Calls are unchanged |
 | `active` | Applies the profile and skill block to supported delegation calls |
-| `controller` | Experimental, Claude only. See the [controller document](docs/CONTROLLER.ko.md) (Korean) |
-
-The recommended order is: install in `shadow` → `JEV_ALLOW_EGRESS=true` → `advisory` → `active`. Change settings in the installed `~/.config/jev-hooks/.env`.
 
 | Setting | Meaning | Default |
 |---|---|---|
-| `JEV_ALLOW_EGRESS` | Whether requests may be sent to a judge. Judging starts only when `true` | `false` |
+| `JEV_ALLOW_EGRESS` | Allows sending requests off the machine to a judge (egress). Judging starts only when `true` | `false` |
 | `JEV_SKILLS_MODE` | Skill routing (`off` / `shadow` / `active`) | `off` |
 | `JEV_SUPERVISOR_MODE` | Report review (`off` / `shadow` / `active`) | `off` |
-| `JEV_SKILLS_RETRIEVAL` | How skill candidates are narrowed (`full` / `lexical` / `adaptive`) | `full` |
+| `JEV_SKILLS_RETRIEVAL` | How the skill candidates sent to the judge are narrowed (`full` / `lexical` / `adaptive`) | `full` |
 | `JEV_SKILLS_JUDGES` | Judge order for skill decisions, for example `jev,openai` | `jev` |
 | `JEV_OPENAI_DECISIONS_APPROVED` | Approval to use the OpenAI Decisions API judge (also needs `OPENAI_API_KEY`) | `false` |
+| `JEV_CODEX_REWRITE_APPROVED` | Approval for `active` to change delegation calls in Codex | `false` |
 | `JEV_SKILL_DIRS` | Extra skill folders to read besides the project's `.claude/skills` | empty |
 
-When skill routing is `active`, a block like this is appended to the worker brief. It carries only the name, path and probability of each skill, never its description or body (900 characters at most).
+## Results: judgment agreement measured so far (real-task benefit not measured)
 
-```text
-<jev-skills>
-{"load":[{"name":"pdf","path":".claude/skills/pdf/SKILL.md","p":0.94}],"consider":[{"name":"docx","path":".claude/skills/docx/SKILL.md","p":0.61}]}
-</jev-skills>
-```
+What has been measured is how often Jev Orchestration's judgments agree with reference labels. Every figure below is from version 3.2.0, 2026-11-25, the live TypeSafe Jev model and a single run; the tasks and labels are synthetic, written by a model, and were not reviewed by a person.
 
-## Results: what has been measured so far
-
-What has been measured for Jev Orchestration is **how often its judgments agree with reference labels**. Every figure below is from 2026-11-25, version 3.2.0, the live TypeSafe Jev model and a single run. The tasks and labels are synthetic, written by a model, and were not reviewed by a person.
-
-| Measurement | Result | How to read it | Evidence |
-|---|---|---|---|
-| Skill routing, unseen set (72 skills, 180 tasks) | load precision 0.967, recall 0.881, F1 0.922 | Selected skills are mostly right; about 12% of needed skills are missed | [held-out summary](qa/kernel/results/holdout-1-score-1/summary.txt) |
-| Skill routing, development set (40 skills, 160 tasks) | load F1 0.970 | Higher because this set was used to choose the defaults | [development summary](qa/kernel/results/dev-retrieval-decision-1/summary.txt) |
-| Skills wrongly injected into tasks needing none (63 held-out tasks) | 1.6% (1 task) | Unneeded skill injection is rare | [held-out summary](qa/kernel/results/holdout-1-score-1/summary.txt) |
-| Recall on Korean tasks (72 held-out tasks) | 0.796 (0.951 on 81 English tasks) | More skills are missed on Korean tasks | [QA summary](qa/kernel/SUMMARY.ko.md) |
-| Skill decision latency (held-out, per task) | p50 808 ms, p95 924 ms, 2 requests, about 10,341 input tokens | Each delegation adds close to a second and a judge cost | [QA summary](qa/kernel/SUMMARY.ko.md) |
-| Report classification (120 synthetic reports) | accuracy 93.3%; accuracy of advice shown to Main 98.0% | `retry` was read as `complete` in 6 of 30 cases | [full run summary](qa/kernel/results/20261125-full/summary.txt) |
-| 100 direct invocations of the installed hook | 212 of 214 expectations passed, 0 failed | The hook wiring behaves as expected | [hook end-to-end results](qa/kernel/results/20261125-e2e/hooks.txt) |
-| 4 real Claude Code desktop sessions (`advisory`) | hook execution, skill selection and advice delivery observed | The path connects in a real session | [real session summary](qa/kernel/results/real-session-20261125/summary.json) |
+- **Skill routing (synthetic held-out set: 72 unseen skills, 180 tasks).** On this set, 96.7% of loaded skills matched the label and 11.9% of labeled skills were not loaded (precision 0.967, recall 0.881, F1 0.922). 1 of the 63 tasks that needed no skill got a skill. [held-out summary](qa/kernel/results/holdout-1-score-1/summary.txt)
+- **Korean tasks.** On the same held-out set, recall was 0.796 on the 72 Korean tasks and 0.951 on the 81 English tasks. More skills are missed on Korean tasks.
+- **Development set (40 skills, 159 of 160 tasks where two labelers agreed).** Load F1 was 0.970. This set was used to choose the defaults, so it scores higher than the held-out set. [development summary](qa/kernel/results/dev-retrieval-decision-1/summary.txt)
+- **Latency and judge usage.** With skill routing on and a 72-skill catalog, a delegation waited about 0.8 to 0.9 s for the judge (p50 808 ms, p95 924 ms, 2 requests, about 10,341 input and 1,236 output tokens, default `full` retrieval). On the 40-skill development set p50 was 220 ms.
+- **Report classification (120 synthetic reports).** Accuracy was 93.3% over all 120, and 98.0% on the 100 reports (83.3%) confident enough to be shown to Main. The main error: 6 of 30 `retry` reports, which needed another attempt, were classified `complete`. [full run summary](qa/kernel/results/20261125-full/summary.txt)
 
 ### What is not known yet
 
 - **Whether real task quality, time or cost improves has not been measured.** No paired comparison with and without skill injection has been run.
-- `active` mode in a real session (rewriting the subagent brief) and the Codex runtime have not been checked.
+- Real-session checks cover the wiring only. In 4 Claude Code desktop sessions (`advisory`), hooks fired on real `Agent` calls and the live judge selected a skill; supervisor advice reached Main once, in session 4, after a fix. In every session the subagent loaded the right skill by itself, so these sessions show no benefit. [real session summary](qa/kernel/results/real-session-20261125/summary.json)
+- `active` mode in a real session (rewriting the subagent's instructions) and the Codex runtime have not been checked.
 - The monetary cost of judge calls has not been calculated, and run-to-run variance has not been measured.
-- The cause of the lower Korean recall on catalogs larger than 64 skills has not been identified.
+- Korean recall fell from 0.939 on the 40-skill development set to 0.796 on the 72-skill held-out set. The 64-skill judging limit is suspected but not confirmed.
 
-All figures and the remaining work are in the [QA summary](qa/kernel/SUMMARY.ko.md) (Korean).
+All figures, the direct hook invocation results and the remaining work are in the [QA summary](qa/kernel/SUMMARY.ko.md) (Korean).
 
 ## Supported scope: runtimes, judges, operating systems
 
-| Area | Supported | Notes |
+| Area | Status | Notes |
 |---|---|---|
-| Runtimes | Claude Code, Codex | Only these two can be installed: `--runtime both\|claude\|codex` |
-| Claude Code | `shadow` / `advisory` / `active` / `controller` | Checked in real sessions only up to `advisory` in the desktop app |
-| Codex | `shadow` / `advisory`; `active` after separate approval | Advice only in `active` until `JEV_CODEX_REWRITE_APPROVED=true`. Not checked in a real session |
-| Judges | TypeSafe Jev, OpenAI Decisions API, `local` | Jev alone by default. OpenAI needs separate approval and a key. `local` is skills only and uncalibrated |
-| Operating systems | macOS, Linux and WSL are the targets | Checks were run on macOS. Installing from a native Windows shell has not been checked |
+| Claude Code `shadow` / `advisory` | Checked | Checked in real desktop-app sessions up to `advisory` |
+| Claude Code `active` | Supported, not checked in a real session | Checked by local tests only |
+| Codex `shadow` / `advisory` / `active` | Supported, not checked in a real session | `active` needs `JEV_CODEX_REWRITE_APPROVED=true`; without it, advice only |
+| Judge: TypeSafe Jev | Checked | The default |
+| Judges: OpenAI Decisions API, `local` | Supported | OpenAI needs separate approval and a key and was not measured on the held-out set. `local` is skills only and its rule is not tuned for accuracy |
+| macOS | Checked | Local tests were run on macOS |
+| Linux, WSL | Targeted, not checked | A native Windows shell is not a target and has not been checked |
+| Other agent tools (for example opencode) | Not supported | The installer accepts only `--runtime both\|claude\|codex` |
 
-Not supported:
+Other limits:
 
-- Agent tools other than Claude Code and Codex (for example opencode).
-- `agent()` calls inside a Claude `Workflow` script. There is no per-worker hook point, so model and effort cannot be changed.
-- Work the main agent does not delegate. Even `active` never forces delegation.
-- Retrying, respawning or blocking. The supervisor only advises.
+- `agent()` calls inside a Claude `Workflow` script have no per-subagent hook point, so their model and effort cannot be changed.
+- Jev Orchestration does not act on work Main does not delegate. Even `active` never forces delegation.
+- It never retries or respawns. It does not block by default; it blocks only when you turn that on, for example with `JEV_WORKFLOW_POLICY=block`.
 
 ## Safety and consent
 
-- **The defaults send nothing.** It installs with `JEV_MODE=shadow` and `JEV_ALLOW_EGRESS=false`, and the model registry yields no candidates until you mark entries `confirmed`.
-- **Sending starts at `JEV_ALLOW_EGRESS=true`.** The delegation text and limited document metadata go to TypeSafe. Whole source files and whole conversations are not uploaded automatically. Code you paste into a delegation is part of the delegation text.
-- **The OpenAI judge is approved separately.** It needs both `JEV_OPENAI_DECISIONS_APPROVED=true` and `OPENAI_API_KEY`.
-- **Logs hold no raw text.** The decision log keeps only hashes, numbers and option names, locally (file mode 0600).
-- **It does not widen permissions.** The installer registers no trust bypass and does not change your main model or login. Hooks are not an OS-level security boundary.
+- **The defaults send nothing.** It installs with `JEV_MODE=shadow` and `JEV_ALLOW_EGRESS=false`.
+- **Sending starts at `JEV_ALLOW_EGRESS=true`.** The delegation text and limited document metadata go to TypeSafe. With `JEV_SKILLS_MODE` on, the names and descriptions of project skills are sent too; with `JEV_SUPERVISOR_MODE` on, the subagent's report text (1600 characters at most) is sent too. Whole source files and whole conversations are not uploaded automatically, but code you paste into a delegation is part of the delegation text.
+- **The OpenAI judge is approved separately.** It needs both `JEV_OPENAI_DECISIONS_APPROVED=true` and `OPENAI_API_KEY`, and once on, the same content goes to api.openai.com.
+- **Logs hold no raw text.** The decision log keeps only hashes, numbers and option names, in `~/.local/state/jev-hooks/decisions-log` (file mode 0600).
+- **It does not widen permissions.** The installer adds no setting that skips the hook trust step and does not change your main model or login. Hooks are not an OS-level security boundary.
 
 The detailed boundaries are in the [security and limits document](docs/SECURITY.ko.md) (Korean).
 
 ## Frequently asked questions
 
 **Does Jev Orchestration replace Claude Code or Codex?**
-No. It is a hook extension that sits on top of Claude Code and Codex. The main agent, worker execution, permissions and approvals stay with the host.
+No. Jev Orchestration is a hook extension that sits on top of Claude Code and Codex. Main, subagent execution, permissions and approvals stay with the host.
 
-**Does it work with opencode or other agent tools?**
-No. The supported runtimes are Claude Code and Codex only, and the installer accepts nothing else.
+**Does Jev Orchestration work with opencode or other agent tools?**
+No. Jev Orchestration supports only Claude Code and Codex, and its installer accepts nothing else.
 
-**What is Jev?**
-Jev is a decision model from TypeSafe that returns answers in fixed shapes, such as a yes/no probability, a distribution over choices or a score, instead of writing text. Jev Orchestration uses it as the default judge, and it needs its own TypeSafe API key.
+**How does Jev Orchestration choose skills for a Claude Code subagent?**
+Jev Orchestration sends the names and descriptions of the skills in the project's `.claude/skills` to the judge, gets a need probability per skill, and code cuts by threshold. By default, skills at 0.9 or above are listed as "load" and those at 0.5 or above as "consider", up to three of each. The default `full` retrieval sends at most 64 skills (`JEV_SKILLS_MAX_JUDGED`) to the judge per delegation.
 
-**Does it send my code anywhere?**
-Not with the default settings. Once you set `JEV_ALLOW_EGRESS=true`, the delegation text and limited document metadata go to the judge; whole source files and whole conversations are not sent automatically.
+**What is TypeSafe Jev, and where do I get an API key?**
+Jev is a decision model from TypeSafe that returns answers in fixed shapes, such as a yes/no probability, a distribution over choices or a score, instead of writing text. Jev Orchestration uses Jev as its default judge and needs its own TypeSafe API key. For key issuance and pricing, see the [TypeSafe documentation](https://docs.typesafe.ai/api.md). This repository has not calculated what judge calls cost.
 
-**Does it save tokens or money?**
-Unknown. Savings have not been measured, and the judge calls themselves use requests and tokens (about 10,341 input tokens per skill decision on the held-out set).
+**TypeSafe Jev or the OpenAI Decisions API: which judge should I use?**
+Jev is the default judge in Jev Orchestration and the only one enabled without extra approval. In an earlier run on the synthetic development set (version 3.2.0, 2026-11-25, one run, with the candidate narrowing used before `full` became the default), skill routing over 160 tasks scored load F1 0.800 with Jev (p50 185 ms) and 0.780 with the OpenAI Decisions API (p50 516 ms), and report classification over 120 reports scored 93.3% with Jev and 96.7% with OpenAI. The OpenAI judge was not run on the held-out set.
 
-**How does it pick skills?**
-It sends the catalog from the project's `.claude/skills` to the judge, gets a need probability per skill, and code cuts by threshold. Skills at 0.9 or above are listed as "load" and those at 0.5 or above as "consider", up to three of each.
+**Does Jev Orchestration send my code anywhere?**
+With its default settings Jev Orchestration sends nothing. Once you set `JEV_ALLOW_EGRESS=true`, the delegation text and limited document metadata go to the judge; with skill routing on, skill names and descriptions go too, and with report review on, the subagent's report text (1600 characters at most) goes too. Whole source files and whole conversations are not sent automatically.
 
-**Is it ready for real work?**
-Start by watching it in `shadow` or `advisory`. Judgment agreement has been measured, but the effect on real tasks has not.
+**Does Jev Orchestration skill routing save tokens or money?**
+Unknown. Savings from Jev Orchestration have not been measured, and each skill decision itself used about 10,341 input tokens on the 72-skill held-out set.
+
+**Is Jev Orchestration ready for real work?**
+Start by watching Jev Orchestration in `shadow` or `advisory`. Judgment agreement has been measured, but the effect on real tasks has not.
 
 ## Further reading
 
 The linked documents are written in Korean.
 
-- [Decision kernel](docs/KERNEL.ko.md): design and verification status of the decision points, judge chain, skill routing, supervisor and decision log.
 - [Setup, environment and authentication](docs/SETUP.ko.md): keys, model registry, activation order, migration and uninstall, troubleshooting.
+- [Decision kernel design](docs/KERNEL.ko.md): decision points, judge chain, skill routing, supervisor, decision log.
 - [Security and limits](docs/SECURITY.ko.md): trust boundaries, stored state, network.
-- [Verification method](docs/VERIFICATION.ko.md): how to use the independent verifier and what its verdicts cover. Earlier results are in the [offline verification record](reports/VERIFICATION.md).
-- [QA summary](qa/kernel/SUMMARY.ko.md) and [evaluation report](qa/kernel/REPORT.ko.md): all measured figures and the evaluation method.
-- [Claude controller mode](docs/CONTROLLER.ko.md): rules and schema of the experimental Claude-only mode.
-- [ultracode plan advisor](docs/ULTRACODE.ko.md): a separate path that consults Jev only at planning time, without hooks.
-- [Comparison and integration decisions](docs/COMPARISON.ko.md): what was taken from earlier versions and what was left out.
-- [Publishing scope](docs/PUBLISH.ko.md) and [changelog](orchestration/CHANGELOG.md).
+- [All measured results](qa/kernel/SUMMARY.ko.md) and the [evaluation report](qa/kernel/REPORT.ko.md).
+
+Other documents: the experimental Claude-only [controller mode document](docs/CONTROLLER.ko.md), the [ultracode plan advisor](docs/ULTRACODE.ko.md) that works at planning time without hooks, and the [changelog](orchestration/CHANGELOG.md).
+
+## Development and contributing
+
+Run the local checks from the repository root with `bash scripts/test-all.sh`. They call no paid API and no real model, and they need Python 3.11 or later for the verifier (installing and running Jev Orchestration does not). The method is in the [verification document](docs/VERIFICATION.ko.md) (Korean); report bugs and ideas in [GitHub Issues](https://github.com/gkrtjd99/Jev_Orchestration/issues).
 
 ## License
 
