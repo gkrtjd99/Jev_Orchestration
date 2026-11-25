@@ -1,0 +1,3524 @@
+{
+  "schema": 3,
+  "arm": "assisted",
+  "mainTranscripts": [
+    "main.jsonl"
+  ],
+  "sessions": [
+    {
+      "session": "session-1",
+      "eventFiles": 1
+    },
+    {
+      "session": "session-2",
+      "eventFiles": 83
+    }
+  ],
+  "agentCallsInMain": 16,
+  "delegationsInTaskOrder": true,
+  "unattributedChanges": [],
+  "totals": {
+    "primary_conventionPassed": {
+      "yes": 6,
+      "measured": 6,
+      "of": 6
+    },
+    "skillTasksDone": {
+      "yes": 6,
+      "measured": 6,
+      "of": 6
+    },
+    "controlsDone": {
+      "yes": 2,
+      "measured": 2,
+      "of": 2
+    },
+    "skillTasksDelegated": {
+      "yes": 6,
+      "of": 6
+    },
+    "targetSkillLoaded": {
+      "yes": 6,
+      "measured": 6,
+      "of": 6
+    },
+    "targetSkillLoadedVia": {
+      "Skill": 6,
+      "Read": 0,
+      "Bash": 0
+    },
+    "targetListedToSubagent": {
+      "yes": 6,
+      "measured": 6,
+      "of": 6
+    },
+    "targetInInjectedLoad": {
+      "yes": 5,
+      "measured": 6,
+      "of": 6
+    },
+    "blockedByOtherTask": [],
+    "injectedOnSkillTasks": {
+      "yes": 5,
+      "measured": 6,
+      "of": 6
+    },
+    "injectedOnControls": {
+      "yes": 0,
+      "measured": 2,
+      "of": 2
+    },
+    "subagentToolCalls": {
+      "sum": 78,
+      "measured": 8,
+      "of": 8
+    },
+    "subagentTokens": {
+      "sum": 4260561,
+      "measured": 8,
+      "of": 8
+    },
+    "subagentWallMs": {
+      "sum": 499613,
+      "measured": 8,
+      "of": 8
+    },
+    "subagentTokenParts": {
+      "input": {
+        "sum": 126,
+        "measured": 8,
+        "of": 8
+      },
+      "output": {
+        "sum": 54862,
+        "measured": 8,
+        "of": 8
+      },
+      "cacheRead": {
+        "sum": 3887277,
+        "measured": 8,
+        "of": 8
+      },
+      "cacheCreation": {
+        "sum": 318296,
+        "measured": 8,
+        "of": 8
+      }
+    },
+    "subagentToolCallsWithoutHandback": {
+      "sum": 70,
+      "measured": 8,
+      "of": 8
+    },
+    "agentCalls": {
+      "all": 16,
+      "refusedBeforeRunning": 8,
+      "launched": 8,
+      "tasksWithSeveralLaunchedCalls": []
+    },
+    "blockInSubagentPrompt": {
+      "skillTasks": {
+        "yes": 5,
+        "measured": 6,
+        "of": 6
+      },
+      "controls": {
+        "yes": 0,
+        "measured": 2,
+        "of": 2
+      }
+    },
+    "targetInSubagentPromptBlock": {
+      "yes": 5,
+      "measured": 6,
+      "of": 6
+    },
+    "targetLoadedBeforeFirstWrite": {
+      "yes": 6,
+      "measured": 6,
+      "of": 6
+    },
+    "targetLoadedBeforeAnyWrite": {
+      "yes": 6,
+      "measured": 6,
+      "of": 6
+    },
+    "targetLoadedAsFirstToolCall": {
+      "yes": 5,
+      "measured": 6,
+      "of": 6
+    },
+    "skillSearch": {
+      "tasksMeasured": 8,
+      "tasksUsingMcpSkillTool": [],
+      "tasksUsingToolSearchForSkill": [],
+      "tasksCallingNonCatalogSkill": []
+    },
+    "effectiveProfiles": {
+      "jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5": [
+        "t01"
+      ],
+      "jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5": [
+        "t02",
+        "t03",
+        "t05",
+        "t06",
+        "t07",
+        "t08"
+      ],
+      "jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5": [
+        "t04"
+      ]
+    }
+  },
+  "judge": {
+    "decisionLogFound": true,
+    "byPoint": {
+      "delegation.classify": {
+        "decisions": 16,
+        "cached": 0,
+        "latencyMsSum": 6177,
+        "latencyMsMax": 1158,
+        "providers": {
+          "jev": 16
+        }
+      },
+      "delegation.skills": {
+        "decisions": 32,
+        "cached": 0,
+        "latencyMsSum": 12008,
+        "latencyMsMax": 1133,
+        "providers": {
+          "jev": 32
+        }
+      },
+      "delegation.profile": {
+        "decisions": 16,
+        "cached": 0,
+        "latencyMsSum": 3997,
+        "latencyMsMax": 1206,
+        "providers": {
+          "none": 1,
+          "jev": 15
+        }
+      }
+    },
+    "skills": {
+      "events": 16,
+      "requests": 32,
+      "latencyMsSum": 12008,
+      "scoredCalls": {
+        "events": 8,
+        "requests": 16,
+        "latencyMsSum": 5120
+      }
+    },
+    "tokens": null,
+    "hookMsPerAgentCall": {
+      "sum": 10968,
+      "measured": 16,
+      "of": 16
+    }
+  },
+  "mainSession": {
+    "userPrompts": 1,
+    "firstPromptEqualsMainPromptFile": false,
+    "firstPromptContainsMainPromptFile": true,
+    "firstPromptExtraChars": 963,
+    "toolNames": {
+      "mcp__ccd_turn__update_plan": 8,
+      "Agent": 16,
+      "mcp__ccd_turn__wrap_up": 1
+    },
+    "models": [
+      "claude-fable-5-2"
+    ],
+    "efforts": [
+      "medium"
+    ],
+    "permissionModes": [
+      "auto"
+    ],
+    "tokens": {
+      "input": 52,
+      "output": 9450,
+      "cacheRead": 2549559,
+      "cacheCreation": 72810,
+      "messages": 26,
+      "assistantMessages": 26,
+      "total": 2631871
+    },
+    "wallMs": 618758,
+    "requestLogRowsIgnored": 56
+  },
+  "hookEventCounts": {
+    "session_started": 2,
+    "user_prompt": 1,
+    "handback_observed": 8,
+    "unverified_prompt": 8,
+    "agent_stopped": 17,
+    "spawn_observed": 8,
+    "route": 16,
+    "skills": 16,
+    "agent_started": 8
+  },
+  "agentStops": {
+    "all": 17,
+    "ofTaskSubagents": 8
+  },
+  "tasks": [
+    {
+      "id": "t01",
+      "lang": "en",
+      "kind": "skill",
+      "targetSkill": "partner-file-exports",
+      "check": {
+        "done": true,
+        "convention": true,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.returns_text",
+          "ok": true
+        },
+        {
+          "check": "done.overdue_included",
+          "ok": true
+        },
+        {
+          "check": "done.others_excluded",
+          "ok": true
+        },
+        {
+          "check": "done.locker_and_recipient",
+          "ok": true
+        },
+        {
+          "check": "done.days_waiting",
+          "ok": true
+        },
+        {
+          "check": "conv.first_line",
+          "ok": true
+        },
+        {
+          "check": "conv.crlf_every_line",
+          "ok": true
+        },
+        {
+          "check": "conv.semicolon_fields",
+          "ok": true
+        },
+        {
+          "check": "conv.snake_case_columns",
+          "ok": true
+        },
+        {
+          "check": "conv.compact_utc_time",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t01-call2",
+        "subagentType": "jev4_implement_light_xhigh_ff567b09c6",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t01-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_light_xhigh_ff567b09c6",
+            "routingBlocks": 1,
+            "skillsBlocks": 0
+          },
+          "resolvedModel": null,
+          "injected": false,
+          "target": {
+            "probability": 0.95,
+            "stage": "need_gate"
+          },
+          "hookDetail": {
+            "need": 0.32,
+            "candidates": 60,
+            "judged": 60,
+            "load": [],
+            "suggest": [],
+            "top": [
+              {
+                "name": "partner-file-exports",
+                "probability": 0.95,
+                "stage": "need_gate"
+              },
+              {
+                "name": "dashboard-summary-columns",
+                "probability": 0.09,
+                "stage": "need_gate"
+              },
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.09,
+                "stage": "need_gate"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 2256,
+              "latencyMsMax": 1133,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_light_xhigh_ff567b09c6",
+              "model": "sonnet",
+              "effort": "xhigh",
+              "tier": "light",
+              "decisionReason": "selector_unavailable_incumbent",
+              "latencyMs": 2368,
+              "hookMs": 2401,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t01-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_light_xhigh_ff567b09c6",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 0
+          },
+          "resolvedModel": "claude-sonnet-5-5",
+          "injected": false,
+          "target": {
+            "probability": 0.92,
+            "stage": "need_gate"
+          },
+          "hookDetail": {
+            "need": 0.46,
+            "candidates": 60,
+            "judged": 60,
+            "load": [],
+            "suggest": [],
+            "top": [
+              {
+                "name": "partner-file-exports",
+                "probability": 0.92,
+                "stage": "need_gate"
+              },
+              {
+                "name": "repo-tour",
+                "probability": 0.24,
+                "stage": "need_gate"
+              },
+              {
+                "name": "dashboard-summary-columns",
+                "probability": 0.09,
+                "stage": "need_gate"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 589,
+              "latencyMsMax": 301,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 482,
+              "hookMs": 509,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.46,
+        "candidates": 60,
+        "judged": 60,
+        "load": [],
+        "suggest": [],
+        "top": [
+          {
+            "name": "partner-file-exports",
+            "probability": 0.92,
+            "stage": "need_gate"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.24,
+            "stage": "need_gate"
+          },
+          {
+            "name": "dashboard-summary-columns",
+            "probability": 0.09,
+            "stage": "need_gate"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 589,
+          "latencyMsMax": 301,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 482,
+          "hookMs": 509,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": {
+        "probability": 0.92,
+        "stage": "need_gate"
+      },
+      "effective": {
+        "agentType": "jev4_implement_light_xhigh_ff567b09c6",
+        "model": "claude-sonnet-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t01-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": false,
+          "load": []
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": false,
+        "load": [],
+        "consider": [],
+        "mode": "active",
+        "status": "none",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t01-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 12,
+        "toolNames": {
+          "Bash": 6,
+          "Skill": 1,
+          "Write": 2,
+          "Edit": 2,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [
+          {
+            "name": "partner-file-exports",
+            "via": "Skill",
+            "callIndex": 1
+          },
+          {
+            "name": "report-figure-reconciliation",
+            "via": "Bash",
+            "callIndex": 3
+          }
+        ],
+        "skillFolderMentions": [],
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetLoadedBeforeFirstWrite": true,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": true,
+        "promptHadSkillsBlock": false,
+        "promptBlockLoad": null,
+        "promptBlockConsider": null,
+        "promptBlockCounts": {
+          "skills": 0,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 20,
+          "output": 13132,
+          "cacheRead": 633530,
+          "cacheCreation": 81572,
+          "messages": 10,
+          "assistantMessages": 10,
+          "total": 728254
+        },
+        "wallMs": 97307,
+        "timestampCoverage": {
+          "rows": 60,
+          "withTimestamp": 60
+        },
+        "targetLoadCallIndex": 1,
+        "firstWriteCallIndex": 5,
+        "firstBashWriteLikeCallIndex": 10,
+        "bashWriteLikeCommands": 1,
+        "targetLoadedBeforeAnyWrite": true,
+        "toolCallsWithoutHandback": 11,
+        "handbackCalls": 1,
+        "toolErrors": 0,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "filesWritten": [
+          "src/reports/overdue-parcels.mjs",
+          "test/overdue-parcels.test.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "1 Bash command(s) look like file writes (redirect, heredoc, sed -i); files written that way are not in filesWritten/outOfScopeWrites",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)",
+        "the subagent ran as jev4_implement_light_xhigh_ff567b09c6, not as the profile in this call's route event (jev4_implement_standard_high_e71cff8bbd)"
+      ]
+    },
+    {
+      "id": "t02",
+      "lang": "ko",
+      "kind": "skill",
+      "targetSkill": "runtime-settings",
+      "check": {
+        "done": true,
+        "convention": true,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.defaults_load",
+          "ok": true
+        },
+        {
+          "check": "done.env_overrides_default_120",
+          "ok": true
+        },
+        {
+          "check": "done.door_watch_changed",
+          "ok": true
+        },
+        {
+          "check": "conv.variable_name",
+          "ok": true
+        },
+        {
+          "check": "conv.area_key_in_ms",
+          "ok": true
+        },
+        {
+          "check": "conv.invalid_recorded_default_kept",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t02-call2",
+        "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t02-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 1,
+            "skillsBlocks": 1
+          },
+          "resolvedModel": null,
+          "injected": true,
+          "target": {
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.62,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "runtime-settings",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "runtime-settings",
+                "probability": 0.99,
+                "stage": "loaded"
+              },
+              {
+                "name": "settings-load-debugging",
+                "probability": 0.42,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "retry-policy-tuning",
+                "probability": 0.12,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 623,
+              "latencyMsMax": 324,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 519,
+              "hookMs": 551,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t02-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 1
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 2
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": true,
+          "target": {
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.76,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "runtime-settings",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "runtime-settings",
+                "probability": 0.98,
+                "stage": "loaded"
+              },
+              {
+                "name": "settings-load-debugging",
+                "probability": 0.19,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "settings-doc-wording",
+                "probability": 0.1,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 617,
+              "latencyMsMax": 317,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 524,
+              "hookMs": 558,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.76,
+        "candidates": 60,
+        "judged": 60,
+        "load": [
+          {
+            "name": "runtime-settings",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "runtime-settings",
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          {
+            "name": "settings-load-debugging",
+            "probability": 0.19,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "settings-doc-wording",
+            "probability": 0.1,
+            "stage": "below_threshold"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 617,
+          "latencyMsMax": 317,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 524,
+          "hookMs": 558,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": {
+        "probability": 0.98,
+        "stage": "loaded"
+      },
+      "effective": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t02-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": true,
+          "load": [
+            "runtime-settings"
+          ]
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": true,
+        "load": [
+          "runtime-settings"
+        ],
+        "consider": [],
+        "mode": "active",
+        "status": "selected",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t02-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 11,
+        "toolNames": {
+          "Skill": 1,
+          "Bash": 6,
+          "Write": 2,
+          "Edit": 1,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [
+          {
+            "name": "runtime-settings",
+            "via": "Skill",
+            "callIndex": 0
+          }
+        ],
+        "skillFolderMentions": [
+          {
+            "name": null,
+            "via": "Bash",
+            "callIndex": 1
+          }
+        ],
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetLoadedBeforeFirstWrite": true,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": true,
+        "promptHadSkillsBlock": true,
+        "promptBlockLoad": [
+          "runtime-settings"
+        ],
+        "promptBlockConsider": [],
+        "promptBlockCounts": {
+          "skills": 1,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 20,
+          "output": 7112,
+          "cacheRead": 605258,
+          "cacheCreation": 36008,
+          "messages": 10,
+          "assistantMessages": 10,
+          "total": 648398
+        },
+        "wallMs": 69768,
+        "timestampCoverage": {
+          "rows": 49,
+          "withTimestamp": 49
+        },
+        "targetLoadCallIndex": 0,
+        "firstWriteCallIndex": 5,
+        "firstBashWriteLikeCallIndex": 8,
+        "bashWriteLikeCommands": 1,
+        "targetLoadedBeforeAnyWrite": true,
+        "toolCallsWithoutHandback": 10,
+        "handbackCalls": 1,
+        "toolErrors": 1,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [
+          "src/config/settings.mjs",
+          "src/lockers/door-watch.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "1 Bash command(s) look like file writes (redirect, heredoc, sed -i); files written that way are not in filesWritten/outOfScopeWrites",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    },
+    {
+      "id": "t03",
+      "lang": "en",
+      "kind": "control",
+      "targetSkill": null,
+      "check": {
+        "done": true,
+        "convention": null,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.strips_and_uppercases",
+          "ok": true
+        },
+        {
+          "check": "done.clean_input_unchanged",
+          "ok": true
+        },
+        {
+          "check": "done.same_tracking",
+          "ok": true
+        },
+        {
+          "check": "control.no_unattributed_changes",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t03-call2",
+        "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t03-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 1,
+            "skillsBlocks": 0
+          },
+          "resolvedModel": null,
+          "injected": false,
+          "target": null,
+          "hookDetail": {
+            "need": 0.09,
+            "candidates": 60,
+            "judged": 60,
+            "load": [],
+            "suggest": [],
+            "top": [
+              {
+                "name": "commit-message-style",
+                "probability": 0.14,
+                "stage": "need_gate"
+              },
+              {
+                "name": "address-geocoding",
+                "probability": 0.08,
+                "stage": "need_gate"
+              },
+              {
+                "name": "carrier-csv-intake",
+                "probability": 0.07,
+                "stage": "need_gate"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 590,
+              "latencyMsMax": 296,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 478,
+              "hookMs": 507,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t03-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 0
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": false,
+          "target": null,
+          "hookDetail": {
+            "need": 0.08,
+            "candidates": 60,
+            "judged": 60,
+            "load": [],
+            "suggest": [],
+            "top": [
+              {
+                "name": "repo-tour",
+                "probability": 0.14,
+                "stage": "need_gate"
+              },
+              {
+                "name": "flaky-test-quarantine",
+                "probability": 0.07,
+                "stage": "need_gate"
+              },
+              {
+                "name": "commit-message-style",
+                "probability": 0.07,
+                "stage": "need_gate"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 602,
+              "latencyMsMax": 303,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 550,
+              "hookMs": 581,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.08,
+        "candidates": 60,
+        "judged": 60,
+        "load": [],
+        "suggest": [],
+        "top": [
+          {
+            "name": "repo-tour",
+            "probability": 0.14,
+            "stage": "need_gate"
+          },
+          {
+            "name": "flaky-test-quarantine",
+            "probability": 0.07,
+            "stage": "need_gate"
+          },
+          {
+            "name": "commit-message-style",
+            "probability": 0.07,
+            "stage": "need_gate"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 602,
+          "latencyMsMax": 303,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 550,
+          "hookMs": 581,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": null,
+      "effective": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t03-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": false,
+          "load": []
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": false,
+        "load": [],
+        "consider": [],
+        "mode": "active",
+        "status": "none",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t03-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 7,
+        "toolNames": {
+          "Bash": 4,
+          "Write": 2,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [],
+        "skillFolderMentions": [],
+        "targetSkillLoaded": null,
+        "targetSkillLoadedVia": null,
+        "targetLoadedBeforeFirstWrite": null,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": null,
+        "promptHadSkillsBlock": false,
+        "promptBlockLoad": null,
+        "promptBlockConsider": null,
+        "promptBlockCounts": {
+          "skills": 0,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 12,
+          "output": 3624,
+          "cacheRead": 336570,
+          "cacheCreation": 29141,
+          "messages": 6,
+          "assistantMessages": 6,
+          "total": 369347
+        },
+        "wallMs": 35077,
+        "timestampCoverage": {
+          "rows": 35,
+          "withTimestamp": 35
+        },
+        "targetLoadCallIndex": null,
+        "firstWriteCallIndex": 3,
+        "firstBashWriteLikeCallIndex": null,
+        "bashWriteLikeCommands": 0,
+        "targetLoadedBeforeAnyWrite": null,
+        "toolCallsWithoutHandback": 6,
+        "handbackCalls": 1,
+        "toolErrors": 0,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [
+          "src/util/tracking.mjs",
+          "test/tracking.test.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    },
+    {
+      "id": "t04",
+      "lang": "ko",
+      "kind": "skill",
+      "targetSkill": "periodic-job-contract",
+      "check": {
+        "done": true,
+        "convention": true,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.new_job_registered",
+          "ok": true
+        },
+        {
+          "check": "done.removes_only_old_collected",
+          "ok": true
+        },
+        {
+          "check": "done.runs_daily",
+          "ok": true
+        },
+        {
+          "check": "conv.name",
+          "ok": true
+        },
+        {
+          "check": "conv.ceiling",
+          "ok": true
+        },
+        {
+          "check": "conv.three_counters",
+          "ok": true
+        },
+        {
+          "check": "conv.ledger_line",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t04-call2",
+        "subagentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t04-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_xhigh_e9747b20fc",
+            "routingBlocks": 1,
+            "skillsBlocks": 1
+          },
+          "resolvedModel": null,
+          "injected": true,
+          "target": {
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.83,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.99,
+                "stage": "loaded"
+              },
+              {
+                "name": "crontab-expressions",
+                "probability": 0.42,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "runtime-settings",
+                "probability": 0.16,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 597,
+              "latencyMsMax": 303,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+              "model": "opus",
+              "effort": "xhigh",
+              "tier": "standard",
+              "decisionReason": "selector_uncertain_incumbent",
+              "latencyMs": 519,
+              "hookMs": 552,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t04-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_xhigh_e9747b20fc",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 1
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_xhigh_e9747b20fc",
+            "routingBlocks": 2,
+            "skillsBlocks": 2
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": true,
+          "target": {
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.89,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "periodic-job-contract",
+                "probability": 0.98,
+                "stage": "loaded"
+              },
+              {
+                "name": "repo-tour",
+                "probability": 0.24,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "crontab-expressions",
+                "probability": 0.19,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 608,
+              "latencyMsMax": 306,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+              "model": "opus",
+              "effort": "xhigh",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 502,
+              "hookMs": 538,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.89,
+        "candidates": 60,
+        "judged": 60,
+        "load": [
+          {
+            "name": "periodic-job-contract",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "periodic-job-contract",
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.24,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "crontab-expressions",
+            "probability": 0.19,
+            "stage": "below_threshold"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 608,
+          "latencyMsMax": 306,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+          "model": "opus",
+          "effort": "xhigh",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 502,
+          "hookMs": 538,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": {
+        "probability": 0.98,
+        "stage": "loaded"
+      },
+      "effective": {
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t04-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": true,
+          "load": [
+            "periodic-job-contract"
+          ]
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": true,
+        "load": [
+          "periodic-job-contract"
+        ],
+        "consider": [],
+        "mode": "active",
+        "status": "selected",
+        "route": {
+          "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+          "model": "opus",
+          "effort": "xhigh"
+        }
+      },
+      "agentId": "t04-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 16,
+        "toolNames": {
+          "Skill": 1,
+          "mcp__ccd_turn__update_plan": 1,
+          "Bash": 9,
+          "Write": 3,
+          "Edit": 1,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [
+          {
+            "name": "periodic-job-contract",
+            "via": "Skill",
+            "callIndex": 0
+          },
+          {
+            "name": "job-interval-changes",
+            "via": "Bash",
+            "callIndex": 6
+          }
+        ],
+        "skillFolderMentions": [
+          {
+            "name": null,
+            "via": "Bash",
+            "callIndex": 5
+          }
+        ],
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetLoadedBeforeFirstWrite": true,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": true,
+        "promptHadSkillsBlock": true,
+        "promptBlockLoad": [
+          "periodic-job-contract"
+        ],
+        "promptBlockConsider": [],
+        "promptBlockCounts": {
+          "skills": 1,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 26,
+          "output": 13622,
+          "cacheRead": 952043,
+          "cacheCreation": 53558,
+          "messages": 13,
+          "assistantMessages": 13,
+          "total": 1019249
+        },
+        "wallMs": 136179,
+        "timestampCoverage": {
+          "rows": 63,
+          "withTimestamp": 63
+        },
+        "targetLoadCallIndex": 0,
+        "firstWriteCallIndex": 7,
+        "firstBashWriteLikeCallIndex": 13,
+        "bashWriteLikeCommands": 1,
+        "targetLoadedBeforeAnyWrite": true,
+        "toolCallsWithoutHandback": 15,
+        "handbackCalls": 1,
+        "toolErrors": 2,
+        "rejectedToolCalls": [
+          {
+            "tool": "mcp__ccd_turn__update_plan",
+            "reasonCode": "hook:PreToolUse"
+          }
+        ],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [
+          "src/jobs/purge-collected-parcels.mjs",
+          "src/jobs/index.mjs",
+          "ops/JOBS.ledger",
+          "test/purge-collected-parcels.test.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "1 Bash command(s) look like file writes (redirect, heredoc, sed -i); files written that way are not in filesWritten/outOfScopeWrites",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    },
+    {
+      "id": "t05",
+      "lang": "en",
+      "kind": "skill",
+      "targetSkill": "domain-failure-types",
+      "check": {
+        "done": true,
+        "convention": true,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.free_compartment_still_assigns",
+          "ok": true
+        },
+        {
+          "check": "done.throws_dedicated_error",
+          "ok": true
+        },
+        {
+          "check": "conv.class_name",
+          "ok": true
+        },
+        {
+          "check": "conv.own_file",
+          "ok": true
+        },
+        {
+          "check": "conv.code",
+          "ok": true
+        },
+        {
+          "check": "conv.retry_after",
+          "ok": true
+        },
+        {
+          "check": "conv.registry_line",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t05-call2",
+        "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t05-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 1,
+            "skillsBlocks": 1
+          },
+          "resolvedModel": null,
+          "injected": true,
+          "target": {
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.71,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "domain-failure-types",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "domain-failure-types",
+                "probability": 0.98,
+                "stage": "loaded"
+              },
+              {
+                "name": "error-message-wording",
+                "probability": 0.09,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "commit-message-style",
+                "probability": 0.09,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 592,
+              "latencyMsMax": 298,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 502,
+              "hookMs": 541,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t05-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 1
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 2
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": true,
+          "target": {
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.77,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "domain-failure-types",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "domain-failure-types",
+                "probability": 0.99,
+                "stage": "loaded"
+              },
+              {
+                "name": "repo-tour",
+                "probability": 0.14,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "error-message-wording",
+                "probability": 0.09,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 949,
+              "latencyMsMax": 480,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 739,
+              "hookMs": 818,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.77,
+        "candidates": 60,
+        "judged": 60,
+        "load": [
+          {
+            "name": "domain-failure-types",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "domain-failure-types",
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.14,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "error-message-wording",
+            "probability": 0.09,
+            "stage": "below_threshold"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 949,
+          "latencyMsMax": 480,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 739,
+          "hookMs": 818,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": {
+        "probability": 0.99,
+        "stage": "loaded"
+      },
+      "effective": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t05-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": true,
+          "load": [
+            "domain-failure-types"
+          ]
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": true,
+        "load": [
+          "domain-failure-types"
+        ],
+        "consider": [],
+        "mode": "active",
+        "status": "selected",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t05-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 7,
+        "toolNames": {
+          "Skill": 1,
+          "Bash": 5,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [
+          {
+            "name": "domain-failure-types",
+            "via": "Skill",
+            "callIndex": 0
+          }
+        ],
+        "skillFolderMentions": [],
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetLoadedBeforeFirstWrite": true,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": true,
+        "promptHadSkillsBlock": true,
+        "promptBlockLoad": [
+          "domain-failure-types"
+        ],
+        "promptBlockConsider": [],
+        "promptBlockCounts": {
+          "skills": 1,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 12,
+          "output": 4203,
+          "cacheRead": 346401,
+          "cacheCreation": 30470,
+          "messages": 6,
+          "assistantMessages": 6,
+          "total": 381086
+        },
+        "wallMs": 39492,
+        "timestampCoverage": {
+          "rows": 38,
+          "withTimestamp": 38
+        },
+        "targetLoadCallIndex": 0,
+        "firstWriteCallIndex": null,
+        "firstBashWriteLikeCallIndex": 4,
+        "bashWriteLikeCommands": 1,
+        "targetLoadedBeforeAnyWrite": true,
+        "toolCallsWithoutHandback": 6,
+        "handbackCalls": 1,
+        "toolErrors": 1,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "1 Bash command(s) look like file writes (redirect, heredoc, sed -i); files written that way are not in filesWritten/outOfScopeWrites",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    },
+    {
+      "id": "t06",
+      "lang": "ko",
+      "kind": "skill",
+      "targetSkill": "read-endpoints",
+      "check": {
+        "done": true,
+        "convention": true,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.route_registered",
+          "ok": true
+        },
+        {
+          "check": "done.counts_stored_parcels",
+          "ok": true
+        },
+        {
+          "check": "done.unknown_locker_404",
+          "ok": true
+        },
+        {
+          "check": "conv.success_body_shape",
+          "ok": true
+        },
+        {
+          "check": "conv.route_tier",
+          "ok": true
+        },
+        {
+          "check": "conv.missing_body",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t06-call2",
+        "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t06-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 1,
+            "skillsBlocks": 1
+          },
+          "resolvedModel": null,
+          "injected": true,
+          "target": {
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.65,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "read-endpoints",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "read-endpoints",
+                "probability": 0.99,
+                "stage": "loaded"
+              },
+              {
+                "name": "handler-error-mapping",
+                "probability": 0.42,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "domain-failure-types",
+                "probability": 0.27,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 929,
+              "latencyMsMax": 482,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 589,
+              "hookMs": 781,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t06-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 1
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 2
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": true,
+          "target": {
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.71,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "read-endpoints",
+                "probability": 0.99
+              }
+            ],
+            "suggest": [],
+            "top": [
+              {
+                "name": "read-endpoints",
+                "probability": 0.99,
+                "stage": "loaded"
+              },
+              {
+                "name": "handler-error-mapping",
+                "probability": 0.35,
+                "stage": "below_threshold"
+              },
+              {
+                "name": "api-doc-entries",
+                "probability": 0.28,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 563,
+              "latencyMsMax": 285,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 465,
+              "hookMs": 499,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.71,
+        "candidates": 60,
+        "judged": 60,
+        "load": [
+          {
+            "name": "read-endpoints",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "top": [
+          {
+            "name": "read-endpoints",
+            "probability": 0.99,
+            "stage": "loaded"
+          },
+          {
+            "name": "handler-error-mapping",
+            "probability": 0.35,
+            "stage": "below_threshold"
+          },
+          {
+            "name": "api-doc-entries",
+            "probability": 0.28,
+            "stage": "below_threshold"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 563,
+          "latencyMsMax": 285,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 465,
+          "hookMs": 499,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": {
+        "probability": 0.99,
+        "stage": "loaded"
+      },
+      "effective": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t06-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": true,
+          "load": [
+            "read-endpoints"
+          ]
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": true,
+        "load": [
+          "read-endpoints"
+        ],
+        "consider": [],
+        "mode": "active",
+        "status": "selected",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t06-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 10,
+        "toolNames": {
+          "Skill": 1,
+          "Bash": 4,
+          "Edit": 3,
+          "Write": 1,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [
+          {
+            "name": "read-endpoints",
+            "via": "Skill",
+            "callIndex": 0
+          }
+        ],
+        "skillFolderMentions": [],
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetLoadedBeforeFirstWrite": true,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": true,
+        "promptHadSkillsBlock": true,
+        "promptBlockLoad": [
+          "read-endpoints"
+        ],
+        "promptBlockConsider": [],
+        "promptBlockCounts": {
+          "skills": 1,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 12,
+          "output": 5158,
+          "cacheRead": 340842,
+          "cacheCreation": 30383,
+          "messages": 6,
+          "assistantMessages": 6,
+          "total": 376395
+        },
+        "wallMs": 45546,
+        "timestampCoverage": {
+          "rows": 47,
+          "withTimestamp": 47
+        },
+        "targetLoadCallIndex": 0,
+        "firstWriteCallIndex": 4,
+        "firstBashWriteLikeCallIndex": null,
+        "bashWriteLikeCommands": 0,
+        "targetLoadedBeforeAnyWrite": true,
+        "toolCallsWithoutHandback": 9,
+        "handbackCalls": 1,
+        "toolErrors": 0,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [
+          "src/http/handlers.mjs",
+          "src/http/routes.mjs",
+          "test/routes.test.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    },
+    {
+      "id": "t07",
+      "lang": "ko",
+      "kind": "control",
+      "targetSkill": null,
+      "check": {
+        "done": true,
+        "convention": null,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.masks_without_hyphens",
+          "ok": true
+        },
+        {
+          "check": "done.masks_with_hyphens",
+          "ok": true
+        },
+        {
+          "check": "control.no_unattributed_changes",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t07-call2",
+        "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t07-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 1,
+            "skillsBlocks": 0
+          },
+          "resolvedModel": null,
+          "injected": false,
+          "target": null,
+          "hookDetail": {
+            "need": 0.07,
+            "candidates": 60,
+            "judged": 60,
+            "load": [],
+            "suggest": [],
+            "top": [
+              {
+                "name": "flaky-test-quarantine",
+                "probability": 0.11,
+                "stage": "need_gate"
+              },
+              {
+                "name": "commit-message-style",
+                "probability": 0.08,
+                "stage": "need_gate"
+              },
+              {
+                "name": "who-owns-what",
+                "probability": 0.07,
+                "stage": "need_gate"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 702,
+              "latencyMsMax": 358,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 503,
+              "hookMs": 554,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t07-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 0
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": false,
+          "target": null,
+          "hookDetail": {
+            "need": 0.1,
+            "candidates": 60,
+            "judged": 60,
+            "load": [],
+            "suggest": [],
+            "top": [
+              {
+                "name": "repo-tour",
+                "probability": 0.14,
+                "stage": "need_gate"
+              },
+              {
+                "name": "flaky-test-quarantine",
+                "probability": 0.1,
+                "stage": "need_gate"
+              },
+              {
+                "name": "who-owns-what",
+                "probability": 0.09,
+                "stage": "need_gate"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 586,
+              "latencyMsMax": 303,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 489,
+              "hookMs": 521,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.1,
+        "candidates": 60,
+        "judged": 60,
+        "load": [],
+        "suggest": [],
+        "top": [
+          {
+            "name": "repo-tour",
+            "probability": 0.14,
+            "stage": "need_gate"
+          },
+          {
+            "name": "flaky-test-quarantine",
+            "probability": 0.1,
+            "stage": "need_gate"
+          },
+          {
+            "name": "who-owns-what",
+            "probability": 0.09,
+            "stage": "need_gate"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 586,
+          "latencyMsMax": 303,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 489,
+          "hookMs": 521,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": null,
+      "effective": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t07-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": false,
+          "load": []
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": false,
+        "load": [],
+        "consider": [],
+        "mode": "active",
+        "status": "none",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t07-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 6,
+        "toolNames": {
+          "Bash": 3,
+          "Write": 2,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [],
+        "skillFolderMentions": [],
+        "targetSkillLoaded": null,
+        "targetSkillLoadedVia": null,
+        "targetLoadedBeforeFirstWrite": null,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": null,
+        "promptHadSkillsBlock": false,
+        "promptBlockLoad": null,
+        "promptBlockConsider": null,
+        "promptBlockCounts": {
+          "skills": 0,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 10,
+          "output": 3394,
+          "cacheRead": 277093,
+          "cacheCreation": 28492,
+          "messages": 5,
+          "assistantMessages": 5,
+          "total": 308989
+        },
+        "wallMs": 32358,
+        "timestampCoverage": {
+          "rows": 36,
+          "withTimestamp": 36
+        },
+        "targetLoadCallIndex": null,
+        "firstWriteCallIndex": 2,
+        "firstBashWriteLikeCallIndex": null,
+        "bashWriteLikeCommands": 0,
+        "targetLoadedBeforeAnyWrite": null,
+        "toolCallsWithoutHandback": 5,
+        "handbackCalls": 1,
+        "toolErrors": 0,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [
+          "src/util/phone.mjs",
+          "test/phone.test.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    },
+    {
+      "id": "t08",
+      "lang": "en",
+      "kind": "skill",
+      "targetSkill": "customer-text-messages",
+      "check": {
+        "done": true,
+        "convention": true,
+        "blockedBy": [],
+        "failedChecks": []
+      },
+      "checkDetails": [
+        {
+          "check": "done.new_template",
+          "ok": true
+        },
+        {
+          "check": "done.both_locales_name_and_sender",
+          "ok": true
+        },
+        {
+          "check": "done.renders",
+          "ok": true
+        },
+        {
+          "check": "conv.key",
+          "ok": true
+        },
+        {
+          "check": "conv.ending",
+          "ok": true
+        },
+        {
+          "check": "conv.length",
+          "ok": true
+        },
+        {
+          "check": "conv.review_log",
+          "ok": true
+        }
+      ],
+      "delegation": {
+        "toolUseId": "t08-call2",
+        "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+        "promptVerbatim": false,
+        "agentCalls": 2,
+        "spawnFailed": false
+      },
+      "delegationDetail": {
+        "refusedAttempts": 1,
+        "launchedCalls": 1,
+        "scoredCallIndex": 1,
+        "scoredCallOutcome": "launched",
+        "firstCallPromptVerbatim": true,
+        "firstCallSubagentType": "general-purpose",
+        "scoredPromptIsHookRewrite": true
+      },
+      "attempts": [
+        {
+          "toolUseId": "t08-call1",
+          "scored": false,
+          "outcome": "refused",
+          "refusalCode": "classifier:auto-mode:unavailable",
+          "subagentType": "general-purpose",
+          "promptVerbatim": true,
+          "promptBlocks": {
+            "routing": 0,
+            "skills": 0
+          },
+          "promptIsHookRewriteOfPreviousCall": null,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 1,
+            "skillsBlocks": 1
+          },
+          "resolvedModel": null,
+          "injected": true,
+          "target": {
+            "probability": 0.97,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.69,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "customer-text-messages",
+                "probability": 0.97
+              }
+            ],
+            "suggest": [
+              {
+                "name": "notification-placeholder-data",
+                "probability": 0.68
+              }
+            ],
+            "top": [
+              {
+                "name": "customer-text-messages",
+                "probability": 0.97,
+                "stage": "loaded"
+              },
+              {
+                "name": "notification-placeholder-data",
+                "probability": 0.68,
+                "stage": "suggested"
+              },
+              {
+                "name": "admin-console-i18n",
+                "probability": 0.24,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 599,
+              "latencyMsMax": 302,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 511,
+              "hookMs": 540,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        },
+        {
+          "toolUseId": "t08-call2",
+          "scored": true,
+          "outcome": "launched",
+          "refusalCode": null,
+          "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+          "promptVerbatim": false,
+          "promptBlocks": {
+            "routing": 1,
+            "skills": 1
+          },
+          "promptIsHookRewriteOfPreviousCall": true,
+          "hookRewrite": {
+            "subagentType": "jev4_implement_standard_high_e71cff8bbd",
+            "routingBlocks": 2,
+            "skillsBlocks": 2
+          },
+          "resolvedModel": "claude-opus-5-5",
+          "injected": true,
+          "target": {
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          "hookDetail": {
+            "need": 0.79,
+            "candidates": 60,
+            "judged": 60,
+            "load": [
+              {
+                "name": "customer-text-messages",
+                "probability": 0.98
+              }
+            ],
+            "suggest": [
+              {
+                "name": "notification-placeholder-data",
+                "probability": 0.64
+              }
+            ],
+            "top": [
+              {
+                "name": "customer-text-messages",
+                "probability": 0.98,
+                "stage": "loaded"
+              },
+              {
+                "name": "notification-placeholder-data",
+                "probability": 0.64,
+                "stage": "suggested"
+              },
+              {
+                "name": "repo-tour",
+                "probability": 0.12,
+                "stage": "below_threshold"
+              }
+            ],
+            "judge": {
+              "requests": 2,
+              "decisionsLogged": 2,
+              "latencyMsSum": 606,
+              "latencyMsMax": 309,
+              "cached": false
+            },
+            "route": {
+              "profile": "jev4_implement_standard_high_e71cff8bbd",
+              "model": "opus",
+              "effort": "high",
+              "tier": "standard",
+              "decisionReason": "jev_with_explicit_startup_rubric",
+              "latencyMs": 488,
+              "hookMs": 517,
+              "cached": false
+            },
+            "routeDeferred": null
+          }
+        }
+      ],
+      "hookDetail": {
+        "need": 0.79,
+        "candidates": 60,
+        "judged": 60,
+        "load": [
+          {
+            "name": "customer-text-messages",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [
+          {
+            "name": "notification-placeholder-data",
+            "probability": 0.64
+          }
+        ],
+        "top": [
+          {
+            "name": "customer-text-messages",
+            "probability": 0.98,
+            "stage": "loaded"
+          },
+          {
+            "name": "notification-placeholder-data",
+            "probability": 0.64,
+            "stage": "suggested"
+          },
+          {
+            "name": "repo-tour",
+            "probability": 0.12,
+            "stage": "below_threshold"
+          }
+        ],
+        "judge": {
+          "requests": 2,
+          "decisionsLogged": 2,
+          "latencyMsSum": 606,
+          "latencyMsMax": 309,
+          "cached": false
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high",
+          "tier": "standard",
+          "decisionReason": "jev_with_explicit_startup_rubric",
+          "latencyMs": 488,
+          "hookMs": 517,
+          "cached": false
+        },
+        "routeDeferred": null
+      },
+      "targetJudged": {
+        "probability": 0.98,
+        "stage": "loaded"
+      },
+      "effective": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "scoredCallRewriteApplied": false
+      },
+      "otherCalls": [
+        {
+          "toolUseId": "t08-call1",
+          "agentId": null,
+          "agentIdSource": null,
+          "spawnFailed": null,
+          "injected": true,
+          "load": [
+            "customer-text-messages"
+          ]
+        }
+      ],
+      "hook": {
+        "skillsEvent": true,
+        "injected": true,
+        "load": [
+          "customer-text-messages"
+        ],
+        "consider": [
+          "notification-placeholder-data"
+        ],
+        "mode": "active",
+        "status": "selected",
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        }
+      },
+      "agentId": "t08-subagent",
+      "agentIdSource": "spawn_observed",
+      "subagent": {
+        "toolCalls": 9,
+        "toolNames": {
+          "Skill": 1,
+          "Bash": 5,
+          "Edit": 2,
+          "SubagentHandback": 1
+        },
+        "loadedSkills": [
+          {
+            "name": "customer-text-messages",
+            "via": "Skill",
+            "callIndex": 0
+          },
+          {
+            "name": "notification-placeholder-data",
+            "via": "Bash",
+            "callIndex": 2
+          }
+        ],
+        "skillFolderMentions": [],
+        "targetSkillLoaded": true,
+        "targetSkillLoadedVia": "Skill",
+        "targetLoadedBeforeFirstWrite": true,
+        "skillListing": {
+          "found": true,
+          "source": "attachment:skill_listing",
+          "catalogNamesListed": 60,
+          "catalogSize": 60
+        },
+        "listingDetail": {
+          "totalNamesListed": 101,
+          "catalogNamesWithDescription": 60,
+          "nonCatalogNamesListed": 41,
+          "nonCatalogNames": [
+            "anthropic-skills:built-in-browser",
+            "anthropic-skills:chrome-browser",
+            "anthropic-skills:computer-use",
+            "anthropic-skills:consolidate-memory",
+            "anthropic-skills:deep-research",
+            "anthropic-skills:docs",
+            "anthropic-skills:docx",
+            "anthropic-skills:explain-usage",
+            "anthropic-skills:google-workspace",
+            "anthropic-skills:import-memory",
+            "anthropic-skills:morning",
+            "anthropic-skills:pdf",
+            "anthropic-skills:pptx",
+            "anthropic-skills:setup-claude",
+            "anthropic-skills:skill-creator",
+            "anthropic-skills:xlsx",
+            "artifact-capabilities",
+            "artifact-design",
+            "artifact-diagramming",
+            "claude-api",
+            "code-review",
+            "dataviz",
+            "fewer-permission-prompts",
+            "find-skills",
+            "gemini-api-dev",
+            "init",
+            "keybindings-help",
+            "loop",
+            "openai-docs",
+            "plugin-authoring",
+            "run",
+            "security-review",
+            "ship-local",
+            "simplify",
+            "steward",
+            "typesafe-ai",
+            "typescript-advanced-types",
+            "update-config",
+            "using-skill-rag",
+            "uv",
+            "workflow-authoring"
+          ]
+        },
+        "targetListedToSubagent": true,
+        "promptHadSkillsBlock": true,
+        "promptBlockLoad": [
+          "customer-text-messages"
+        ],
+        "promptBlockConsider": [
+          "notification-placeholder-data"
+        ],
+        "promptBlockCounts": {
+          "skills": 1,
+          "routing": 1
+        },
+        "firstPromptContainsTask": true,
+        "tokens": {
+          "input": 14,
+          "output": 4617,
+          "cacheRead": 395540,
+          "cacheCreation": 28672,
+          "messages": 7,
+          "assistantMessages": 7,
+          "total": 428843
+        },
+        "wallMs": 43886,
+        "timestampCoverage": {
+          "rows": 46,
+          "withTimestamp": 46
+        },
+        "targetLoadCallIndex": 0,
+        "firstWriteCallIndex": 5,
+        "firstBashWriteLikeCallIndex": 7,
+        "bashWriteLikeCommands": 1,
+        "targetLoadedBeforeAnyWrite": true,
+        "toolCallsWithoutHandback": 8,
+        "handbackCalls": 1,
+        "toolErrors": 0,
+        "rejectedToolCalls": [],
+        "skillSearch": {
+          "mcpSkillToolCalls": 0,
+          "mcpSkillTools": {},
+          "toolSearchForSkill": 0,
+          "nonCatalogSkillCalls": []
+        },
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "filesWritten": [
+          "src/notify/templates.mjs",
+          "test/templates.test.mjs"
+        ],
+        "outOfScopeWrites": []
+      },
+      "warnings": [
+        "1 Agent call(s) with this task text were refused by the harness before the tool ran; the first call that was not refused is scored",
+        "1 Bash command(s) look like file writes (redirect, heredoc, sed -i); files written that way are not in filesWritten/outOfScopeWrites",
+        "the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)"
+      ]
+    }
+  ],
+  "warnings": [
+    "state dir holds 2 sessions; events of all of them were read",
+    "the decision log has no token or usage field; judge tokens are unmeasured (null), only request counts and latency are known",
+    "the Main prompt contains main-prompt.txt word for word but is not equal to it: 963 extra characters around it",
+    "Main used tools other than Agent: mcp__ccd_turn__update_plan x8, mcp__ccd_turn__wrap_up x1"
+  ],
+  "sanitized": true
+}

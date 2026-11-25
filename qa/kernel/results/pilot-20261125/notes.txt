@@ -1,0 +1,50 @@
+Paired skill-injection pilot, 2026-11-25: sanitized results of the two real sessions (one run per arm).
+
+Files
+  armA.json, armB.json     analyze.mjs output per arm (A = baseline, skill injection off; B = assisted, injection active),
+                           written with --sanitized-out: no prompts or report text, no local paths, no session / agent /
+                           tool-use ids (task-scoped labels such as t01-call2, t01-subagent, session-1 instead)
+  checks-armA.json, checks-armB.json   the checker's per-task verdict and every check by name (pass / fail)
+  compare.txt, compare.json            compare.mjs over the two arm files (paired table, totals, paired differences)
+
+How they were produced (offline; no session started, no network)
+  node analyze.mjs --arm baseline --project <arm A project> --state-dir <arm A hook state> --transcripts <arm A transcripts> --out <raw, kept outside the repository> --sanitized-out armA.json
+  node analyze.mjs --arm assisted ... --sanitized-out armB.json
+  node compare.mjs --a armA.json --b armB.json            > compare.txt
+  node compare.mjs --a armA.json --b armB.json --json     > compare.json
+The checker (checkers/), tasks.json, the skills, main-prompt.txt and PROTOCOL.md's outcome definitions were not changed.
+
+Disclosure: the analyzer was repaired AFTER both sessions had run
+The first analyzer run (pre-registered code) read the primary outcome but almost no secondary measure: subagent
+listing / load / tool calls / tokens / wall time were read for 1 of 16 task runs. The cause was parsing, and one
+attribution rule that the real files could not support. What was changed in analyze.mjs / compare.mjs:
+  1. Only conversation rows (type user / assistant, plus attachment) are read. Request-log rows (api-request,
+     api-request-blob, ...) repeat the same tool_use / tool_result items and are ignored.
+  2. In auto permission mode, a PreToolUse hook that rewrites an Agent call's input makes the harness refuse that
+     call before the tool runs (error result, permission "reject", no spawn) and tell Main to issue it again with
+     the rewritten input. PROTOCOL.md says the first Agent call that carries the task text is the task's call; read
+     literally, that is the refused attempt, which started no subagent, so every subagent measure would be null for
+     15 of 16 task runs. The analyzer now scores the first call that was not refused before running, and reports
+     the refused attempts next to it (attempts, delegationDetail, otherCalls). When every call was refused the first
+     one is still used. This is a reading of the attribution rule fixed after seeing the data; it changes which
+     subagent transcript the secondary measures are read from and nothing in the primary outcome, which is read
+     from the project folder.
+  3. Subagent first prompt = first user text that is not a harness reminder (isMeta). The skill listing is read
+     from the attachment row { type: "skill_listing", names: [...] }; the text heuristic stays as a fallback.
+  4. agent-<id>.meta.json (agentType, model, toolUseId) is read: it gives what actually ran, and a last-resort link
+     from an Agent call to its transcript.
+  5. New reference values, none of them an outcome: per-call hook detail (need, load / suggest with probabilities,
+     the judge's probability for the target, route, deferred route), judge latency from the decision log, token
+     parts, load position versus first write (Write/Edit, and a labelled Bash heuristic), user-level skill search
+     (MCP tools with "skill" in the name, ToolSearch about skills, Skill calls outside the project catalog),
+     rejected tool calls, the Main session (prompt versus main-prompt.txt, model, effort, permission mode, tools,
+     tokens), paired differences in compare.mjs.
+  6. Timestamp coverage is counted over conversation rows only.
+
+Unmeasured (null, never counted as zero or as a failure)
+  - judge tokens: the hook's decision log records latency per decision and no token counts
+  - "injected" in arm A: the delegation.skills point was off, so there is no skills event; it is null, not false
+  - files written through Bash (heredoc, redirect, sed -i) are not in filesWritten / outOfScopeWrites; only a
+    heuristic count of such commands is given
+  - whether a subagent read skill text shown by "find" / "ls" output cannot be told from tool inputs
+  - wall time is the span of timestamps in the subagent transcript; the two arms ran at the same time

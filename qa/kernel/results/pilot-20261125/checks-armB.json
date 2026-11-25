@@ -1,0 +1,295 @@
+{
+  "arm": "assisted",
+  "source": "checkers/check.mjs via analyze.mjs (check names and pass/fail only; the checker notes are left out)",
+  "unattributedChanges": [],
+  "tasks": [
+    {
+      "id": "t01",
+      "kind": "skill",
+      "targetSkill": "partner-file-exports",
+      "done": true,
+      "convention": true,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.returns_text",
+          "ok": true
+        },
+        {
+          "check": "done.overdue_included",
+          "ok": true
+        },
+        {
+          "check": "done.others_excluded",
+          "ok": true
+        },
+        {
+          "check": "done.locker_and_recipient",
+          "ok": true
+        },
+        {
+          "check": "done.days_waiting",
+          "ok": true
+        },
+        {
+          "check": "conv.first_line",
+          "ok": true
+        },
+        {
+          "check": "conv.crlf_every_line",
+          "ok": true
+        },
+        {
+          "check": "conv.semicolon_fields",
+          "ok": true
+        },
+        {
+          "check": "conv.snake_case_columns",
+          "ok": true
+        },
+        {
+          "check": "conv.compact_utc_time",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t02",
+      "kind": "skill",
+      "targetSkill": "runtime-settings",
+      "done": true,
+      "convention": true,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.defaults_load",
+          "ok": true
+        },
+        {
+          "check": "done.env_overrides_default_120",
+          "ok": true
+        },
+        {
+          "check": "done.door_watch_changed",
+          "ok": true
+        },
+        {
+          "check": "conv.variable_name",
+          "ok": true
+        },
+        {
+          "check": "conv.area_key_in_ms",
+          "ok": true
+        },
+        {
+          "check": "conv.invalid_recorded_default_kept",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t03",
+      "kind": "control",
+      "targetSkill": null,
+      "done": true,
+      "convention": null,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.strips_and_uppercases",
+          "ok": true
+        },
+        {
+          "check": "done.clean_input_unchanged",
+          "ok": true
+        },
+        {
+          "check": "done.same_tracking",
+          "ok": true
+        },
+        {
+          "check": "control.no_unattributed_changes",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t04",
+      "kind": "skill",
+      "targetSkill": "periodic-job-contract",
+      "done": true,
+      "convention": true,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.new_job_registered",
+          "ok": true
+        },
+        {
+          "check": "done.removes_only_old_collected",
+          "ok": true
+        },
+        {
+          "check": "done.runs_daily",
+          "ok": true
+        },
+        {
+          "check": "conv.name",
+          "ok": true
+        },
+        {
+          "check": "conv.ceiling",
+          "ok": true
+        },
+        {
+          "check": "conv.three_counters",
+          "ok": true
+        },
+        {
+          "check": "conv.ledger_line",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t05",
+      "kind": "skill",
+      "targetSkill": "domain-failure-types",
+      "done": true,
+      "convention": true,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.free_compartment_still_assigns",
+          "ok": true
+        },
+        {
+          "check": "done.throws_dedicated_error",
+          "ok": true
+        },
+        {
+          "check": "conv.class_name",
+          "ok": true
+        },
+        {
+          "check": "conv.own_file",
+          "ok": true
+        },
+        {
+          "check": "conv.code",
+          "ok": true
+        },
+        {
+          "check": "conv.retry_after",
+          "ok": true
+        },
+        {
+          "check": "conv.registry_line",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t06",
+      "kind": "skill",
+      "targetSkill": "read-endpoints",
+      "done": true,
+      "convention": true,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.route_registered",
+          "ok": true
+        },
+        {
+          "check": "done.counts_stored_parcels",
+          "ok": true
+        },
+        {
+          "check": "done.unknown_locker_404",
+          "ok": true
+        },
+        {
+          "check": "conv.success_body_shape",
+          "ok": true
+        },
+        {
+          "check": "conv.route_tier",
+          "ok": true
+        },
+        {
+          "check": "conv.missing_body",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t07",
+      "kind": "control",
+      "targetSkill": null,
+      "done": true,
+      "convention": null,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.masks_without_hyphens",
+          "ok": true
+        },
+        {
+          "check": "done.masks_with_hyphens",
+          "ok": true
+        },
+        {
+          "check": "control.no_unattributed_changes",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t08",
+      "kind": "skill",
+      "targetSkill": "customer-text-messages",
+      "done": true,
+      "convention": true,
+      "blockedBy": [],
+      "failedChecks": [],
+      "details": [
+        {
+          "check": "done.new_template",
+          "ok": true
+        },
+        {
+          "check": "done.both_locales_name_and_sender",
+          "ok": true
+        },
+        {
+          "check": "done.renders",
+          "ok": true
+        },
+        {
+          "check": "conv.key",
+          "ok": true
+        },
+        {
+          "check": "conv.ending",
+          "ok": true
+        },
+        {
+          "check": "conv.length",
+          "ok": true
+        },
+        {
+          "check": "conv.review_log",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}
