@@ -44,7 +44,7 @@ git rev-parse HEAD                # 고정된 버전. 보고서에 적어 둡니
 worktree와 저장소 **밖**의 서로 다른 폴더에 복사하세요. 저장소 안에 두면 상위 폴더의 `CLAUDE.md`나 `.claude/`가 세션에 섞일 수 있습니다.
 
 ```bash
-PILOT=/Users/hakseong/Project/Jev_Orchestration/.claude/worktrees/qa-kernel/qa/kernel/pilot
+PILOT=<이 저장소의 절대 경로>/qa/kernel/pilot
 mkdir -p ~/pilot-runs
 cp -R "$PILOT/template/" ~/pilot-runs/arm-a      # baseline
 cp -R "$PILOT/template/" ~/pilot-runs/arm-b      # assisted
@@ -82,7 +82,10 @@ node compare.mjs --a ~/pilot-runs/arm-a.json --b ~/pilot-runs/arm-b.json --json 
 - `--sanitized-out <파일>`을 더하면 경로, 세션/agent/tool-use id, prompt 원문이 빠진 사본을 따로 씁니다. 저장소에는 이 사본만 넣습니다.
 - subagent transcript 옆의 `agent-<agentId>.meta.json`(agentType, model, toolUseId)이 있으면 함께 읽습니다.
 - **세션 이후 수정 (2026-11-25):** 두 세션을 실행한 뒤 분석기의 읽기 방식을 실제 파일 모양에 맞춰 고쳤습니다. 무엇을 왜 바꿨는지는
-  [PROTOCOL.md](PROTOCOL.md) 끝의 "세션 이후 분석기 수정 기록"과 `../results/pilot-20261125/notes.txt`에 있습니다.
+  [PROTOCOL.md](PROTOCOL.md) 끝의 "세션 이후 분석기 수정 기록"과 `../results/pilot-20261125/notes.txt`에 있습니다. 독립 검증 뒤의 두 번째
+  수정도 같은 곳에 적었습니다. 결과 요약은 [`../SUMMARY.ko.md`](../SUMMARY.ko.md)의 "Skill 주입 paired pilot"에 있습니다.
+- 과제별 `hook`은 채점에 쓴 호출의 hook 이벤트이고, `hookApplied`는 subagent에게 실제로 전달된 판단입니다. 권한 모드 `auto`에서는 둘이
+  서로 다른 hook 실행일 수 있습니다. 표의 `block sent` 열은 `hookApplied`를 씁니다.
 - 채점만 따로 보려면 `node checkers/check.mjs --project ~/pilot-runs/arm-a`.
 - arm 파일의 과제별 `subagent.targetListedToSubagent`는 target skill 이름이 subagent에게 보인 목록에 있었는지입니다. `null`이면
   목록 행을 찾지 못한 것이니 그 arm의 subagent transcript 앞부분을 직접 확인하세요.

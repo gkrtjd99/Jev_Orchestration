@@ -68,6 +68,26 @@
       "measured": 2,
       "of": 2
     },
+    "appliedInjectedOnSkillTasks": {
+      "yes": 5,
+      "measured": 6,
+      "of": 6
+    },
+    "appliedInjectedOnControls": {
+      "yes": 0,
+      "measured": 2,
+      "of": 2
+    },
+    "targetInAppliedLoad": {
+      "yes": 5,
+      "measured": 6,
+      "of": 6
+    },
+    "subagentApiTurns": {
+      "sum": 63,
+      "measured": 8,
+      "of": 8
+    },
     "subagentToolCalls": {
       "sum": 78,
       "measured": 8,
@@ -169,6 +189,22 @@
       "jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5": [
         "t04"
       ]
+    },
+    "effectiveSettings": {
+      "jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5 / effort xhigh": [
+        "t01"
+      ],
+      "jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / effort high": [
+        "t02",
+        "t03",
+        "t05",
+        "t06",
+        "t07",
+        "t08"
+      ],
+      "jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5 / effort xhigh": [
+        "t04"
+      ]
     }
   },
   "judge": {
@@ -248,7 +284,8 @@
       "assistantMessages": 26,
       "total": 2631871
     },
-    "wallMs": 618758,
+    "wallMs": 616202,
+    "wallMsAllRows": 618758,
     "requestLogRowsIgnored": 56
   },
   "hookEventCounts": {
@@ -519,6 +556,7 @@
       "effective": {
         "agentType": "jev4_implement_light_xhigh_ff567b09c6",
         "model": "claude-sonnet-5-5",
+        "effort": "xhigh",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -543,6 +581,24 @@
           "model": "opus",
           "effort": "high"
         }
+      },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": false,
+        "need": 0.32,
+        "load": [],
+        "suggest": [],
+        "target": {
+          "probability": 0.95,
+          "stage": "need_gate"
+        },
+        "route": {
+          "profile": "jev4_implement_light_xhigh_ff567b09c6",
+          "model": "sonnet",
+          "effort": "xhigh"
+        },
+        "routeDeferred": null
       },
       "agentId": "t01-subagent",
       "agentIdSource": "spawn_observed",
@@ -581,48 +637,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": true,
@@ -666,6 +683,10 @@
         "models": [
           "claude-sonnet-5-5"
         ],
+        "efforts": [
+          "xhigh"
+        ],
+        "apiTurns": 10,
         "filesWritten": [
           "src/reports/overdue-parcels.mjs",
           "test/overdue-parcels.test.mjs"
@@ -930,6 +951,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_high_e71cff8bbd",
         "model": "claude-opus-5-5",
+        "effort": "high",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -958,6 +980,29 @@
           "model": "opus",
           "effort": "high"
         }
+      },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": true,
+        "need": 0.62,
+        "load": [
+          {
+            "name": "runtime-settings",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "target": {
+          "probability": 0.99,
+          "stage": "loaded"
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        },
+        "routeDeferred": null
       },
       "agentId": "t02-subagent",
       "agentIdSource": "spawn_observed",
@@ -997,48 +1042,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": true,
@@ -1084,6 +1090,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "high"
+        ],
+        "apiTurns": 10,
         "filesWritten": [
           "src/config/settings.mjs",
           "src/lockers/door-watch.mjs"
@@ -1315,6 +1325,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_high_e71cff8bbd",
         "model": "claude-opus-5-5",
+        "effort": "high",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -1340,6 +1351,21 @@
           "effort": "high"
         }
       },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": false,
+        "need": 0.09,
+        "load": [],
+        "suggest": [],
+        "target": null,
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        },
+        "routeDeferred": null
+      },
       "agentId": "t03-subagent",
       "agentIdSource": "spawn_observed",
       "subagent": {
@@ -1364,48 +1390,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": null,
@@ -1449,6 +1436,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "high"
+        ],
+        "apiTurns": 6,
         "filesWritten": [
           "src/util/tracking.mjs",
           "test/tracking.test.mjs"
@@ -1715,6 +1706,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
         "model": "claude-opus-5-5",
+        "effort": "xhigh",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -1743,6 +1735,29 @@
           "model": "opus",
           "effort": "xhigh"
         }
+      },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": true,
+        "need": 0.83,
+        "load": [
+          {
+            "name": "periodic-job-contract",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "target": {
+          "probability": 0.99,
+          "stage": "loaded"
+        },
+        "route": {
+          "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+          "model": "opus",
+          "effort": "xhigh"
+        },
+        "routeDeferred": null
       },
       "agentId": "t04-subagent",
       "agentIdSource": "spawn_observed",
@@ -1788,48 +1803,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": true,
@@ -1880,6 +1856,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "xhigh"
+        ],
+        "apiTurns": 13,
         "filesWritten": [
           "src/jobs/purge-collected-parcels.mjs",
           "src/jobs/index.mjs",
@@ -2149,6 +2129,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_high_e71cff8bbd",
         "model": "claude-opus-5-5",
+        "effort": "high",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -2177,6 +2158,29 @@
           "model": "opus",
           "effort": "high"
         }
+      },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": true,
+        "need": 0.71,
+        "load": [
+          {
+            "name": "domain-failure-types",
+            "probability": 0.98
+          }
+        ],
+        "suggest": [],
+        "target": {
+          "probability": 0.98,
+          "stage": "loaded"
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        },
+        "routeDeferred": null
       },
       "agentId": "t05-subagent",
       "agentIdSource": "spawn_observed",
@@ -2208,48 +2212,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": true,
@@ -2295,6 +2260,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "high"
+        ],
+        "apiTurns": 6,
         "filesWritten": [],
         "outOfScopeWrites": []
       },
@@ -2555,6 +2524,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_high_e71cff8bbd",
         "model": "claude-opus-5-5",
+        "effort": "high",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -2583,6 +2553,29 @@
           "model": "opus",
           "effort": "high"
         }
+      },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": true,
+        "need": 0.65,
+        "load": [
+          {
+            "name": "read-endpoints",
+            "probability": 0.99
+          }
+        ],
+        "suggest": [],
+        "target": {
+          "probability": 0.99,
+          "stage": "loaded"
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        },
+        "routeDeferred": null
       },
       "agentId": "t06-subagent",
       "agentIdSource": "spawn_observed",
@@ -2616,48 +2609,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": true,
@@ -2703,6 +2657,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "high"
+        ],
+        "apiTurns": 6,
         "filesWritten": [
           "src/http/handlers.mjs",
           "src/http/routes.mjs",
@@ -2930,6 +2888,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_high_e71cff8bbd",
         "model": "claude-opus-5-5",
+        "effort": "high",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -2955,6 +2914,21 @@
           "effort": "high"
         }
       },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": false,
+        "need": 0.07,
+        "load": [],
+        "suggest": [],
+        "target": null,
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        },
+        "routeDeferred": null
+      },
       "agentId": "t07-subagent",
       "agentIdSource": "spawn_observed",
       "subagent": {
@@ -2979,48 +2953,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": null,
@@ -3064,6 +2999,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "high"
+        ],
+        "apiTurns": 5,
         "filesWritten": [
           "src/util/phone.mjs",
           "test/phone.test.mjs"
@@ -3345,6 +3284,7 @@
       "effective": {
         "agentType": "jev4_implement_standard_high_e71cff8bbd",
         "model": "claude-opus-5-5",
+        "effort": "high",
         "scoredCallRewriteApplied": false
       },
       "otherCalls": [
@@ -3375,6 +3315,34 @@
           "model": "opus",
           "effort": "high"
         }
+      },
+      "hookApplied": {
+        "source": "refused_attempt",
+        "attemptIndex": 0,
+        "injected": true,
+        "need": 0.69,
+        "load": [
+          {
+            "name": "customer-text-messages",
+            "probability": 0.97
+          }
+        ],
+        "suggest": [
+          {
+            "name": "notification-placeholder-data",
+            "probability": 0.68
+          }
+        ],
+        "target": {
+          "probability": 0.97,
+          "stage": "loaded"
+        },
+        "route": {
+          "profile": "jev4_implement_standard_high_e71cff8bbd",
+          "model": "opus",
+          "effort": "high"
+        },
+        "routeDeferred": null
       },
       "agentId": "t08-subagent",
       "agentIdSource": "spawn_observed",
@@ -3412,48 +3380,9 @@
           "totalNamesListed": 101,
           "catalogNamesWithDescription": 60,
           "nonCatalogNamesListed": 41,
-          "nonCatalogNames": [
-            "anthropic-skills:built-in-browser",
-            "anthropic-skills:chrome-browser",
-            "anthropic-skills:computer-use",
-            "anthropic-skills:consolidate-memory",
-            "anthropic-skills:deep-research",
-            "anthropic-skills:docs",
-            "anthropic-skills:docx",
-            "anthropic-skills:explain-usage",
-            "anthropic-skills:google-workspace",
-            "anthropic-skills:import-memory",
-            "anthropic-skills:morning",
-            "anthropic-skills:pdf",
-            "anthropic-skills:pptx",
-            "anthropic-skills:setup-claude",
-            "anthropic-skills:skill-creator",
-            "anthropic-skills:xlsx",
-            "artifact-capabilities",
-            "artifact-design",
-            "artifact-diagramming",
-            "claude-api",
-            "code-review",
-            "dataviz",
-            "fewer-permission-prompts",
+          "nonCatalogSearchSkillNames": [
             "find-skills",
-            "gemini-api-dev",
-            "init",
-            "keybindings-help",
-            "loop",
-            "openai-docs",
-            "plugin-authoring",
-            "run",
-            "security-review",
-            "ship-local",
-            "simplify",
-            "steward",
-            "typesafe-ai",
-            "typescript-advanced-types",
-            "update-config",
-            "using-skill-rag",
-            "uv",
-            "workflow-authoring"
+            "using-skill-rag"
           ]
         },
         "targetListedToSubagent": true,
@@ -3501,6 +3430,10 @@
         "models": [
           "claude-opus-5-5"
         ],
+        "efforts": [
+          "high"
+        ],
+        "apiTurns": 7,
         "filesWritten": [
           "src/notify/templates.mjs",
           "test/templates.test.mjs"

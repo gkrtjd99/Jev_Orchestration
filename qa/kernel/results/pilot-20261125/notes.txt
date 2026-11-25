@@ -1,20 +1,35 @@
 Paired skill-injection pilot, 2026-11-25: sanitized results of the two real sessions (one run per arm).
+Summary and reading: ../../SUMMARY.ko.md (section "Skill 주입 paired pilot"). File list: README.md in this folder.
 
-Files
-  armA.json, armB.json     analyze.mjs output per arm (A = baseline, skill injection off; B = assisted, injection active),
-                           written with --sanitized-out: no prompts or report text, no local paths, no session / agent /
-                           tool-use ids (task-scoped labels such as t01-call2, t01-subagent, session-1 instead)
-  checks-armA.json, checks-armB.json   the checker's per-task verdict and every check by name (pass / fail)
-  compare.txt, compare.json            compare.mjs over the two arm files (paired table, totals, paired differences)
+Read first: what differed between the arms besides the skill block (PROTOCOL.md rule 7)
+  - t04 is not a like-for-like pair. In arm A the router deferred (route_deferred, reason selector_abstained), the hook
+    rewrote nothing, and the subagent ran as general-purpose on claude-fable-5-2 at effort medium with no routing packet.
+    In arm B it ran as jev4_implement_standard_xhigh on claude-opus-5-5 at effort xhigh with a routing packet and a block.
+    No secondary measure of t04 can be read as an effect of the block. The primary outcome of t04 is "pass" in both arms.
+  - The other seven pairs ran as the same profile, model and effort in both arms (t01 light / claude-sonnet-5-5 / xhigh;
+    t02, t03, t05, t06, t07, t08 standard / claude-opus-5-5 / high). Effort is read from the subagent's own rows.
+  - The pre-registered delegation (the bare task text to general-purpose, one Agent call per task) was realised in 1 of
+    16 task runs (arm A t04). In the other 15 the hook rewrote the call, the harness refused it in auto permission mode,
+    and Main issued it again with the hook's input: a jev4_* profile and a routing packet in the prompt. Where a block
+    was sent, the pair therefore compares "routing packet" with "routing packet plus block".
+  - The Main prompt contains main-prompt.txt word for word plus launcher text (+689 characters in A, +963 in B). Only
+    B's extra text names the other (arm A) session.
+  - Arm A ran at a reused folder path: the path of the earlier real-session checks (three earlier sessions), not the
+    folder the arm-A setup record names. The hook config's allowed project pointed at that path. The folder content was a
+    fresh copy of template/ (a diff against template/ shows only task outputs and .claude/settings.json). Whether the
+    harness kept any per-path state from the earlier sessions is unmeasured. Arm B ran in its own new folder.
+  - The two installed config.json files differ only in paths. The arm difference is one line of the installed env file:
+    JEV_SKILLS_MODE off (A) / active (B); JEV_MODE active in both. The first hook events of the two sessions are 2.5 s apart.
+  - Each hook state folder also holds one earlier session with a single session_started event (setup); it has no task events.
 
-How they were produced (offline; no session started, no network)
+How the files were produced (offline; no session started, no network)
   node analyze.mjs --arm baseline --project <arm A project> --state-dir <arm A hook state> --transcripts <arm A transcripts> --out <raw, kept outside the repository> --sanitized-out armA.json
   node analyze.mjs --arm assisted ... --sanitized-out armB.json
   node compare.mjs --a armA.json --b armB.json            > compare.txt
   node compare.mjs --a armA.json --b armB.json --json     > compare.json
 The checker (checkers/), tasks.json, the skills, main-prompt.txt and PROTOCOL.md's outcome definitions were not changed.
 
-Disclosure: the analyzer was repaired AFTER both sessions had run
+Disclosure 1: the analyzer was repaired AFTER both sessions had run
 The first analyzer run (pre-registered code) read the primary outcome but almost no secondary measure: subagent
 listing / load / tool calls / tokens / wall time were read for 1 of 16 task runs. The cause was parsing, and one
 attribution rule that the real files could not support. What was changed in analyze.mjs / compare.mjs:
@@ -28,7 +43,7 @@ attribution rule that the real files could not support. What was changed in anal
      the refused attempts next to it (attempts, delegationDetail, otherCalls). When every call was refused the first
      one is still used. This is a reading of the attribution rule fixed after seeing the data; it changes which
      subagent transcript the secondary measures are read from and nothing in the primary outcome, which is read
-     from the project folder.
+     from the project folder. EVERY secondary measure in these files is read under this post-hoc rule.
   3. Subagent first prompt = first user text that is not a harness reminder (isMeta). The skill listing is read
      from the attachment row { type: "skill_listing", names: [...] }; the text heuristic stays as a fallback.
   4. agent-<id>.meta.json (agentType, model, toolUseId) is read: it gives what actually ran, and a last-resort link
@@ -41,10 +56,37 @@ attribution rule that the real files could not support. What was changed in anal
      tokens), paired differences in compare.mjs.
   6. Timestamp coverage is counted over conversation rows only.
 
+Disclosure 2: a second analyzer revision after an independent check of the first results
+An independent check recomputed the committed numbers from the raw files with its own scripts and reported ten
+problems. The numbers reproduced; the changes below are about what is reported and how it is labelled. No outcome
+definition, task, skill or checker was changed, and no count in the first results changed except the Main wall time.
+  a. hookApplied (new, per task): the hook decision that reached the subagent. The per-task "hook" object is read
+     from the scored (launched) call's own events, as PROTOCOL.md defines. In 15 of 16 task runs that event is a second
+     hook run whose rewrite was never applied; the block and the profile the subagent got came from the refused first
+     attempt (for example B t02: block probability 0.99, scored event 0.98; t01: scored route standard / opus / high,
+     ran as light / claude-sonnet-5-5 / xhigh in both arms). The "block sent" column and the "decision sent" totals in
+     compare.txt use hookApplied. The injected flag and the load names agree between the two readings in all 8
+     arm-B task runs (arm A has no skills event), so 5/6 and 0/2 are the same either way.
+  b. effective.effort, subagent.efforts, subagent.apiTurns (new): effort from the subagent's assistant rows; API turns =
+     distinct assistant message ids. "sameSetup" now also requires the same effort.
+  c. Main wall time is now the span of user / assistant / attachment rows, like the subagent span: 508.6 s (A) and
+     616.2 s (B). The first results gave 512.1 s and 618.8 s, which also spanned the harness's trailing "system" rows
+     (kept as wallMsAllRows). Subagent wall times did not change.
+  d. The sanitized files no longer list the names of the owner's 41 user-level and plugin skills. They keep the count
+     (nonCatalogNamesListed) and only the names of the two skill-search skills that were listed (find-skills,
+     using-skill-rag).
+  e. compare.txt puts the arm differences first, labels every secondary measure as read under the post-hoc rule, and
+     reports cost as descriptive with turns next to tokens and a run-to-run reference instead of a "lower / higher" tally.
+Checked and not changed: PROTOCOL.md's settings table says read advice is off. The installed config has the top-level
+readAdvice false and the kernel point read.advice in mode active, in both arms. The top-level flag governs: the hook
+only reaches the read.advice point when readAdvice is true (orchestration/src/hooks.mjs), the installed PreToolUse
+matcher does not include Read, and neither hook state holds a read-advice event. Read advice was off in both arms.
+
 Unmeasured (null, never counted as zero or as a failure)
   - judge tokens: the hook's decision log records latency per decision and no token counts
   - "injected" in arm A: the delegation.skills point was off, so there is no skills event; it is null, not false
   - files written through Bash (heredoc, redirect, sed -i) are not in filesWritten / outOfScopeWrites; only a
     heuristic count of such commands is given
   - whether a subagent read skill text shown by "find" / "ls" output cannot be told from tool inputs
-  - wall time is the span of timestamps in the subagent transcript; the two arms ran at the same time
+  - wall time is the span of timestamps in the transcript; the two arms ran at the same time
+  - any harness state kept for arm A's reused folder path

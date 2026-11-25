@@ -1,13 +1,22 @@
-task  kind     lang  target skill            conv baseline  conv assisted  done baseline  done assisted  listed baseline  listed assisted  loaded baseline  loaded assisted  inject baseline  inject assisted  tools baseline  tools assisted  tokens baseline  tokens assisted  wall s baseline  wall s assisted
-----  -------  ----  ----------------------  -------------  -------------  -------------  -------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  --------------  --------------  ---------------  ---------------  ---------------  ---------------
-t01   skill    en    partner-file-exports    yes            yes            yes            yes            yes              yes              yes              yes              -                no               13              12              788750           728254           96.5             97.3
-t02   skill    ko    runtime-settings        yes            yes            yes            yes            yes              yes              yes              yes              -                yes              11              11              462055           648398           60.9             69.8
-t03   control  en    -                       -              -              yes            yes            -                -                -                -                -                no               7               7               298640           369347           33.0             35.1
-t04   skill    ko    periodic-job-contract   yes            yes            yes            yes            yes              yes              yes              yes              -                yes              5               16              241661           1019249          40.7             136.2
-t05   skill    en    domain-failure-types    yes            yes            yes            yes            yes              yes              yes              yes              -                yes              12              7               451217           381086           48.9             39.5
-t06   skill    ko    read-endpoints          yes            yes            yes            yes            yes              yes              yes              yes              -                yes              9               10              393969           376395           43.7             45.5
-t07   control  ko    -                       -              -              yes            yes            -                -                -                -                -                no               6               6               303936           308989           32.8             32.4
-t08   skill    en    customer-text-messages  yes            yes            yes            yes            yes              yes              yes              yes              -                yes              11              9               448201           428843           47.5             43.9
+Read first: differences between the arms other than the skill block (PROTOCOL.md rule 7 puts them before the results)
+  t04: baseline ran as general-purpose / claude-fable-5-2 / effort medium (route deferred: selector_abstained); assisted ran as jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5 / effort xhigh. Not a like-for-like pair: read no secondary measure of this pair as an effect of the block.
+Delegation as pre-registered (the bare task text to general-purpose, nothing added): baseline 1/8 (t04), assisted 0/8 of the task runs read.
+A routing packet was in the subagent prompt in 7 (baseline) and 8 (assisted) task runs, so where a block was sent the pair compares "routing packet" with "routing packet plus block".
+Only the conv / done columns and the PRIMARY line are the pre-registered outcome (read from the project folder). Every other figure is a secondary
+or reference measure, read under the attribution rule that was fixed after the sessions (PROTOCOL.md, last section): the first Agent call that
+was not refused before running. Under the rule as first written these figures are unmeasured wherever the first call was refused.
+
+task  kind     lang  target skill            conv baseline  conv assisted  done baseline  done assisted  listed baseline  listed assisted  loaded baseline  loaded assisted  block sent baseline  block sent assisted  tools baseline  tools assisted  tokens baseline  tokens assisted  wall s baseline  wall s assisted
+----  -------  ----  ----------------------  -------------  -------------  -------------  -------------  ---------------  ---------------  ---------------  ---------------  -------------------  -------------------  --------------  --------------  ---------------  ---------------  ---------------  ---------------
+t01   skill    en    partner-file-exports    yes            yes            yes            yes            yes              yes              yes              yes              -                    no                   13              12              788750           728254           96.5             97.3
+t02   skill    ko    runtime-settings        yes            yes            yes            yes            yes              yes              yes              yes              -                    yes                  11              11              462055           648398           60.9             69.8
+t03   control  en    -                       -              -              yes            yes            -                -                -                -                -                    no                   7               7               298640           369347           33.0             35.1
+t04   skill    ko    periodic-job-contract   yes            yes            yes            yes            yes              yes              yes              yes              -                    yes                  5               16              241661           1019249          40.7             136.2
+t05   skill    en    domain-failure-types    yes            yes            yes            yes            yes              yes              yes              yes              -                    yes                  12              7               451217           381086           48.9             39.5
+t06   skill    ko    read-endpoints          yes            yes            yes            yes            yes              yes              yes              yes              -                    yes                  9               10              393969           376395           43.7             45.5
+t07   control  ko    -                       -              -              yes            yes            -                -                -                -                -                    no                   6               6               303936           308989           32.8             32.4
+t08   skill    en    customer-text-messages  yes            yes            yes            yes            yes              yes              yes              yes              -                    yes                  11              9               448201           428843           47.5             43.9
+"block sent" = the hook decision that reached the subagent said it injected a <jev-skills> block ("-" = no skills event: the point was off).
 
 Totals ("-" or "measured n" means a value could not be read; it is not counted as a failure or a zero)
 PRIMARY convention passed, skill tasks       baseline: 6/6   assisted: 6/6
@@ -20,23 +29,29 @@ target skill loaded by the subagent          baseline: 6/6   assisted: 6/6
 target among the injected "load" skills      baseline: 0/6 (measured 0)   assisted: 5/6
 hook injected a block, skill tasks           baseline: 0/6 (measured 0)   assisted: 5/6
 hook injected a block, controls (false inj.) baseline: 0/2 (measured 0)   assisted: 0/2
+  The three lines above are read from the scored call's own skills event, as PROTOCOL.md defines. Where the scored call followed a refused
+  attempt, that event is a second hook run whose rewrite was not applied. The same counts for the decision that reached the subagent:
+  target among "load", decision sent         baseline: 0/6 (measured 0)   assisted: 5/6
+  block injected, skill tasks, decision sent baseline: 0/6 (measured 0)   assisted: 5/6
+  block injected, controls, decision sent    baseline: 0/2 (measured 0)   assisted: 0/2
+subagent API turns, all tasks                baseline: 52   assisted: 63
 subagent tool calls, all tasks               baseline: 74   assisted: 78
 subagent tokens, all tasks                   baseline: 3388429   assisted: 4260561
 subagent wall time ms, all tasks             baseline: 403968   assisted: 499613
 
 Paired convention outcome over 6 measured pair(s): both pass 6, only baseline 0, only assisted 0, neither 0
 
-Delegation as it ran (Agent calls = refused before running + launched; profile / model are what the harness recorded for the subagent)
-task  calls baseline  calls assisted  ran as baseline                                            ran as assisted                                             block in prompt baseline  block in prompt assisted
-----  --------------  --------------  ---------------------------------------------------------  ----------------------------------------------------------  ------------------------  ------------------------
-t01   1 + 1           1 + 1           jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5  jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5   no                        no
-t02   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5  jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5   no                        yes
-t03   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5  jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5   no                        no
-t04   0 + 1           1 + 1           general-purpose / claude-fable-5-2                         jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5  no                        yes
-t05   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5  jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5   no                        yes
-t06   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5  jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5   no                        yes
-t07   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5  jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5   no                        no
-t08   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5  jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5   no                        yes
+Delegation as it ran (Agent calls = refused before running + launched; profile / model / effort are what the harness recorded for the subagent)
+task  calls baseline  calls assisted  ran as baseline                                                    ran as assisted                                                     block in prompt baseline  block in prompt assisted
+----  --------------  --------------  -----------------------------------------------------------------  ------------------------------------------------------------------  ------------------------  ------------------------
+t01   1 + 1           1 + 1           jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5 / xhigh  jev4_implement_light_xhigh_ff567b09c6 / claude-sonnet-5-5 / xhigh   no                        no
+t02   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high   jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high    no                        yes
+t03   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high   jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high    no                        no
+t04   0 + 1           1 + 1           general-purpose / claude-fable-5-2 / medium                        jev4_implement_standard_xhigh_e9747b20fc / claude-opus-5-5 / xhigh  no                        yes
+t05   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high   jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high    no                        yes
+t06   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high   jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high    no                        yes
+t07   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high   jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high    no                        no
+t08   1 + 1           1 + 1           jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high   jev4_implement_standard_high_e71cff8bbd / claude-opus-5-5 / high    no                        yes
 
 Target skill: listing, load route and order (index = position among the subagent's tool calls, 0 is the first; "bash write" is a heuristic)
 task  arm       listed (catalog/all)  loaded via  load index  first Write/Edit  first bash write  before Write/Edit  before any write  other project skills loaded
@@ -54,45 +69,47 @@ t06   assisted  yes (60/101)          Skill       0           4                 
 t08   baseline  yes (60/101)          Skill       0           5                 9                 yes                yes               (none)
 t08   assisted  yes (60/101)          Skill       0           5                 7                 yes                yes               notification-placeholder-data
 
-Skill judge per Agent call, assisted and baseline (each task: refused attempt first, then the launched call; "target" is the judge's probability for the target skill and the stage it ended in)
-task  arm       call      need  injected  target          load                         suggest                             route profile
-----  --------  --------  ----  --------  --------------  ---------------------------  ----------------------------------  ----------------------------------------
-t01   assisted  refused   0.32  no        0.95 need_gate  (none)                       (none)                              jev4_implement_light_xhigh_ff567b09c6
-t01   assisted  launched  0.46  no        0.92 need_gate  (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd
-t02   assisted  refused   0.62  yes       0.99 loaded     runtime-settings 0.99        (none)                              jev4_implement_standard_high_e71cff8bbd
-t02   assisted  launched  0.76  yes       0.98 loaded     runtime-settings 0.98        (none)                              jev4_implement_standard_high_e71cff8bbd
-t03   assisted  refused   0.09  no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd
-t03   assisted  launched  0.08  no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd
-t04   assisted  refused   0.83  yes       0.99 loaded     periodic-job-contract 0.99   (none)                              jev4_implement_standard_xhigh_e9747b20fc
-t04   assisted  launched  0.89  yes       0.98 loaded     periodic-job-contract 0.98   (none)                              jev4_implement_standard_xhigh_e9747b20fc
-t05   assisted  refused   0.71  yes       0.98 loaded     domain-failure-types 0.98    (none)                              jev4_implement_standard_high_e71cff8bbd
-t05   assisted  launched  0.77  yes       0.99 loaded     domain-failure-types 0.99    (none)                              jev4_implement_standard_high_e71cff8bbd
-t06   assisted  refused   0.65  yes       0.99 loaded     read-endpoints 0.99          (none)                              jev4_implement_standard_high_e71cff8bbd
-t06   assisted  launched  0.71  yes       0.99 loaded     read-endpoints 0.99          (none)                              jev4_implement_standard_high_e71cff8bbd
-t07   assisted  refused   0.07  no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd
-t07   assisted  launched  0.1   no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd
-t08   assisted  refused   0.69  yes       0.97 loaded     customer-text-messages 0.97  notification-placeholder-data 0.68  jev4_implement_standard_high_e71cff8bbd
-t08   assisted  launched  0.79  yes       0.98 loaded     customer-text-messages 0.98  notification-placeholder-data 0.64  jev4_implement_standard_high_e71cff8bbd
+Skill judge per Agent call, assisted and baseline (each task: refused attempt first, then the launched call; "target" is the judge's probability for the target skill and the stage it ended in; "sent" = this is the decision whose rewrite reached the subagent)
+task  arm       call      need  injected  target          load                         suggest                             route profile                             sent
+----  --------  --------  ----  --------  --------------  ---------------------------  ----------------------------------  ----------------------------------------  ----
+t01   assisted  refused   0.32  no        0.95 need_gate  (none)                       (none)                              jev4_implement_light_xhigh_ff567b09c6     yes
+t01   assisted  launched  0.46  no        0.92 need_gate  (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd   no
+t02   assisted  refused   0.62  yes       0.99 loaded     runtime-settings 0.99        (none)                              jev4_implement_standard_high_e71cff8bbd   yes
+t02   assisted  launched  0.76  yes       0.98 loaded     runtime-settings 0.98        (none)                              jev4_implement_standard_high_e71cff8bbd   no
+t03   assisted  refused   0.09  no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd   yes
+t03   assisted  launched  0.08  no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd   no
+t04   assisted  refused   0.83  yes       0.99 loaded     periodic-job-contract 0.99   (none)                              jev4_implement_standard_xhigh_e9747b20fc  yes
+t04   assisted  launched  0.89  yes       0.98 loaded     periodic-job-contract 0.98   (none)                              jev4_implement_standard_xhigh_e9747b20fc  no
+t05   assisted  refused   0.71  yes       0.98 loaded     domain-failure-types 0.98    (none)                              jev4_implement_standard_high_e71cff8bbd   yes
+t05   assisted  launched  0.77  yes       0.99 loaded     domain-failure-types 0.99    (none)                              jev4_implement_standard_high_e71cff8bbd   no
+t06   assisted  refused   0.65  yes       0.99 loaded     read-endpoints 0.99          (none)                              jev4_implement_standard_high_e71cff8bbd   yes
+t06   assisted  launched  0.71  yes       0.99 loaded     read-endpoints 0.99          (none)                              jev4_implement_standard_high_e71cff8bbd   no
+t07   assisted  refused   0.07  no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd   yes
+t07   assisted  launched  0.1   no        -               (none)                       (none)                              jev4_implement_standard_high_e71cff8bbd   no
+t08   assisted  refused   0.69  yes       0.97 loaded     customer-text-messages 0.97  notification-placeholder-data 0.68  jev4_implement_standard_high_e71cff8bbd   yes
+t08   assisted  launched  0.79  yes       0.98 loaded     customer-text-messages 0.98  notification-placeholder-data 0.64  jev4_implement_standard_high_e71cff8bbd   no
 
 Subagent cost, paired (assisted minus baseline); tokens = input + output + cache read + cache creation, each message id once
-task                           tools baseline  tools assisted  diff  tokens baseline  tokens assisted  diff     output baseline  output assisted  diff   wall s baseline  wall s assisted  diff s
------------------------------  --------------  --------------  ----  ---------------  ---------------  -------  ---------------  ---------------  -----  ---------------  ---------------  ------
-t01                            13              12              -1    788750           728254           -60496   13318            13132            -186   96.5             97.3             +0.8
-t02                            11              11              0     462055           648398           +186343  6750             7112             +362   60.9             69.8             +8.8
-t03                            7               7               0     298640           369347           +70707   3618             3624             +6     33.0             35.1             +2
-t04                            5               16              +11   241661           1019249          +777588  4143             13622            +9479  40.7             136.2            +95.5
-t05                            12              7               -5    451217           381086           -70131   5248             4203             -1045  48.9             39.5             -9.5
-t06                            9               10              +1    393969           376395           -17574   4801             5158             +357   43.7             45.5             +1.9
-t07                            6               6               0     303936           308989           +5053    3299             3394             +95    32.8             32.4             -0.5
-t08                            11              9               -2    448201           428843           -19358   4746             4617             -129   47.5             43.9             -3.6
-sum all (8/8)                  74              78              +4    3388429          4260561          +872132  45923            54862            +8939  404.0            499.6            +95.6
-sum skillTasks (6/6)           61              65              +4    2785853          3582225          +796372  39006            47844            +8838  338.1            432.2            +94
-sum controls (2/2)             13              13              0     602576           678336           +75760   6917             7018             +101   65.8             67.4             +1.6
-sum sameSetup (7/7)            69              62              -7    3146768          3241312          +94544   41780            41240            -540   363.3            363.4            +0.1
-sum sameSetupSkillTasks (5/5)  56              49              -7    2544192          2562976          +18784   34863            34222            -641   297.5            296.0            -1.5
-"sameSetup" rows count only pairs whose two subagents ran as the same agent type on the same model; left out: t04.
+task                           tools baseline  tools assisted  diff  turns baseline  turns assisted  diff  tokens baseline  tokens assisted  diff     output baseline  output assisted  diff   wall s baseline  wall s assisted  diff s
+-----------------------------  --------------  --------------  ----  --------------  --------------  ----  ---------------  ---------------  -------  ---------------  ---------------  -----  ---------------  ---------------  ------
+t01                            13              12              -1    11              10              -1    788750           728254           -60496   13318            13132            -186   96.5             97.3             +0.8
+t02                            11              11              0     7               10              +3    462055           648398           +186343  6750             7112             +362   60.9             69.8             +8.8
+t03                            7               7               0     5               6               +1    298640           369347           +70707   3618             3624             +6     33.0             35.1             +2
+t04                            5               16              +11   4               13              +9    241661           1019249          +777588  4143             13622            +9479  40.7             136.2            +95.5
+t05                            12              7               -5    7               6               -1    451217           381086           -70131   5248             4203             -1045  48.9             39.5             -9.5
+t06                            9               10              +1    6               6               0     393969           376395           -17574   4801             5158             +357   43.7             45.5             +1.9
+t07                            6               6               0     5               5               0     303936           308989           +5053    3299             3394             +95    32.8             32.4             -0.5
+t08                            11              9               -2    7               7               0     448201           428843           -19358   4746             4617             -129   47.5             43.9             -3.6
+sum all (8/8)                  74              78              +4    52              63              +11   3388429          4260561          +872132  45923            54862            +8939  404.0            499.6            +95.6
+sum skillTasks (6/6)           61              65              +4    42              52              +10   2785853          3582225          +796372  39006            47844            +8838  338.1            432.2            +94
+sum controls (2/2)             13              13              0     10              11              +1    602576           678336           +75760   6917             7018             +101   65.8             67.4             +1.6
+sum sameSetup (7/7)            69              62              -7    48              50              +2    3146768          3241312          +94544   41780            41240            -540   363.3            363.4            +0.1
+sum sameSetupSkillTasks (5/5)  56              49              -7    38              39              +1    2544192          2562976          +18784   34863            34222            -641   297.5            296.0            -1.5
+"sameSetup" rows count only pairs whose two subagents ran as the same agent type on the same model at the same effort; left out: t04. "turns" = API turns (distinct assistant message ids).
 Token parts, all tasks: input baseline 104 / assisted 126; output 45923 / 54862; cache read 2968678 / 3887277; cache creation 373724 / 318296
-Pairs where assisted was lower / higher: tool calls 3/2, tokens 4/4, wall time 3/5 (of 8 measured pairs)
+Cache reads are 87.6% (baseline) and 91.2% (assisted) of the token total, so the total follows the number of API turns; it is not billed cost.
+Pairs with no block in either arm and the same setup (nothing differed but the run): token diff t01 -60496 (-7.7%), t03 +70707 (+23.7%), t07 +5053 (+1.7%).
+The cost figures are descriptive. One run per arm: a difference no larger than the ones on the line above cannot be told apart from run-to-run variation, and no direction is attributed to the block.
 
 Judge cost from the decision log (one decision = one judge request)
   baseline: delegation.classify 15 decisions, latency sum 4691 ms, max 429 ms; delegation.profile 15 decisions, latency sum 3537 ms, max 791 ms. PreToolUse hook time over 14/15 Agent calls: 8365 ms. Judge tokens: - (not recorded).
@@ -103,8 +120,8 @@ User-level skill search by subagents
   assisted: MCP skill tool in 0 task(s), ToolSearch about skills in 0, Skill call outside the project catalog in 0 (of 8 subagents read)
 
 Main session
-  baseline: 1 user prompt(s); equals main-prompt.txt no, contains it yes (+689 chars); model claude-fable-5-2, effort medium, permission mode auto; tools mcp__ccd_turn__update_plan x8, Agent x15, mcp__ccd_turn__wrap_up x1; tokens 2477558; wall 512.1 s
-  assisted: 1 user prompt(s); equals main-prompt.txt no, contains it yes (+963 chars); model claude-fable-5-2, effort medium, permission mode auto; tools mcp__ccd_turn__update_plan x8, Agent x16, mcp__ccd_turn__wrap_up x1; tokens 2631871; wall 618.8 s
+  baseline: 1 user prompt(s); equals main-prompt.txt no, contains it yes (+689 chars); model claude-fable-5-2, effort medium, permission mode auto; tools mcp__ccd_turn__update_plan x8, Agent x15, mcp__ccd_turn__wrap_up x1; tokens 2477558; wall 508.6 s over user / assistant / attachment rows (512.1 s over every stamped row)
+  assisted: 1 user prompt(s); equals main-prompt.txt no, contains it yes (+963 chars); model claude-fable-5-2, effort medium, permission mode auto; tools mcp__ccd_turn__update_plan x8, Agent x16, mcp__ccd_turn__wrap_up x1; tokens 2631871; wall 616.2 s over user / assistant / attachment rows (618.8 s over every stamped row)
 
 Delegation deviations (not delegated counts as measured done=false; a call refused before the tool ran is not scored, otherwise the first call is):
   t01 baseline: 2 Agent calls (1 refused before running, 1 launched; launched input is exactly the hook's rewrite: yes)

@@ -217,3 +217,25 @@ result에 적힌 agentId를 씁니다. `spawn_observed` 이벤트가 **아예 �
 - **끝내 측정하지 못한 값:** judge 토큰(결정 기록에 토큰 수가 없음), arm A의 `injected`(skills 이벤트가 없으므로 `false`가 아니라
   `null`), `Bash`로 쓴 파일의 귀속.
 - 결과 파일과 자세한 목록: `../results/pilot-20261125/` (`notes.txt`).
+
+### 두 번째 사후 수정 (2026-11-25, 독립 검증 뒤)
+
+독립 검증이 원자료에서 숫자를 따로 다시 계산해 문제 10건을 보고했습니다. 커밋된 숫자는 재현되었습니다. 아래는 그 뒤 분석기와 표에
+더한 것이고, 과제·skill·채점기·`main-prompt.txt`·결과 정의는 이번에도 바꾸지 않았습니다. 1차 결과는 바뀌지 않았습니다.
+
+- **`hookApplied` 추가.** 과제별 `hook`(위 표의 "skill 과제의 주입", "control의 잘못된 주입"의 출처)은 본문 정의대로 채점에 쓴 호출의
+  이벤트에서 읽습니다. 그런데 16건 중 15건에서 그 이벤트는 hook의 두 번째 실행이고, 그 재작성은 적용되지 않았습니다. subagent가 받은
+  블록과 profile은 거부된 첫 시도의 것입니다. 그래서 "subagent에게 전달된 판단"을 `hookApplied`로 따로 적고, 표의 주입 열은 이것을
+  씁니다. 주입 여부와 load 이름은 두 읽기에서 같았고(5/6, 0/2), 확률과 route만 다릅니다.
+- **effort와 API 턴 수 추가.** subagent의 실제 effort(`effective.effort`)와 API 턴 수(`apiTurns`). "같은 설정" 짝은 effort까지 같아야
+  합니다.
+- **Main 소요 시간.** subagent와 같은 기준(`user`/`assistant`/`attachment` 행)으로 바꿨습니다: 512.1 → 508.6초(A), 618.8 → 616.2초(B).
+- **정리본에서 소유자 환경의 skill 이름 목록을 뺐습니다.** 개수와 skill 검색용 두 개의 이름만 남깁니다.
+- **표의 순서와 표시.** 규칙 7대로 arm 사이의 다른 차이(t04의 profile·모델·effort)를 결과보다 먼저 적고, 2차 측정 전체에 "세션 뒤에
+  정한 연결 규칙으로 읽음"을 표시하고, 비용은 방향을 붙이지 않은 기술 값으로만 적습니다.
+- **확인만 한 것.** 위 "고정 실행 설정" 표의 "읽기 조언 off"는 맞습니다. 설치된 설정의 `kernel.points["read.advice"].mode`는 `active`지만
+  최상위 `readAdvice`가 `false`이면 그 지점에 도달하지 않고(`orchestration/src/hooks.mjs`), 설치된 hook matcher에 `Read`가 없으며, 두 arm의
+  hook 상태에 읽기 조언 이벤트가 없습니다.
+- **표에 적지 못했던 arm A의 실행 위치.** arm A는 앞선 실제 세션 확인에 쓰던 폴더 경로를 다시 썼습니다(내용은 `template/`의 새 사본).
+  표의 "arm마다 `template/`의 새 복사본"은 지켜졌지만 경로는 새것이 아니었습니다. 경로에 묶인 harness 상태가 남아 있었는지는 측정하지
+  못했습니다.

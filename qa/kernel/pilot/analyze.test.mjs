@@ -324,7 +324,12 @@ test('real shape: a refused attempt is not the delegation; request-log copies ar
   assert.deepEqual(t.hookDetail.judge, { requests: 2, decisionsLogged: 2, latencyMsSum: 585, latencyMsMax: 295, cached: false });
   assert.deepEqual(t.hookDetail.route, { profile: 'jev4_implement_standard_y', model: 'large', effort: 'high', tier: 'standard', decisionReason: 'synthetic_reason', latencyMs: 470, hookMs: 500, cached: false });
   // what ran is what the harness recorded, not the route of the second rewrite
-  assert.deepEqual(t.effective, { agentType: 'jev4_implement_light_x', model: 'model-light', scoredCallRewriteApplied: false });
+  assert.deepEqual(t.effective, { agentType: 'jev4_implement_light_x', model: 'model-light', effort: null, scoredCallRewriteApplied: false });
+  // ... and the hook decision that reached the subagent is the refused attempt's, not the scored call's second run
+  assert.deepEqual(t.hookApplied, { source: 'refused_attempt', attemptIndex: 0, injected: true, need: t.attempts[0].hookDetail.need,
+    load: [{ name: 'partner-file-exports', probability: 0.97 }], suggest: [{ name: 'carrier-csv-intake', probability: 0.6 }], target: { probability: 0.97, stage: 'loaded' },
+    route: { profile: 'jev4_implement_light_x', model: t.attempts[0].hookDetail.route.model, effort: t.attempts[0].hookDetail.route.effort }, routeDeferred: null });
+  assert.ok(!t.warnings.some((w) => w.includes('hookApplied')));
   assert.ok(t.warnings.some((w) => w.includes('refused by the harness before the tool ran')));
   assert.ok(t.warnings.some((w) => w.includes('second rewrite and its route were not applied')));
   assert.ok(t.warnings.some((w) => w.includes('ran as jev4_implement_light_x')));
@@ -378,7 +383,9 @@ test('real shape: a deferred route leaves one call, launched as Main sent it', (
   assert.deepEqual([t.hook.injected, t.hookDetail.need], [false, 0.4]);
   assert.deepEqual(t.targetJudged, { probability: 0.93, stage: 'need_gate' });
   assert.deepEqual(t.hookDetail.judge, { requests: 2, decisionsLogged: 1, latencyMsSum: 270, latencyMsMax: 270, cached: false });
-  assert.deepEqual(t.effective, { agentType: null, model: 'model-main', scoredCallRewriteApplied: null }); // no meta file
+  assert.deepEqual(t.effective, { agentType: null, model: 'model-main', effort: null, scoredCallRewriteApplied: null }); // no meta file
+  // the hook rewrote nothing for this call, so its own events are the decision that applied
+  assert.deepEqual([t.hookApplied.source, t.hookApplied.attemptIndex, t.hookApplied.injected, t.hookApplied.route, t.hookApplied.routeDeferred], ['scored_call', 0, false, null, 'selector_abstained']);
   assert.deepEqual([t.subagent.targetLoadCallIndex, t.subagent.targetLoadedBeforeAnyWrite], [0, true]);
 });
 
@@ -402,6 +409,11 @@ test('real shape: run totals, judge cost and the Main session', () => {
   assert.deepEqual([m.models, m.efforts, m.permissionModes], [['model-main'], ['medium'], ['auto']]);
   assert.deepEqual(m.tokens, { input: 14, output: 2200, cacheRead: 22000, cacheCreation: 220, messages: 7, assistantMessages: 7, total: 24434 });
   assert.equal(m.wallMs, 151000);
+  assert.ok(m.wallMsAllRows >= m.wallMs);
+  assert.deepEqual(real.totals.appliedInjectedOnSkillTasks, { yes: 1, measured: 2, of: 6 });
+  assert.deepEqual(real.totals.appliedInjectedOnControls, { yes: 0, measured: 1, of: 2 });
+  assert.deepEqual(real.totals.targetInAppliedLoad, { yes: 1, measured: 2, of: 6 });
+  assert.deepEqual(real.totals.subagentApiTurns, { sum: 6 + realTask('t03').subagent.apiTurns + realTask('t04').subagent.apiTurns, measured: 3, of: 8 });
   assert.ok(real.warnings.some((w) => w.includes('contains main-prompt.txt word for word but is not equal')));
   assert.ok(real.warnings.some((w) => w.includes('state dir holds 2 sessions')));
 });
@@ -414,7 +426,10 @@ test('when no call was launched the literal first-call rule still applies, and a
   const call = (id, prompt) => ({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', id, name: 'Agent', input: { prompt, subagent_type: 'general-purpose' } }] } });
   const refusal = (id) => ({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, is_error: true, content: 'refused' }] }, permissionDecision: { decision: 'reject', reasonCode: 'x' } });
   writeFileSync(join(transcripts, 'main.jsonl'), [call('k5a', tasksText.t05), refusal('k5a'), call('k5b', tasksText.t05), refusal('k5b'), call('k6', tasksText.t06)].map((row) => JSON.stringify(row)).join('\n') + '\n');
-  writeFileSync(join(transcripts, 'subagents', 'agent-m6.jsonl'), [userRow('not the task text'), toolRow('u1', 'Skill', { skill: 'read-endpoints' })].map((row) => JSON.stringify(row)).join('\n') + '\n');
+  // wall time spans user / assistant / attachment rows only: the later "system" row and the request-log row do not stretch it
+  const stamped = (row, second) => ({ ...row, timestamp: new Date(Date.UTC(2026, 0, 1, 0, 0, second)).toISOString() });
+  writeFileSync(join(transcripts, 'subagents', 'agent-m6.jsonl'), [stamped(userRow('not the task text'), 0), stamped({ ...toolRow('u1', 'Skill', { skill: 'read-endpoints' }), effort: 'xhigh' }, 10),
+    stamped({ type: 'system', subtype: 'turn_duration' }, 14), stamped({ type: 'api-request', requestId: 'r' }, 15)].map((row) => JSON.stringify(row)).join('\n') + '\n');
   writeFileSync(join(transcripts, 'subagents', 'agent-m6.meta.json'), JSON.stringify({ agentType: 'some-profile', model: 'model-z', toolUseId: 'k6' }));
   const run = analyze({ arm: 'X', project: join(here, 'template'), stateDir: join(dir, 'state'), transcripts });
   const t5 = run.tasks.find((row) => row.id === 't05');
@@ -423,7 +438,9 @@ test('when no call was launched the literal first-call rule still applies, and a
   assert.equal(t5.subagent, null); // unmeasured, not a failure
   const t6 = run.tasks.find((row) => row.id === 't06');
   assert.deepEqual([t6.agentId, t6.agentIdSource], ['m6', 'subagent_meta']);
-  assert.deepEqual(t6.effective, { agentType: 'some-profile', model: 'model-z', scoredCallRewriteApplied: null });
+  assert.deepEqual(t6.effective, { agentType: 'some-profile', model: 'model-z', effort: 'xhigh', scoredCallRewriteApplied: null });
+  assert.deepEqual([t6.subagent.efforts, t6.subagent.apiTurns, t6.subagent.wallMs], [['xhigh'], 1, 10000]);
+  assert.equal(t5.hookApplied, null); // nothing launched: no decision reached a subagent
   assert.equal(t6.subagent.targetSkillLoaded, true);
 });
 
@@ -437,6 +454,12 @@ test('the sanitized copy keeps numbers and names and drops paths and ids', () =>
   assert.deepEqual([t.delegation.toolUseId, t.agentId, t.attempts.map((attempt) => attempt.toolUseId)], ['t01-call2', 't01-subagent', ['t01-call1', 't01-call2']]);
   assert.deepEqual(clean.sessions.map((entry) => entry.session), ['session-1', 'session-2']);
   assert.deepEqual(t.subagent.tokens, realTask('t01').subagent.tokens);
+  // the owner's user-level / plugin skill names are reduced to a count; only skill-search skills keep their name
+  assert.deepEqual(t.subagent.listingDetail, { totalNamesListed: 62, catalogNamesWithDescription: 60, nonCatalogNamesListed: 2, nonCatalogSearchSkillNames: [] });
+  assert.ok(!text.includes('"nonCatalogNames"') && !text.includes('plugin-x:plugin-skill'));
+  const withSearch = JSON.parse(JSON.stringify(real));
+  withSearch.tasks[0].subagent.listingDetail.nonCatalogNames = ['find-skills', 'other-skill', 'plugin-y:using-skill-rag'];
+  assert.deepEqual(sanitize(withSearch).tasks[0].subagent.listingDetail.nonCatalogSearchSkillNames, ['find-skills', 'plugin-y:using-skill-rag']);
   assert.deepEqual(t.checkDetails, realTask('t01').checkDetails);
   assert.ok(t.checkDetails.length > 0 && t.checkDetails.every((entry) => typeof entry.check === 'string' && typeof entry.ok === 'boolean'));
   // a write outside the project keeps no path
@@ -457,6 +480,19 @@ test('compare: delegation, load order, judge and paired cost sections', () => {
   assert.match(text, /Judge tokens: - \(not recorded\)/);
   assert.match(text, /MCP skill tool in 1 task\(s\) \[t03\]/);
   assert.match(text, /t01 R: 2 Agent calls \(1 refused before running, 1 launched; launched input is exactly the hook's rewrite: yes\)/);
+  // arm differences come before the table; the decision that reached the subagent is marked; cost is labelled descriptive
+  assert.ok(text.startsWith('Read first: differences between the arms other than the skill block'));
+  assert.match(text, /none found in agent type, model or effort/);
+  assert.match(text, /^t01\s+R\s+refused\s.*\syes$/m);
+  assert.match(text, /^t01\s+R\s+launched\s.*\sno$/m);
+  assert.match(text, /no direction is attributed to the block/);
+  const other = JSON.parse(JSON.stringify(real));
+  other.arm = 'S';
+  other.tasks[0].effective.effort = 'xhigh';
+  const unlike = compare(real, other);
+  assert.deepEqual(unlike.armDifferences.map((entry) => entry.id), ['t01']);
+  assert.equal(unlike.differences.tokens.sameSetup.pairsMeasured, 1);
+  assert.match(render(unlike), /^ {2}t01: R ran as jev4_implement_light_x \/ model-light \/ effort -; S ran as jev4_implement_light_x \/ model-light \/ effort xhigh\. Not a like-for-like pair/m);
   // an arm file written before schema 3 still renders
   const old = JSON.parse(JSON.stringify(real));
   delete old.judge; delete old.mainSession;

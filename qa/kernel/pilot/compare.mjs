@@ -41,6 +41,17 @@ export function compare(a, b) {
       firstCallPromptVerbatim: t.delegationDetail?.firstCallPromptVerbatim ?? null,
       agentType: t.effective?.agentType ?? null,
       model: t.effective?.model ?? null,
+      effort: t.effective?.effort ?? null,
+      // Did this task run as PROTOCOL.md's design section describes: the bare task text to general-purpose, no routing packet?
+      asPreRegistered: t.delegation && t.subagent?.promptBlockCounts && t.effective?.agentType
+        ? t.effective.agentType === 'general-purpose' && t.subagent.promptBlockCounts.routing === 0 && t.subagent.promptBlockCounts.skills === 0 && t.delegation.promptVerbatim === true : null,
+      routingBlocksInPrompt: t.subagent?.promptBlockCounts?.routing ?? null,
+      apiTurns: t.subagent?.apiTurns ?? null,
+      // The hook decision that reached the subagent (hookApplied); for an arm file without it, the scored call's event.
+      sentInjected: t.hookApplied !== undefined ? (t.hookApplied?.injected ?? null) : (t.hook?.injected ?? null),
+      appliedSource: t.hookApplied?.source ?? null,
+      appliedAttemptIndex: t.hookApplied?.attemptIndex ?? null,
+      appliedRouteDeferred: t.hookApplied?.routeDeferred ?? null,
       routeProfile: t.hook?.route?.profile ?? null,
       routeDeferred: t.hookDetail?.routeDeferred ?? null,
       need: t.hookDetail?.need ?? null,
@@ -78,12 +89,12 @@ export function compare(a, b) {
     neither: both.filter((pair) => !pair.a.convention && !pair.b.convention).length,
   };
   // Paired differences (b minus a) of the cost measures, only over pairs measured in both arms.
-  const measures = { toolCalls: (x) => x?.toolCalls, tokens: (x) => x?.tokens, outputTokens: (x) => x?.tokenParts?.output, inputTokens: (x) => x?.tokenParts?.input,
+  const measures = { toolCalls: (x) => x?.toolCalls, apiTurns: (x) => x?.apiTurns, tokens: (x) => x?.tokens, outputTokens: (x) => x?.tokenParts?.output, inputTokens: (x) => x?.tokenParts?.input,
     cacheReadTokens: (x) => x?.tokenParts?.cacheRead, cacheCreationTokens: (x) => x?.tokenParts?.cacheCreation, wallMs: (x) => x?.wallMs };
   const differences = Object.fromEntries(Object.entries(measures).map(([name, pick]) => {
-    // sameSetup: both subagents ran as the same agent type on the same model (null when that is unknown).
+    // sameSetup: both subagents ran as the same agent type on the same model at the same effort (null when the agent type is unknown).
     const perTask = pairs.map((pair) => ({ id: pair.id, kind: pair.kind, a: pick(pair.a) ?? null, b: pick(pair.b) ?? null,
-      sameSetup: pair.a?.agentType && pair.b?.agentType ? pair.a.agentType === pair.b.agentType && pair.a.model === pair.b.model : null }))
+      sameSetup: pair.a?.agentType && pair.b?.agentType ? pair.a.agentType === pair.b.agentType && pair.a.model === pair.b.model && pair.a.effort === pair.b.effort : null }))
       .map((row) => ({ ...row, diff: typeof row.a === 'number' && typeof row.b === 'number' ? row.b - row.a : null }));
     const total = (rows) => {
       const measured = rows.filter((row) => row.diff !== null);
@@ -93,24 +104,47 @@ export function compare(a, b) {
     return [name, { perTask, all: total(perTask), skillTasks: total(perTask.filter((row) => row.kind === 'skill')), controls: total(perTask.filter((row) => row.kind === 'control')),
       sameSetup: total(perTask.filter((row) => row.sameSetup === true)), sameSetupSkillTasks: total(perTask.filter((row) => row.sameSetup === true && row.kind === 'skill')) }];
   }));
-  return { arms: { a: a.arm, b: b.arm }, pairs, paired, differences, totals: { a: a.totals, b: b.totals }, judge: { a: a.judge ?? null, b: b.judge ?? null },
+  // Differences between the arms other than the skill block, per task: what the two subagents ran as.
+  const setup = (x) => `${show(x?.agentType)} / ${show(x?.model)} / effort ${show(x?.effort)}${x?.appliedRouteDeferred ? ` (route deferred: ${x.appliedRouteDeferred})` : ''}`;
+  const setupKnown = pairs.some((pair) => pair.a?.agentType || pair.b?.agentType);
+  const armDifferences = setupKnown ? pairs.filter((pair) => pair.a && pair.b && (pair.a.agentType !== pair.b.agentType || pair.a.model !== pair.b.model || pair.a.effort !== pair.b.effort))
+    .map((pair) => ({ id: pair.id, a: setup(pair.a), b: setup(pair.b) })) : null;
+  return { arms: { a: a.arm, b: b.arm }, armDifferences, pairs, paired, differences, totals: { a: a.totals, b: b.totals }, judge: { a: a.judge ?? null, b: b.judge ?? null },
     mainSession: { a: a.mainSession ?? null, b: b.mainSession ?? null }, warnings: { a: a.warnings, b: b.warnings }, problems };
 }
 
 export function render(result) {
   const { arms, pairs, paired, totals } = result;
+  const lead = [];
+  if (Array.isArray(result.armDifferences)) {
+    lead.push('Read first: differences between the arms other than the skill block (PROTOCOL.md rule 7 puts them before the results)');
+    if (result.armDifferences.length === 0) lead.push('  none found in agent type, model or effort of the subagents');
+    for (const entry of result.armDifferences) lead.push(`  ${entry.id}: ${arms.a} ran as ${entry.a}; ${arms.b} ran as ${entry.b}. Not a like-for-like pair: read no secondary measure of this pair as an effect of the block.`);
+    const asDesigned = (side) => {
+      const known = pairs.filter((pair) => typeof pair[side]?.asPreRegistered === 'boolean');
+      const yes = known.filter((pair) => pair[side].asPreRegistered);
+      return `${arms[side]} ${yes.length}/${known.length}${yes.length ? ` (${yes.map((pair) => pair.id).join(', ')})` : ''}`;
+    };
+    const routed = (side) => pairs.filter((pair) => (pair[side]?.routingBlocksInPrompt ?? 0) > 0).length;
+    lead.push(`Delegation as pre-registered (the bare task text to general-purpose, nothing added): ${asDesigned('a')}, ${asDesigned('b')} of the task runs read.`,
+      `A routing packet was in the subagent prompt in ${routed('a')} (${arms.a}) and ${routed('b')} (${arms.b}) task runs, so where a block was sent the pair compares "routing packet" with "routing packet plus block".`);
+    lead.push('Only the conv / done columns and the PRIMARY line are the pre-registered outcome (read from the project folder). Every other figure is a secondary',
+      'or reference measure, read under the attribution rule that was fixed after the sessions (PROTOCOL.md, last section): the first Agent call that',
+      'was not refused before running. Under the rule as first written these figures are unmeasured wherever the first call was refused.', '');
+  }
   const header = ['task', 'kind', 'lang', 'target skill', `conv ${arms.a}`, `conv ${arms.b}`, `done ${arms.a}`, `done ${arms.b}`,
-    `listed ${arms.a}`, `listed ${arms.b}`, `loaded ${arms.a}`, `loaded ${arms.b}`, `inject ${arms.a}`, `inject ${arms.b}`, `tools ${arms.a}`, `tools ${arms.b}`,
+    `listed ${arms.a}`, `listed ${arms.b}`, `loaded ${arms.a}`, `loaded ${arms.b}`, `block sent ${arms.a}`, `block sent ${arms.b}`, `tools ${arms.a}`, `tools ${arms.b}`,
     `tokens ${arms.a}`, `tokens ${arms.b}`, `wall s ${arms.a}`, `wall s ${arms.b}`];
   const rows = pairs.map((pair) => [pair.id, pair.kind, pair.lang, pair.targetSkill ?? '-',
     show(pair.a?.convention), show(pair.b?.convention), show(pair.a?.done), show(pair.b?.done),
     show(pair.a?.targetListedToSubagent), show(pair.b?.targetListedToSubagent),
-    show(pair.a?.targetSkillLoaded), show(pair.b?.targetSkillLoaded), show(pair.a?.injected), show(pair.b?.injected),
+    show(pair.a?.targetSkillLoaded), show(pair.b?.targetSkillLoaded), show(pair.a?.sentInjected), show(pair.b?.sentInjected),
     show(pair.a?.toolCalls), show(pair.b?.toolCalls), show(pair.a?.tokens), show(pair.b?.tokens),
     show(seconds(pair.a?.wallMs)), show(seconds(pair.b?.wallMs))]);
   const widths = header.map((cell, i) => Math.max(cell.length, ...rows.map((row) => row[i].length)));
   const line = (cells) => cells.map((cell, i) => cell.padEnd(widths[i])).join('  ').trimEnd();
-  const out = [line(header), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line), ''];
+  const out = [...lead, line(header), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line),
+    '"block sent" = the hook decision that reached the subagent said it injected a <jev-skills> block ("-" = no skills event: the point was off).', ''];
   const both = (label, pick, format) => out.push(`${label.padEnd(44)} ${arms.a}: ${format(pick(totals.a))}   ${arms.b}: ${format(pick(totals.b))}`);
   out.push('Totals ("-" or "measured n" means a value could not be read; it is not counted as a failure or a zero)');
   both('PRIMARY convention passed, skill tasks', (t) => t?.primary_conventionPassed, ratio);
@@ -123,6 +157,14 @@ export function render(result) {
   both('target among the injected "load" skills', (t) => t?.targetInInjectedLoad, ratio);
   both('hook injected a block, skill tasks', (t) => t?.injectedOnSkillTasks, ratio);
   both('hook injected a block, controls (false inj.)', (t) => t?.injectedOnControls, ratio);
+  if (totals.a?.appliedInjectedOnSkillTasks || totals.b?.appliedInjectedOnSkillTasks) {
+    out.push('  The three lines above are read from the scored call\'s own skills event, as PROTOCOL.md defines. Where the scored call followed a refused');
+    out.push('  attempt, that event is a second hook run whose rewrite was not applied. The same counts for the decision that reached the subagent:');
+    both('  target among "load", decision sent', (t) => t?.targetInAppliedLoad, ratio);
+    both('  block injected, skill tasks, decision sent', (t) => t?.appliedInjectedOnSkillTasks, ratio);
+    both('  block injected, controls, decision sent', (t) => t?.appliedInjectedOnControls, ratio);
+  }
+  both('subagent API turns, all tasks', (t) => t?.subagentApiTurns, sum);
   both('subagent tool calls, all tasks', (t) => t?.subagentToolCalls, sum);
   both('subagent tokens, all tasks', (t) => t?.subagentTokens, sum);
   both('subagent wall time ms, all tasks', (t) => t?.subagentWallMs, sum);
@@ -135,10 +177,10 @@ export function render(result) {
   const prob = (list) => (Array.isArray(list) ? (list.length ? list.map((entry) => `${entry.name} ${show(entry.probability)}`).join(', ') : '(none)') : '-');
   const signed = (n) => (typeof n === 'number' ? (n > 0 ? `+${n}` : String(n)) : '-');
   if (pairs.some((pair) => pair.a?.refusedAttempts !== null || pair.b?.refusedAttempts !== null)) {
-    out.push('', 'Delegation as it ran (Agent calls = refused before running + launched; profile / model are what the harness recorded for the subagent)');
+    out.push('', 'Delegation as it ran (Agent calls = refused before running + launched; profile / model / effort are what the harness recorded for the subagent)');
     out.push(...table(['task', `calls ${arms.a}`, `calls ${arms.b}`, `ran as ${arms.a}`, `ran as ${arms.b}`, `block in prompt ${arms.a}`, `block in prompt ${arms.b}`],
       pairs.map((pair) => [pair.id, ...['a', 'b'].map((side) => (pair[side]?.delegated ? `${show(pair[side].refusedAttempts)} + ${show(pair[side].launchedCalls)}` : 'none')),
-        ...['a', 'b'].map((side) => `${show(pair[side]?.agentType)} / ${show(pair[side]?.model)}`), show(pair.a?.blockInPrompt), show(pair.b?.blockInPrompt)])));
+        ...['a', 'b'].map((side) => `${show(pair[side]?.agentType)} / ${show(pair[side]?.model)} / ${show(pair[side]?.effort)}`), show(pair.a?.blockInPrompt), show(pair.b?.blockInPrompt)])));
     out.push('', 'Target skill: listing, load route and order (index = position among the subagent\'s tool calls, 0 is the first; "bash write" is a heuristic)');
     out.push(...table(['task', 'arm', 'listed (catalog/all)', 'loaded via', 'load index', 'first Write/Edit', 'first bash write', 'before Write/Edit', 'before any write', 'other project skills loaded'],
       pairs.filter((pair) => pair.kind === 'skill').flatMap((pair) => ['a', 'b'].map((side) => {
@@ -147,23 +189,33 @@ export function render(result) {
           show(x?.targetSkillLoadedVia), show(x?.loadIndex), show(x?.firstWriteIndex), show(x?.firstBashWriteIndex), show(x?.beforeFirstWrite), show(x?.beforeAnyWrite),
           x?.loadedSkills ? (x.loadedSkills.filter((name) => name !== pair.targetSkill).join(', ') || '(none)') : '-'];
       }))));
-    out.push('', `Skill judge per Agent call, ${arms.b} and ${arms.a} (each task: refused attempt first, then the launched call; "target" is the judge's probability for the target skill and the stage it ended in)`);
-    out.push(...table(['task', 'arm', 'call', 'need', 'injected', 'target', 'load', 'suggest', 'route profile'],
-      pairs.flatMap((pair) => ['a', 'b'].flatMap((side) => (pair[side]?.attemptsJudged ?? []).filter((attempt) => attempt.need !== null || attempt.injected !== null || side === 'b').map((attempt) => [pair.id, arms[side], attempt.outcome,
-        show(attempt.need), show(attempt.injected), attempt.target ? `${show(attempt.target.probability)} ${show(attempt.target.stage)}` : '-', prob(attempt.load), prob(attempt.suggest), show(attempt.profile)])))));
+    out.push('', `Skill judge per Agent call, ${arms.b} and ${arms.a} (each task: refused attempt first, then the launched call; "target" is the judge's probability for the target skill and the stage it ended in; "sent" = this is the decision whose rewrite reached the subagent)`);
+    out.push(...table(['task', 'arm', 'call', 'need', 'injected', 'target', 'load', 'suggest', 'route profile', 'sent'],
+      pairs.flatMap((pair) => ['a', 'b'].flatMap((side) => (pair[side]?.attemptsJudged ?? []).map((attempt, index) => ({ attempt, index })).filter(({ attempt }) => attempt.need !== null || attempt.injected !== null || side === 'b').map(({ attempt, index }) => [pair.id, arms[side], attempt.outcome,
+        show(attempt.need), show(attempt.injected), attempt.target ? `${show(attempt.target.probability)} ${show(attempt.target.stage)}` : '-', prob(attempt.load), prob(attempt.suggest), show(attempt.profile),
+        pair[side].appliedAttemptIndex === null ? '-' : show(pair[side].appliedAttemptIndex === index)])))));
     const d = result.differences;
     out.push('', `Subagent cost, paired (${arms.b} minus ${arms.a}); tokens = input + output + cache read + cache creation, each message id once`);
-    out.push(...table(['task', `tools ${arms.a}`, `tools ${arms.b}`, 'diff', `tokens ${arms.a}`, `tokens ${arms.b}`, 'diff', `output ${arms.a}`, `output ${arms.b}`, 'diff', `wall s ${arms.a}`, `wall s ${arms.b}`, 'diff s'],
-      [...d.toolCalls.perTask.map((row, i) => [row.id, show(row.a), show(row.b), signed(row.diff), show(d.tokens.perTask[i].a), show(d.tokens.perTask[i].b), signed(d.tokens.perTask[i].diff),
+    out.push(...table(['task', `tools ${arms.a}`, `tools ${arms.b}`, 'diff', `turns ${arms.a}`, `turns ${arms.b}`, 'diff', `tokens ${arms.a}`, `tokens ${arms.b}`, 'diff', `output ${arms.a}`, `output ${arms.b}`, 'diff', `wall s ${arms.a}`, `wall s ${arms.b}`, 'diff s'],
+      [...d.toolCalls.perTask.map((row, i) => [row.id, show(row.a), show(row.b), signed(row.diff), show(d.apiTurns.perTask[i].a), show(d.apiTurns.perTask[i].b), signed(d.apiTurns.perTask[i].diff), show(d.tokens.perTask[i].a), show(d.tokens.perTask[i].b), signed(d.tokens.perTask[i].diff),
         show(d.outputTokens.perTask[i].a), show(d.outputTokens.perTask[i].b), signed(d.outputTokens.perTask[i].diff),
         show(seconds(d.wallMs.perTask[i].a)), show(seconds(d.wallMs.perTask[i].b)), d.wallMs.perTask[i].diff === null ? '-' : signed(Number((d.wallMs.perTask[i].diff / 1000).toFixed(1)))]),
       ...['all', 'skillTasks', 'controls', 'sameSetup', 'sameSetupSkillTasks'].map((group) => [`sum ${group} (${d.toolCalls[group].pairsMeasured}/${d.toolCalls[group].of})`, show(d.toolCalls[group].a), show(d.toolCalls[group].b), signed(d.toolCalls[group].diff),
+        show(d.apiTurns[group].a), show(d.apiTurns[group].b), signed(d.apiTurns[group].diff),
         show(d.tokens[group].a), show(d.tokens[group].b), signed(d.tokens[group].diff), show(d.outputTokens[group].a), show(d.outputTokens[group].b), signed(d.outputTokens[group].diff),
         show(seconds(d.wallMs[group].a)), show(seconds(d.wallMs[group].b)), d.wallMs[group].diff === null ? '-' : signed(Number((d.wallMs[group].diff / 1000).toFixed(1)))])]));
     const unlike = d.toolCalls.perTask.filter((row) => row.sameSetup === false).map((row) => row.id);
-    out.push(`"sameSetup" rows count only pairs whose two subagents ran as the same agent type on the same model${unlike.length ? `; left out: ${unlike.join(', ')}` : ''}.`);
+    out.push(`"sameSetup" rows count only pairs whose two subagents ran as the same agent type on the same model at the same effort${unlike.length ? `; left out: ${unlike.join(', ')}` : ''}. "turns" = API turns (distinct assistant message ids).`);
     out.push(`Token parts, all tasks: input ${arms.a} ${show(d.inputTokens.all.a)} / ${arms.b} ${show(d.inputTokens.all.b)}; output ${show(d.outputTokens.all.a)} / ${show(d.outputTokens.all.b)}; cache read ${show(d.cacheReadTokens.all.a)} / ${show(d.cacheReadTokens.all.b)}; cache creation ${show(d.cacheCreationTokens.all.a)} / ${show(d.cacheCreationTokens.all.b)}`);
-    out.push(`Pairs where ${arms.b} was lower / higher: tool calls ${d.toolCalls.all.bLower}/${d.toolCalls.all.bHigher}, tokens ${d.tokens.all.bLower}/${d.tokens.all.bHigher}, wall time ${d.wallMs.all.bLower}/${d.wallMs.all.bHigher} (of ${d.toolCalls.all.pairsMeasured} measured pairs)`);
+    const share = (side) => (typeof d.cacheReadTokens.all[side] === 'number' && d.tokens.all[side] ? `${(100 * d.cacheReadTokens.all[side] / d.tokens.all[side]).toFixed(1)}%` : '-');
+    out.push(`Cache reads are ${share('a')} (${arms.a}) and ${share('b')} (${arms.b}) of the token total, so the total follows the number of API turns; it is not billed cost.`);
+    // Pairs that got the same prompt and the same setup in both arms and no block in either: their difference is run-to-run variation.
+    const floor = pairs.map((pair, i) => ({ pair, row: d.tokens.perTask[i] })).filter(({ pair, row }) => row.sameSetup === true && row.diff !== null && pair.a?.blockInPrompt === false && pair.b?.blockInPrompt === false);
+    const pct = (row) => (row.a ? ` (${row.diff >= 0 ? '+' : ''}${(100 * row.diff / row.a).toFixed(1)}%)` : '');
+    out.push(floor.length
+      ? `Pairs with no block in either arm and the same setup (nothing differed but the run): token diff ${floor.map(({ pair, row }) => `${pair.id} ${signed(row.diff)}${pct(row)}`).join(', ')}.`
+      : 'No pair had the same setup and no block in both arms, so there is no within-run reference for run-to-run variation.');
+    out.push('The cost figures are descriptive. One run per arm: a difference no larger than the ones on the line above cannot be told apart from run-to-run variation, and no direction is attributed to the block.');
     const judgeLine = (side) => {
       const j = result.judge?.[side];
       if (!j) return `${arms[side]}: -`;
@@ -178,7 +230,7 @@ export function render(result) {
     out.push('', 'User-level skill search by subagents', `  ${searchLine('a')}`, `  ${searchLine('b')}`);
     const mainLine = (side) => {
       const m = result.mainSession?.[side];
-      return m ? `${arms[side]}: ${m.userPrompts} user prompt(s); equals main-prompt.txt ${show(m.firstPromptEqualsMainPromptFile)}, contains it ${show(m.firstPromptContainsMainPromptFile)} (+${show(m.firstPromptExtraChars)} chars); model ${m.models.join(',') || '-'}, effort ${m.efforts.join(',') || '-'}, permission mode ${m.permissionModes.join(',') || '-'}; tools ${Object.entries(m.toolNames).map(([name, n]) => `${name} x${n}`).join(', ') || '-'}; tokens ${show(m.tokens?.total)}; wall ${show(seconds(m.wallMs))} s` : `${arms[side]}: -`;
+      return m ? `${arms[side]}: ${m.userPrompts} user prompt(s); equals main-prompt.txt ${show(m.firstPromptEqualsMainPromptFile)}, contains it ${show(m.firstPromptContainsMainPromptFile)} (+${show(m.firstPromptExtraChars)} chars); model ${m.models.join(',') || '-'}, effort ${m.efforts.join(',') || '-'}, permission mode ${m.permissionModes.join(',') || '-'}; tools ${Object.entries(m.toolNames).map(([name, n]) => `${name} x${n}`).join(', ') || '-'}; tokens ${show(m.tokens?.total)}; wall ${show(seconds(m.wallMs))} s over user / assistant / attachment rows${m.wallMsAllRows !== undefined ? ` (${show(seconds(m.wallMsAllRows))} s over every stamped row)` : ''}` : `${arms[side]}: -`;
     };
     out.push('', 'Main session', `  ${mainLine('a')}`, `  ${mainLine('b')}`);
   }

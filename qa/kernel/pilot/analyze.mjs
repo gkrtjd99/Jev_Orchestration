@@ -26,6 +26,13 @@ import { inScope } from './checkers/scopes.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const CONVERSATION_TYPES = new Set(['user', 'assistant', 'attachment', 'system']);
+// Rows whose timestamps make up a wall-time span: the conversation itself. "system" rows (the harness's own
+// bookkeeping, written after the last assistant turn) and request-log rows are left out of the span.
+const SPAN_TYPES = new Set(['user', 'assistant', 'attachment']);
+const inSpan = (row) => SPAN_TYPES.has(row?.type) || (row?.type === undefined && (row?.message?.role === 'user' || row?.message?.role === 'assistant'));
+// User-level skills whose job is to search for other skills. The sanitized copy names only these (the rest of the
+// owner's user-level / plugin skill inventory is reduced to a count).
+const SEARCH_SKILL_NAMES = new Set(['using-skill-rag', 'find-skills']);
 const SKILL_FILE = /(?:^|\/)\.claude\/skills\/([^/]+)\/SKILL\.md$/;
 const SKILL_NAME_CHARS = 'A-Za-z0-9_.:-';
 // How many catalog names a row must mention to be taken as the harness's skill listing.
@@ -176,13 +183,14 @@ function readMain(transcriptsDir, warnings) {
   const permissionModes = new Set();
   const userPrompts = [];
   const stamps = [];
+  const allStamps = [];
   let anonymous = 0;
   let taskToolCalls = 0;
   let requestLogRows = 0;
   for (const file of files) {
     for (const row of readJsonl(join(transcriptsDir, file), warnings) ?? []) {
       const stamp = Date.parse(str(row.timestamp) ?? '');
-      if (Number.isFinite(stamp)) stamps.push(stamp);
+      if (Number.isFinite(stamp)) { allStamps.push(stamp); if (inSpan(row)) stamps.push(stamp); }
       if (str(row.permissionMode)) permissionModes.add(row.permissionMode);
       // The input a PreToolUse hook returned for an Agent call (hook_success attachment, JSON on stdout).
       if (row.type === 'attachment' && isObject(row.attachment) && row.attachment.type === 'hook_success' && str(row.attachment.toolUseID)
@@ -244,7 +252,10 @@ function readMain(transcriptsDir, warnings) {
     efforts: [...efforts].sort(),
     permissionModes: [...permissionModes].sort(),
     tokens: tokenSums(usageByMessage, assistantMessages.size, warnings),
+    // Span of the user / assistant / attachment rows, like the subagent span. wallMsAllRows also spans the harness's
+    // "system" and request-log rows, which go on a few seconds after the last assistant turn.
     wallMs: stamps.length >= 2 ? Math.max(...stamps) - Math.min(...stamps) : null,
+    wallMsAllRows: allStamps.length >= 2 ? Math.max(...allStamps) - Math.min(...allStamps) : null,
     requestLogRowsIgnored: requestLogRows,
   };
   return { files, agentCalls, agentResults, results, rewrites, info };
@@ -345,11 +356,12 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
   const assistantMessages = new Set();
   let anonymousAssistant = 0;
   const models = new Set();
+  const efforts = new Set();
   const toolResults = new Map();
   for (const row of rows) {
     const stamp = str(row.timestamp);
     const ms = stamp !== null ? Date.parse(stamp) : NaN;
-    if (Number.isFinite(ms)) stamps.push(ms);
+    if (Number.isFinite(ms) && inSpan(row)) stamps.push(ms);
     // Request-log rows (api-request, api-request-blob, ...) are copies of the conversation; they are not
     // counted as transcript rows and their tool_use items are not read.
     if (typeof row.type === 'string' && !CONVERSATION_TYPES.has(row.type)) continue;
@@ -371,6 +383,7 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
     if (role !== 'assistant') continue;
     assistantMessages.add(str(row.message?.id) ?? `anon-${anonymousAssistant += 1}`);
     if (str(row.message?.model)) models.add(row.message.model);
+    if (str(row.effort)) efforts.add(row.effort);
     for (const item of contentItems(row)) {
       if (item.type !== 'tool_use' || typeof item.name !== 'string') continue;
       const key = typeof item.id === 'string' ? item.id : `anon-${calls.length}`;
@@ -532,6 +545,10 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
       skillSearch: { mcpSkillToolCalls: Object.values(search.mcpSkillTools).reduce((a, b) => a + b, 0), mcpSkillTools: search.mcpSkillTools,
         toolSearchForSkill: search.toolSearchForSkill, nonCatalogSkillCalls: search.nonCatalogSkillCalls },
       models: [...models].sort(),
+      // The effort the harness wrote on the subagent's assistant rows (what ran, not what a route proposed).
+      efforts: [...efforts].sort(),
+      // API turns = distinct assistant message ids. The token total is mostly cache reads, which grow with this count.
+      apiTurns: assistantMessages.size,
       filesWritten: [...new Set(writes.map((write) => write.rel ?? write.raw ?? '(unknown path)'))],
       outOfScopeWrites: [...new Set(outOfScope)],
     },
@@ -771,12 +788,43 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
     const scoredAttempt = attempts.find((attempt) => attempt.scored) ?? null;
     // What actually ran, as the harness recorded it (not what a hook proposed).
     const effective = call ? { agentType: agentMeta?.agentType ?? null, model: agentMeta?.model ?? scoredAttempt?.resolvedModel ?? null,
+      effort: subagent?.efforts?.length ? subagent.efforts.join(',') : null,
       // Did the rewrite the hook produced for the SCORED call reach the subagent? false = the subagent's first prompt
       // is the input Main sent, and the hook's second rewrite (and its second route) was not applied.
       scoredCallRewriteApplied: subagent && scoredAttempt?.hookRewrite && subagent.promptBlockCounts
         ? subagent.promptBlockCounts.routing === scoredAttempt.hookRewrite.routingBlocks && subagent.promptBlockCounts.skills === scoredAttempt.hookRewrite.skillsBlocks : null } : null;
     if (effective?.scoredCallRewriteApplied === false) notes.push('the hook rewrote the scored call again, but the subagent received the input Main sent (the second rewrite and its route were not applied)');
     if (effective?.agentType && hook.route?.profile && effective.agentType !== hook.route.profile) notes.push(`the subagent ran as ${effective.agentType}, not as the profile in this call's route event (${hook.route.profile})`);
+    // The hook decision that actually reached the subagent. "hook" above is read from the scored call's own events,
+    // as PROTOCOL.md defines; when the scored call's input is the rewrite of the refused attempt before it and the
+    // hook's second rewrite was not applied, the block and the profile the subagent got are those of that attempt.
+    //   refused_attempt - the scored input is exactly the previous (refused) attempt's rewrite; second rewrite not applied
+    //   scored_call     - the scored call's own rewrite was applied, or the hook rewrote nothing for it
+    //   null            - cannot be told from the files
+    let appliedIndex = null;
+    const scoredIndex = call ? matches.indexOf(call) : -1;
+    if (scoredAttempt && scoredAttempt.outcome !== 'refused' && scoredAttempt.outcome !== 'spawn_failed') { // a call that started nothing sent no decision anywhere
+      if (scoredAttempt.promptIsHookRewriteOfPreviousCall === true && effective?.scoredCallRewriteApplied === false) appliedIndex = scoredIndex - 1;
+      else if (effective?.scoredCallRewriteApplied === true) appliedIndex = scoredIndex;
+      else if (scoredAttempt.hookRewrite === null && scoredAttempt.promptIsHookRewriteOfPreviousCall !== true) appliedIndex = scoredIndex;
+    }
+    const appliedAttempt = appliedIndex !== null ? attempts[appliedIndex] : null;
+    const hookApplied = appliedAttempt ? {
+      source: appliedIndex === scoredIndex ? 'scored_call' : 'refused_attempt',
+      attemptIndex: appliedIndex,
+      injected: appliedAttempt.injected,
+      need: appliedAttempt.hookDetail.need,
+      load: appliedAttempt.hookDetail.load,
+      suggest: appliedAttempt.hookDetail.suggest,
+      target: appliedAttempt.target,
+      route: appliedAttempt.hookDetail.route ? { profile: appliedAttempt.hookDetail.route.profile, model: appliedAttempt.hookDetail.route.model, effort: appliedAttempt.hookDetail.route.effort } : null,
+      routeDeferred: appliedAttempt.hookDetail.routeDeferred,
+    } : null;
+    if (call && subagent && hookApplied === null) notes.push('which hook decision reached the subagent could not be told; hookApplied is null');
+    if (hookApplied && subagent && typeof hookApplied.injected === 'boolean' && typeof subagent.promptHadSkillsBlock === 'boolean' && hookApplied.injected !== subagent.promptHadSkillsBlock) {
+      notes.push(`hookApplied says injected=${hookApplied.injected} but the subagent prompt ${subagent.promptHadSkillsBlock ? 'holds a' : 'holds no'} <jev-skills> block`);
+    }
+    if (hookApplied?.route?.profile && effective?.agentType && hookApplied.route.profile !== effective.agentType) notes.push(`hookApplied names profile ${hookApplied.route.profile} but the subagent ran as ${effective.agentType}`);
 
     if (verdict?.blockedBy?.length) notes.push(`checker: this task's modules could not be loaded because of a file of ${verdict.blockedBy.join(', ')}; the pair is contaminated`);
 
@@ -800,7 +848,9 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
       targetJudged: call ? targetInTrace(call, task.targetSkill) : null,
       effective,
       otherCalls,
+      // "hook" = the scored call's own events (PROTOCOL.md definition). "hookApplied" = the decision that reached the subagent.
       hook,
+      hookApplied,
       agentId,
       agentIdSource,
       subagent,
@@ -894,6 +944,7 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
     permissionModes: main.info.permissionModes,
     tokens: main.info.tokens,
     wallMs: main.info.wallMs,
+    wallMsAllRows: main.info.wallMsAllRows,
     requestLogRowsIgnored: main.info.requestLogRowsIgnored,
   } : null;
   if (mainSession && mainSession.userPrompts !== 1) warnings.push(`the Main transcript holds ${mainSession.userPrompts} user prompts; the protocol gives it exactly one`);
@@ -906,6 +957,8 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
   if (mainOwnTools.length) warnings.push(`Main used tools other than Agent: ${mainOwnTools.map((name) => `${name} x${mainSession.toolNames[name]}`).join(', ')}`);
   const profiles = {};
   for (const row of taskRows) if (row.effective) { const key = `${row.effective.agentType ?? '(unknown)'} / ${row.effective.model ?? '(unknown)'}`; (profiles[key] ??= []).push(row.id); }
+  const settings = {};
+  for (const row of taskRows) if (row.effective) { const key = `${row.effective.agentType ?? '(unknown)'} / ${row.effective.model ?? '(unknown)'} / effort ${row.effective.effort ?? '(unknown)'}`; (settings[key] ??= []).push(row.id); }
   const tokenPart = (field) => total((row) => row.subagent?.tokens?.[field]);
   const searchUse = (pick) => taskRows.filter((row) => row.subagent && pick(row.subagent.skillSearch)).map((row) => row.id);
   return {
@@ -929,6 +982,11 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
       blockedByOtherTask: taskRows.filter((row) => row.check?.blockedBy?.length).map((row) => ({ id: row.id, blockedBy: row.check.blockedBy })),
       injectedOnSkillTasks: count(skillRows, (row) => row.hook.injected),
       injectedOnControls: count(controlRows, (row) => row.hook.injected),
+      // the same three counts, read from the hook decision that reached the subagent (see hookApplied)
+      appliedInjectedOnSkillTasks: count(skillRows, (row) => row.hookApplied?.injected),
+      appliedInjectedOnControls: count(controlRows, (row) => row.hookApplied?.injected),
+      targetInAppliedLoad: count(skillRows, (row) => (Array.isArray(row.hookApplied?.load) && typeof row.hookApplied.injected === 'boolean' ? row.hookApplied.load.some((entry) => entry.name === row.targetSkill) : null)),
+      subagentApiTurns: total((row) => row.subagent?.apiTurns),
       subagentToolCalls: total((row) => row.subagent?.toolCalls),
       subagentTokens: total((row) => row.subagent?.tokens?.total),
       subagentWallMs: total((row) => row.subagent?.wallMs),
@@ -947,6 +1005,7 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
         tasksUsingMcpSkillTool: searchUse((use) => use.mcpSkillToolCalls > 0), tasksUsingToolSearchForSkill: searchUse((use) => use.toolSearchForSkill > 0),
         tasksCallingNonCatalogSkill: searchUse((use) => use.nonCatalogSkillCalls.length > 0) },
       effectiveProfiles: profiles,
+      effectiveSettings: settings,
     },
     judge,
     mainSession,
@@ -993,7 +1052,17 @@ export function sanitize(result) {
     return value;
   };
   const { inputs: _inputs, ...rest } = result;
-  return { ...walk(rest), sanitized: true };
+  const clean = walk(rest);
+  // The names of the owner's user-level and plugin skills are an inventory of the owner's environment. Keep the
+  // count and only the names of skill-search skills (they matter for reading the result); drop the rest.
+  for (const row of clean.tasks ?? []) {
+    const detail = row.subagent?.listingDetail;
+    if (!detail || !('nonCatalogNames' in detail)) continue;
+    const listed = Array.isArray(detail.nonCatalogNames) ? detail.nonCatalogNames : null;
+    delete detail.nonCatalogNames;
+    detail.nonCatalogSearchSkillNames = listed ? listed.filter((name) => SEARCH_SKILL_NAMES.has(String(name).split(':').pop())) : null;
+  }
+  return { ...clean, sanitized: true };
 }
 
 function parseArgs(argv) {
