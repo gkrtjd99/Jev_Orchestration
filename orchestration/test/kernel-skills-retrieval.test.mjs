@@ -849,6 +849,58 @@ test('a wide mode is refused when one delegation could use more than a quarter o
   assert.equal((await loadConfig(file, { JEV_SKILLS_MODE: 'active', JEV_SKILLS_RETRIEVAL: 'lexical' })).config.kernel.skills.retrieval, 'lexical');
 });
 
+test('a config from before kernel.skills.retrieval that routes skills under a small request cap keeps lexical instead of failing to load', async t => {
+  const f = await fixture(t);
+  const dir = path.join(f.home, '.config', 'jev-hooks');
+  const file = path.join(dir, 'config.json');
+  const write = async ({ cap, mode = 'off', skills = undefined, kernel = true }) => {
+    const c = structuredClone(f.config);
+    c.circuit.maxRequestsPerSession = cap;
+    c.kernel.points[SKILLS_POINT].mode = mode;
+    for (const key of ['retrieval', 'minCoverage', 'maxJudged', 'chunk']) delete c.kernel.skills[key]; // as written before these settings existed
+    if (skills) Object.assign(c.kernel.skills, skills);
+    if (!kernel) delete c.kernel;
+    await writeJSON(file, c);
+  };
+  const retrieval = async env => (await loadConfig(file, env)).config.kernel.skills.retrieval;
+
+  // Skills on in the stored config, cap 5: loaded before the default changed, and still loads, with the behaviour it had.
+  await write({ cap: 5, mode: 'active' });
+  assert.equal(await retrieval({}), 'lexical');
+  // Skills off in the config and switched on by env: the same.
+  await write({ cap: 5 });
+  assert.equal(await retrieval({}), 'full');
+  for (const mode of ['shadow', 'active']) assert.equal(await retrieval({ JEV_SKILLS_MODE: mode }), 'lexical', mode);
+  await write({ cap: 5, kernel: false });
+  assert.equal(await retrieval({}), 'full');
+  assert.equal(await retrieval({ JEV_SKILLS_MODE: 'active' }), 'lexical');
+  // A cap with room for the wide default gets the new default.
+  await write({ cap: 8, mode: 'active' });
+  assert.equal(await retrieval({}), 'full');
+  await write({ cap: 100, mode: 'active' });
+  assert.equal(await retrieval({}), 'full');
+  // The env fan-out settings count: 64/8 is eight requests per delegation and needs a cap of 32.
+  await write({ cap: 31, mode: 'active' });
+  assert.equal(await retrieval({ JEV_SKILLS_CHUNK: '8' }), 'lexical');
+  // An explicit wide mode (env or stored) with a cap that is too small is still refused; nothing is downgraded silently.
+  await write({ cap: 5, mode: 'active' });
+  for (const mode of ['full', 'adaptive']) await assert.rejects(loadConfig(file, { JEV_SKILLS_RETRIEVAL: mode }), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'), mode);
+  for (const mode of ['full', 'adaptive']) {
+    await write({ cap: 5, mode: 'active', skills: { retrieval: mode } });
+    await assert.rejects(loadConfig(file, {}), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'), mode);
+  }
+  // The per-delegation fan-out limit is a different rule and is not relaxed.
+  await write({ cap: 5, mode: 'active', skills: { maxJudged: 400, chunk: 4 } });
+  await assert.rejects(loadConfig(file, {}), code('INVALID_KERNEL_SKILLS_FANOUT'));
+
+  // The installer upgrades such a config the same way and stores the choice explicitly.
+  const { install } = await import('../src/install.mjs');
+  await write({ cap: 5, mode: 'active' });
+  await install({ home: f.home, project: f.project, yes: true });
+  assert.equal((await readJSON(file)).kernel.skills.retrieval, 'lexical');
+  assert.equal(await retrieval({}), 'lexical');
+});
+
 test('one wide delegation leaves the auxiliary budget usable: later delegations still get their requests', async t => {
   const f = await fixture(t);
   const s = await jevServer(t, { s07: 0.95 });

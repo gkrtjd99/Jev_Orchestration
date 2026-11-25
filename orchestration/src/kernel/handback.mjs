@@ -8,14 +8,18 @@
 // '<agent-message from="<agent id>">' hand-back block.
 //
 // Everything here is session-private bookkeeping under <session dir>/handbacks (0700 dir, 0600 files):
-//   <hash(agent)>.json        latest hand-back of that agent: in_flight -> judged | skipped | unavailable.
-//                             Written only by the SubagentHandback hook process (atomic rename).
-//   <handback>.claim          this SubagentHandback tool_use_id was already processed (replay guard)
-//   <handback>.prompt         this hand-back already corroborated one hand-back prompt (holds that prompt's hash)
-//   <handback>.delivered      the advice of this hand-back was already returned to Main
-// The three markers are created with O_EXCL, so "once" never depends on a read-modify-write.
-// No report text and no prompt text is stored: only ids, hashes, numbers and the advice sentence built by
-// supervisorAdvice() from the judge's option name and numbers.
+//   <hash(agent)>-<handback>.json   one record per hand-back: in_flight -> judged | skipped | unavailable.
+//                                   Written only by the SubagentHandback hook process (atomic rename).
+//                                   The newest HANDBACK_KEEP records of an agent are kept; older ones are
+//                                   removed together with their markers when a new hand-back is recorded.
+//   <handback>.claim                this SubagentHandback tool_use_id was already processed (replay guard; holds the time)
+//   <handback>.retry                a replay took over a hand-back whose hook process died mid-judgment (once)
+//   <handback>.prompt               this hand-back already corroborated one hand-back prompt (holds that prompt's hash)
+//   <handback>.delivered            the advice of this hand-back was already returned to Main
+//   <hash(task, n)>.slot            the n-th judged hand-back of one routed delegation (HANDBACK_MAX_JUDGED_PER_TASK slots)
+// The markers are created with O_EXCL, so "once" never depends on a read-modify-write.
+// No report text, no prompt text and no advice text is stored: only ids, hashes, an option name and numbers.
+// The sentence shown to Main is rebuilt from those validated fields at delivery (supervisorSentence()).
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { hash, object, readJSON, writeJSON } from '../util.mjs';
@@ -31,12 +35,18 @@ export const HANDBACK_POLL_MS = 25;
 export const HANDBACK_STALE_MS = 7000;
 /** A hand-back prompt is corroborated only by a SubagentHandback event observed at most this long before it. */
 export const HANDBACK_PROMPT_WINDOW_MS = 10000;
+/** Parked advice older than this is never delivered (an initial value, not a measured one). */
+export const HANDBACK_DELIVERY_MAX_AGE_MS = 600000;
+/** Judge calls spent on the hand-backs of one routed delegation. Later hand-backs are recorded as skipped (handback_limit). */
+export const HANDBACK_MAX_JUDGED_PER_TASK = 4;
+/** Hand-back records (and their markers) kept per agent. */
+export const HANDBACK_KEEP = 4;
 
 const AGENT_ID = /^[A-Za-z0-9_-]{1,128}$/;
 const HEADER = /^<agent-message from="([A-Za-z0-9_-]{1,128})">\r?\n\[Subagent hand-back\] /;
 const STATUSES = ['in_flight', 'judged', 'skipped', 'unavailable'];
 const HEX = /^[0-9a-f]{64}$/;
-const ADVICE_PREFIX = 'Jev supervisor (advisory): ';
+const MARKERS = ['claim', 'retry', 'prompt', 'delivered'];
 
 export const validAgentId = id => typeof id === 'string' && AGENT_ID.test(id);
 
@@ -69,12 +79,28 @@ export function handbackId(toolUseId, agentId, message) {
     : hash(['handback-without-tool-use-id', agentId ?? null, hash(String(message ?? ''))]);
 }
 
-/** Only the sentence supervisorAdvice() builds is ever returned to Main from a stored record. */
-export const validAdviceText = text => typeof text === 'string' && text.startsWith(ADVICE_PREFIX) && text.length <= 600 && !/[\r\n]/.test(text);
+/**
+ * Hash that binds a hand-back record to the prompt that carries the same report. The harness indents every
+ * report line inside the agent-message element, so both sides are compared as their non-empty lines with
+ * surrounding whitespace removed. The text itself is never stored.
+ */
+export function handbackReportHash(report) {
+  return hash(['handback-report', String(report ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean)]);
+}
+
+/**
+ * handbackReportHash() of the report a well-formed hand-back prompt carries: every line between the
+ * '[Subagent hand-back]' line and the closing tag. null when the prompt is not exactly one agent-message element.
+ */
+export function handbackPromptReportHash(prompt) {
+  if (!handbackPromptWellFormed(prompt)) return null;
+  return handbackReportHash(prompt.trimEnd().split(/\r?\n/).slice(2, -1).join('\n'));
+}
 
 function validRecord(record, agentId) {
   return object(record) && record.schema === 1 && record.agentId === agentId && typeof record.handbackId === 'string'
-    && HEX.test(record.handbackId) && Number.isFinite(record.seenAt) && STATUSES.includes(record.status);
+    && HEX.test(record.handbackId) && typeof record.reportHash === 'string' && HEX.test(record.reportHash)
+    && Number.isFinite(record.seenAt) && STATUSES.includes(record.status);
 }
 
 export class HandbackLedger {
@@ -83,25 +109,55 @@ export class HandbackLedger {
     this.dir = path.join(sessionDir, 'handbacks');
   }
 
-  agentFile(agentId) {
-    return path.join(this.dir, hash(['handback-agent', agentId]) + '.json');
+  file(agentId, id) {
+    return path.join(this.dir, `${hash(['handback-agent', agentId])}-${id}.json`);
   }
 
-  /** Latest hand-back record of this agent, or null when there is none or it is not a valid record. */
-  async read(agentId) {
-    if (!validAgentId(agentId)) return null;
+  /** One hand-back record of this agent, or null when there is none or it is not a valid record. */
+  async get(agentId, id) {
+    if (!validAgentId(agentId) || !HEX.test(String(id))) return null;
     let record;
-    try { record = await readJSON(this.agentFile(agentId), null); } catch { return null; }
-    return validRecord(record, agentId) ? record : null;
+    try { record = await readJSON(this.file(agentId, id), null); } catch { return null; }
+    return validRecord(record, agentId) && record.handbackId === id ? record : null;
+  }
+
+  /** The valid hand-back records of this agent, newest first. */
+  async records(agentId) {
+    if (!validAgentId(agentId)) return [];
+    let names;
+    try { names = await fs.readdir(this.dir); } catch { return []; }
+    const prefix = hash(['handback-agent', agentId]) + '-';
+    const found = [];
+    for (const name of names) {
+      if (!name.startsWith(prefix) || !name.endsWith('.json')) continue;
+      const record = await this.get(agentId, name.slice(prefix.length, -'.json'.length));
+      if (record) found.push(record);
+    }
+    return found.sort((a, b) => b.seenAt - a.seenAt);
+  }
+
+  /** Latest hand-back record of this agent, or null. */
+  async read(agentId) {
+    return (await this.records(agentId))[0] ?? null;
   }
 
   async write(agentId, record) {
-    await writeJSON(this.agentFile(agentId), record);
+    await writeJSON(this.file(agentId, record.handbackId), record);
+  }
+
+  /** Remove this agent's records beyond the newest `keep`, with their markers. Best effort; never throws. */
+  async prune(agentId, keep = HANDBACK_KEEP) {
+    try {
+      for (const old of (await this.records(agentId)).slice(keep)) {
+        await fs.rm(this.file(agentId, old.handbackId), { force: true });
+        for (const kind of MARKERS) await fs.rm(path.join(this.dir, `${old.handbackId}.${kind}`), { force: true });
+      }
+    } catch { /* bookkeeping only */ }
   }
 
   /** Create a once-only marker holding `value` (a hash or a timestamp). True for the first caller, false when it already exists. */
   async claim(id, kind, value = String(Date.now())) {
-    if (!HEX.test(id) || !['claim', 'prompt', 'delivered'].includes(kind)) return false;
+    if (!HEX.test(id) || ![...MARKERS, 'slot'].includes(kind)) return false;
     await fs.mkdir(this.dir, { recursive: true, mode: 0o700 });
     try {
       await fs.writeFile(path.join(this.dir, `${id}.${kind}`), String(value) + '\n', { flag: 'wx', mode: 0o600 });
@@ -116,5 +172,11 @@ export class HandbackLedger {
   async claimed(id, kind) {
     if (!HEX.test(id)) return null;
     try { return (await fs.readFile(path.join(this.dir, `${id}.${kind}`), 'utf8')).trim(); } catch { return null; }
+  }
+
+  /** Take one of the `max` judgment slots of a routed delegation. False when all are used. */
+  async slot(taskId, max = HANDBACK_MAX_JUDGED_PER_TASK) {
+    for (let n = 0; n < max; n++) if (await this.claim(hash(['handback-slot', String(taskId), n]), 'slot')) return true;
+    return false;
   }
 }

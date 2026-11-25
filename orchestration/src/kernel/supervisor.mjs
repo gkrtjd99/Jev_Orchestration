@@ -40,6 +40,19 @@ const HINTS = {
   escalate: 'The report suggests a decision by Main or a person is needed.',
 };
 
+/**
+ * The one advice sentence, built only from an option name and two numbers. Returns null for anything else,
+ * so a caller holding stored values (the hand-back record) can rebuild the sentence instead of trusting stored text.
+ */
+export function supervisorSentence(outcome, confidence, evidence) {
+  if (!SUPERVISOR_OUTCOMES.includes(outcome) || !unit(confidence)
+    || typeof evidence !== 'number' || !Number.isFinite(evidence) || evidence < 0 || evidence > EVIDENCE_LEVELS - 1) return null;
+  return `Jev supervisor (advisory): ${outcome} (confidence ${confidence.toFixed(2)}, `
+    + `reported evidence level ${Math.round(evidence)} of ${EVIDENCE_LEVELS - 1}). ${HINTS[outcome]} `
+    + 'This is a judgment of the report text only, not of the work. '
+    + 'Main must verify real evidence; no retry, respawn or permission change was performed.';
+}
+
 /** Turn judge answers into advice. `advisory` is false when the judge is not confident enough to show it. */
 export function supervisorAdvice(answers, config) {
   assert(object(config) && unit(config.confidence), 'INVALID_SUPERVISOR_CONFIG');
@@ -49,10 +62,7 @@ export function supervisorAdvice(answers, config) {
   assert(evidence?.type === 'score' && typeof evidence.score === 'number' && Number.isFinite(evidence.score)
     && evidence.score >= 0 && evidence.score <= EVIDENCE_LEVELS - 1, 'INVALID_SUPERVISOR_ANSWERS');
   const advisory = outcome.confidence >= config.confidence;
-  const text = `Jev supervisor (advisory): ${outcome.choice} (confidence ${outcome.confidence.toFixed(2)}, `
-    + `reported evidence level ${Math.round(evidence.score)} of ${EVIDENCE_LEVELS - 1}). ${HINTS[outcome.choice]} `
-    + 'This is a judgment of the report text only, not of the work. '
-    + 'Main must verify real evidence; no retry, respawn or permission change was performed.';
+  const text = supervisorSentence(outcome.choice, outcome.confidence, evidence.score);
   return { outcome: outcome.choice, confidence: outcome.confidence, evidence: evidence.score, advisory, text };
 }
 

@@ -13,9 +13,10 @@ import { profileCatalog } from './catalog.mjs';
 import { createKernel } from './kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
 import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
-import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, reportText } from './kernel/supervisor.mjs';
-import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptWellFormed, validAgentId, validAdviceText,
-  HANDBACK_WAIT_MS, HANDBACK_HOOK_BUDGET_MS, HANDBACK_GRACE_MS, HANDBACK_POLL_MS, HANDBACK_STALE_MS, HANDBACK_PROMPT_WINDOW_MS } from './kernel/handback.mjs';
+import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, supervisorSentence, reportText } from './kernel/supervisor.mjs';
+import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptReportHash, handbackReportHash, validAgentId,
+  HANDBACK_WAIT_MS, HANDBACK_HOOK_BUDGET_MS, HANDBACK_GRACE_MS, HANDBACK_POLL_MS, HANDBACK_STALE_MS, HANDBACK_PROMPT_WINDOW_MS,
+  HANDBACK_DELIVERY_MAX_AGE_MS, HANDBACK_MAX_JUDGED_PER_TASK } from './kernel/handback.mjs';
 import { planContext } from './plan-context.mjs';
 import { handleControllerHook,controllerManagedTool } from './controller-hooks.mjs';
 import { hash, object, redact, sleep, withLock } from './util.mjs';
@@ -100,12 +101,21 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       if(!agentId){await note({status:'skipped',reason:'missing_agent_id'});return;}
       if(failedResponse(e)){await note({status:'skipped',reason:'handback_failed'});return;}
       ledger=new HandbackLedger(store.dir);
-      // One judgment per hand-back: a replayed event finds the marker and changes nothing.
-      if(!await ledger.claim(id,'claim'))return;
-      // The in-flight marker is written before any lookup or judge call: the hand-back prompt hook starts
-      // about 70 ms after this one and waits only while it can see this marker.
-      base={schema:1,agentId,handbackId:id,seenAt:Date.now()};
+      // One judgment per hand-back: a replayed event finds the marker and changes nothing. The one exception is
+      // a hand-back whose hook process died after the marker and before a terminal record (no record, or still
+      // in_flight, longer than the hook watchdog allows): the first replay after that takes it over, once.
+      if(!await ledger.claim(id,'claim')){
+        const left=await ledger.get(agentId,id);
+        if(left&&left.status!=='in_flight')return;
+        const since=left?left.seenAt:Number(await ledger.claimed(id,'claim'));
+        if(!Number.isFinite(since)||Date.now()-since<HANDBACK_STALE_MS||!await ledger.claim(id,'retry'))return;
+      }
+      // The in-flight record is written before any lookup or judge call: the hand-back prompt hook starts
+      // about 70 ms after this one and waits only while it can see this record. reportHash binds the record
+      // to the one prompt that carries this report.
+      base={schema:1,agentId,handbackId:id,reportHash:handbackReportHash(message),seenAt:Date.now()};
       await ledger.write(agentId,{...base,status:'in_flight'});
+      await ledger.prune(agentId);
       const skip=async reason=>{await ledger.write(agentId,{...base,status:'skipped',reason});await note({status:'skipped',reason});};
       if(!cfg.safety.allowEgress){await skip('egress_not_approved');return;}
       const task=await store.taskForAgent(agentId);
@@ -120,12 +130,18 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       const text=message.trim();
       if(!text){await skip('empty_report');return;}
       if(secretLike(text,apiKey)||secretLike(text,runtimeEnv?.OPENAI_API_KEY||'')){await skip('secret_guard');return;}
+      // A continued agent can hand back many times; the judge requests they spend come out of the session
+      // budget routing depends on, so one routed delegation gets a fixed number of judged hand-backs.
+      if(!await ledger.slot(taskId,HANDBACK_MAX_JUDGED_PER_TASK)){await skip('handback_limit');return;}
       const decision=await kernel().decide(SUPERVISOR_POINT,{state:{report:redact(text,kernel().kernel.supervisor.maxReportChars)},
         questions:supervisorQuestions(),scope,limits:{timeoutMs:kernel().budget(SUPERVISOR_POINT)},subject:prior.route.taskSignature||null});
       const a=supervisorAdvice(decision.response.answers,kernel().kernel.supervisor);
-      await ledger.write(agentId,{...base,status:'judged',taskId,mode,apply:decision.apply===true,outcome:a.outcome,confidence:a.confidence,
-        evidence:a.evidence,advisory:a.advisory,text:a.text,decisionId:decision.decisionId,time:Date.now()});
+      // The session event is written first: delivery requires it next to the record, so a prompt hook that
+      // sees the judged record must also be able to see the event.
       await note({status:'judged',outcome:a.outcome,confidence:a.confidence,evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId});
+      // No advice text is stored; deliverAdvice rebuilds the sentence from these fields.
+      await ledger.write(agentId,{...base,status:'judged',taskId,mode,apply:decision.apply===true,outcome:a.outcome,confidence:a.confidence,
+        evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId,time:Date.now()});
     }catch(error){
       const code=errorCode(error);
       // Ends the wait of a hand-back prompt hook that is polling the in-flight marker.
@@ -134,48 +150,82 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
     }
   };
   // A Main prompt that is the harness's hand-back block for agent X, while supervisor.outcome is active.
-  // Returns the session's hand-back record for X or null; null means "handle this prompt exactly as before".
-  // Only the agent id is taken from the prompt. Never throws.
+  // Returns the hand-back record this prompt belongs to, or null; null means "handle this prompt exactly as before".
+  // The agent id is taken from the header; the body is only hashed and compared with the hash of the report
+  // the runtime's SubagentHandback event carried. A record belongs to this prompt when it is the same agent,
+  // the same report, the same session epoch (not from before a /clear) and it has not vouched for a
+  // different prompt. Another hand-back of the same agent (an earlier one, or one already used) is not this
+  // prompt's record: the hook then waits the same short grace as when there is no record at all, because the
+  // SubagentHandback hook process for this prompt may not have written its record yet. Never throws.
   const promptHandback=async()=>{
     try{
       const agentId=handbackPromptAgent(e.prompt);
       if(!agentId||kernel().point(SUPERVISOR_POINT).mode!=='active')return null;
+      const reportHash=handbackPromptReportHash(e.prompt);
+      if(!reportHash)return null; // not exactly one agent-message element: no record can belong to it
+      const promptHash=hash(e.prompt);
       const ledger=new HandbackLedger(store.dir);
       const limit=began+HANDBACK_HOOK_BUDGET_MS;
-      let record=await ledger.read(agentId);
+      const epoch=(await store.snapshot()).epoch||0;
+      const find=async()=>{
+        const mine=[];
+        for(const record of await ledger.records(agentId)){
+          if(record.reportHash!==reportHash||record.seenAt<epoch)continue;
+          const vouched=await ledger.claimed(record.handbackId,'prompt');
+          if(vouched!==null&&vouched!==promptHash)continue;
+          mine.push({record,fresh:vouched===null&&await ledger.claimed(record.handbackId,'delivered')===null});
+        }
+        // Identical reports of a continued agent: the oldest hand-back that is still unused goes first.
+        return (mine.filter(x=>x.fresh).at(-1)??mine[0])?.record??null;
+      };
+      let record=await find();
       const grace=Math.min(limit,performance.now()+HANDBACK_GRACE_MS);
-      while(!record&&performance.now()<grace){await sleep(HANDBACK_POLL_MS);record=await ledger.read(agentId);}
-      return record?{agentId,ledger,record,limit}:null;
+      while(!record&&performance.now()<grace){await sleep(HANDBACK_POLL_MS);record=await find();}
+      return record?{agentId,ledger,record,limit,promptHash}:null;
     }catch{return null;}
   };
-  // True once per trusted SubagentHandback event: same session, same agent id, seen at most
-  // HANDBACK_PROMPT_WINDOW_MS ago, and the prompt is a single well-formed agent-message element.
+  // True once per trusted SubagentHandback event: same session, same agent id, same report, processed by the
+  // hand-back hook (its claim marker exists), seen at most HANDBACK_PROMPT_WINDOW_MS ago.
   // A replay of the very prompt that was corroborated (same hash) stays corroborated; any other prompt does not.
   const corroborated=async h=>{
     try{
-      if(!handbackPromptWellFormed(e.prompt))return false;
-      const promptHash=hash(e.prompt);
-      if(await h.ledger.claimed(h.record.handbackId,'prompt')===promptHash)return true;
+      const id=h.record.handbackId;
+      if(await h.ledger.claimed(id,'claim')===null)return false;
+      if(await h.ledger.claimed(id,'prompt')===h.promptHash)return true;
       const age=Date.now()-h.record.seenAt;
       if(age<0||age>HANDBACK_PROMPT_WINDOW_MS)return false;
       // Losing the race for the marker to a concurrent delivery of the same prompt is still that prompt.
-      return await h.ledger.claim(h.record.handbackId,'prompt',promptHash)||await h.ledger.claimed(h.record.handbackId,'prompt')===promptHash;
+      return await h.ledger.claim(id,'prompt',h.promptHash)||await h.ledger.claimed(id,'prompt')===h.promptHash;
     }catch{return false;}
   };
-  // The parked advice for this hand-back, at most once. Waits a bounded time for a judgment that is still
-  // running; an expired wait, a quiet judgment (shadow at judgment time, low confidence) or any error is null.
+  // The parked advice of this prompt's own hand-back, at most once. Waits a bounded time for a judgment that
+  // is still running; an expired wait, a quiet judgment (shadow at judgment time, low confidence), a record
+  // that is too old, or any error is null. The sentence is rebuilt from the record's validated option name
+  // and numbers (stored text is never returned), and only when the session's own 'supervisor' event for this
+  // hand-back says the same and the hand-back's claim marker exists: a lone ledger file delivers nothing.
   const deliverAdvice=async h=>{
     try{
       if(!visible)return null;
+      const id=h.record.handbackId;
       let record=h.record;
       const until=Math.min(h.limit,performance.now()+HANDBACK_WAIT_MS);
       while(record?.status==='in_flight'&&Date.now()-record.seenAt<HANDBACK_STALE_MS&&performance.now()<until){
-        await sleep(HANDBACK_POLL_MS);record=await h.ledger.read(h.agentId);
+        await sleep(HANDBACK_POLL_MS);record=await h.ledger.get(h.agentId,id);
       }
-      if(!record||record.status!=='judged'||record.apply!==true||record.advisory!==true||!validAdviceText(record.text))return null;
-      if(!await h.ledger.claim(record.handbackId,'delivered'))return null;
-      try{await store.record('supervisor_delivered',{taskId:record.taskId??null,agentId:h.agentId,decisionId:record.decisionId??null,event:e.event},'handback:'+record.handbackId);}catch{/* advisory bookkeeping only */}
-      return record.text;
+      if(!record||record.status!=='judged'||record.apply!==true||record.advisory!==true||record.reportHash!==h.record.reportHash)return null;
+      const age=Date.now()-record.seenAt;
+      if(age<0||age>HANDBACK_DELIVERY_MAX_AGE_MS)return null;
+      const text=supervisorSentence(record.outcome,record.confidence,record.evidence);
+      if(!text||typeof record.decisionId!=='string'||!record.decisionId)return null;
+      if(await h.ledger.claimed(id,'claim')===null)return null;
+      const vouched=await h.ledger.claimed(id,'prompt');
+      if(vouched!==null&&vouched!==h.promptHash)return null;
+      const logged=await store.getEvent('supervisor','handback:'+id);
+      if(!object(logged)||logged.status!=='judged'||logged.source!=='handback'||logged.agentId!==h.agentId||logged.decisionId!==record.decisionId
+        ||logged.outcome!==record.outcome||logged.confidence!==record.confidence||logged.evidence!==record.evidence||logged.advisory!==true)return null;
+      if(!await h.ledger.claim(id,'delivered'))return null;
+      try{await store.record('supervisor_delivered',{taskId:record.taskId??null,agentId:h.agentId,decisionId:record.decisionId,event:e.event},'handback:'+id);}catch{/* advisory bookkeeping only */}
+      return text;
     }catch{return null;}
   };
   try{
@@ -199,7 +249,7 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         const planHint=cfg.safety.sharePlanContext?` If safe and useful, Main may write a concise private .jev/routing-plan.json (schema=1, goalHash=${hash(e.prompt||'')}, summary, acceptance, delegations) before delegating. Do not include secrets. Jev reads it only for supported native Agent/Task or Codex spawn calls; Workflow's internal agents cannot be routed by these hooks.`:'';
         return visible?contextOutput(e.event,'Use native delegation for substantial specialist work. Hooks evaluate supported calls. Active mode applies verified eligible profiles; advisory mode only advises and leaves the pending call unchanged. No Skill command is required. Parent Main owns sequencing, integration and real verification.'+planHint):{};
       };
-      // null unless supervisor.outcome is active and this session holds a hand-back record for the agent the prompt names.
+      // null unless supervisor.outcome is active and this session holds the hand-back record of the report this prompt carries.
       const handback=await promptHandback();
       let output;
       if(handback&&await corroborated(handback)){

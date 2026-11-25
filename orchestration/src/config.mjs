@@ -90,8 +90,31 @@ const KERNEL_ESCALATE_ENV = {
   JEV_SUPERVISOR_ESCALATE_BELOW: ['supervisor.outcome'],
   JEV_DECISION_ESCALATE_BELOW: ['delegation.classify', 'delegation.profile', 'failure.classify', 'read.advice'],
 };
-/** Kernel overrides from the private .env or process env. Keys never enter the config. */
-export function applyKernelEnvironment(c, get) {
+/** True when the stored config itself names a candidate retrieval mode (before defaults are merged in). */
+export const storedSkillsRetrieval = c => object(c?.kernel?.skills) && Object.hasOwn(c.kernel.skills, 'retrieval');
+/**
+ * Upgrade path for a config written before kernel.skills.retrieval existed. Its retrieval used to be the
+ * single-request 'lexical' behaviour; the merged default is now the wide 'full'. When such a config routes
+ * skills with a request cap that the wide default cannot satisfy (INVALID_KERNEL_SKILLS_FANOUT_CAP), it keeps
+ * the behaviour it had instead of failing to load. Nothing changes when the mode was stored or set by env:
+ * an explicit wide mode with a cap that is too small is still rejected by validateConfig.
+ * `explicit` is true when the stored config or the environment named the mode. Call after mergeKernel.
+ */
+export function keepLegacyRetrieval(c, explicit) {
+  const k = c.kernel;
+  if (explicit || !object(k?.skills) || k.skills.retrieval === 'lexical' || !object(k.points?.['delegation.skills'])
+    || k.points['delegation.skills'].mode === 'off' || !Number.isInteger(c.circuit?.maxRequestsPerSession)) return false;
+  let requests;
+  try { requests = skillRequests(k.skills); } catch { return false; }
+  if (!Number.isFinite(requests) || requests * 4 <= c.circuit.maxRequestsPerSession) return false;
+  k.skills.retrieval = 'lexical';
+  return true;
+}
+/**
+ * Kernel overrides from the private .env or process env. Keys never enter the config.
+ * `storedRetrieval` is passed by a caller that merged the kernel defaults before calling (the installer).
+ */
+export function applyKernelEnvironment(c, get, { storedRetrieval = storedSkillsRetrieval(c) } = {}) {
   c.kernel = mergeKernel(c.kernel);
   const k = c.kernel;
   const read = key => { const v = get(key); return v === undefined || v === '' ? null : v; };
@@ -166,6 +189,8 @@ export function applyKernelEnvironment(c, get) {
   }
   const log = flag('JEV_DECISION_LOG');
   if (log !== null) k.log = log;
+  // After every override: the point mode, maxJudged and chunk set by env count for the check.
+  keepLegacyRetrieval(c, storedRetrieval || retrieval !== null);
 }
 export async function loadConfig(file, env=process.env) {
   assert(typeof file==='string'&&path.isAbsolute(file),'ABSOLUTE_CONFIG_REQUIRED');
