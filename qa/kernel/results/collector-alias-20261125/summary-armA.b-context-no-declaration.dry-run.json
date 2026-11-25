@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "collector": "outcome-collector-3",
+  "dryRun": true,
+  "mode": "state-and-transcripts",
+  "sessions": {
+    "inState": 2,
+    "selected": 1
+  },
+  "delegations": {
+    "seen": 8,
+    "routed": 7,
+    "joined": 8,
+    "unjoined": {},
+    "unrouted": {
+      "route_deferred": 1
+    },
+    "refusedAndReissued": 0,
+    "reroutedAfterRefusal": 7,
+    "repeated": 0,
+    "agentCalls": 15
+  },
+  "skillQuestionMapping": {
+    "decisions": 0,
+    "mapped": 0,
+    "asked": 0,
+    "derived": 0,
+    "unmapped": {},
+    "answersCheckedAgainstLog": 0
+  },
+  "labels": {
+    "written": {},
+    "alreadyPresent": 0,
+    "retracted": {},
+    "unlabelled": {},
+    "indeterminateAccess": {
+      "recursive_search_reaches_skills_folder": 5,
+      "shell_touches_skills_folder": 1
+    }
+  },
+  "observations": {
+    "written": 8,
+    "alreadyPresent": 0,
+    "keptVerified": 0
+  },
+  "evaluations": {
+    "produced": 0,
+    "producedByModelMatch": {
+      "exact": 0,
+      "declared": 0
+    },
+    "withheldTasks": 8,
+    "withheld": {
+      "session_ran_under_default_evaluation_context": 7,
+      "effective_model_alias_undeclared": 7,
+      "delegation_not_routed": 1
+    },
+    "context": "pilot-alias-demo-20261125",
+    "files": [],
+    "imported": false
+  },
+  "modelMatch": {
+    "delegations": {
+      "exact": 0,
+      "declared": 0,
+      "alias-undeclared": 7,
+      "mismatch": 0,
+      "notCompared": 0
+    },
+    "declarationsKnown": true,
+    "undeclared": [
+      {
+        "registryEntry": "claude-light",
+        "backend": "sonnet",
+        "observedModel": "claude-sonnet-5-5",
+        "delegations": 1,
+        "wouldNeed": {
+          "registryEntry": "claude-light",
+          "resolvesTo": [
+            "claude-sonnet-5-5"
+          ]
+        }
+      },
+      {
+        "registryEntry": "claude-standard",
+        "backend": "opus",
+        "observedModel": "claude-opus-5-5",
+        "delegations": 6,
+        "wouldNeed": {
+          "registryEntry": "claude-standard",
+          "resolvesTo": [
+            "claude-opus-5-5"
+          ]
+        }
+      }
+    ],
+    "resolvedModelCheck": {
+      "hookEvent": {
+        "agreed": 0,
+        "disagreed": 0,
+        "absent": 8
+      },
+      "hostResult": {
+        "agreed": 8,
+        "disagreed": 0,
+        "absent": 0
+      }
+    },
+    "note": "NOT ADDED. For each item, the host recorded `observedModel` for a route whose registry entry names `backend`. To have such runs accepted as evidence, the user adds the id to `resolvesTo` of that registry entry after checking that it is the model the entry means, reinstalls, and runs new sessions: a declaration changes the profile fingerprint, so sessions recorded before it stay unimportable."
+  },
+  "verification": {
+    "entries": 8,
+    "matched": 8,
+    "unmatched": 0
+  },
+  "supervisor": {
+    "judged": 0
+  },
+  "delegationIndex": [
+    {
+      "delegationId": "701b06d9aee09ad8b9c3f2f92d99c7a85595b0a0ecfba34d26031996361d03b7",
+      "taskHash": "6e431fa2dfc664cd66465340610300e31dbd51056e59770d93966beee46469f2",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_light_xhigh_ff567b09c6",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "109f68157b0b87b04454da1098fafd4bed4810ff26a799dee31090547142baf0",
+      "taskHash": "4b39ffb543386e14eb60a885934447b7d678c4bbddfdc0d348c20f2b37b29506",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "76ee93b499bfa12faeddc9f429e82720511782286cbc4aee2fc0880036aafd40",
+      "taskHash": "a295882ce3b11bf24517cf4656cc03b65443ce9cbf5ecbdabffe416f2e8df019",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "c7282c4f6ea1c963ad73e2d12145317f3336d146a1d79db90bf6cd0b1361a504",
+      "taskHash": "82280f6186d52aecc34eaf6f2201499d0fe163f44ebe8b11e4267120fb406902",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "166f1cbd200c6efe63155fc7ca1fdf224efb1a95022586a8351a1f2852a4135e",
+      "taskHash": "a9cea8fc67f5f34f5bf033029ebd8c817952e6132ca867340813d8fc7de7ae9f",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "6804980ef222a5f90657054df726ca43dbf16cbdd3168bcb0c4cd3d0690deaf6",
+      "taskHash": "9508a69da53fa2c6d1964dd99462b7bb403f0c903fa2e2cc9bcc5b9782013f79",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "2d84525d11f772c45c7faf141988a29131066581a007561c37e6010f0d854c67",
+      "taskHash": "4a8a67ea4b276f73372aa6bc7f0431d9c9f78e79c8a053ab383c3d7e5cf8e4ba",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "83f66e237d23461e67877b4b5e9ee83e2f4a3bdf1ed20c17881d04da9ea30d13",
+      "taskHash": "506f835cbb59a1b8b3e466198f9a1030f21f4797bbe296943f08db306d6d24b8",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    }
+  ],
+  "warnings": {},
+  "host": {
+    "versions": [
+      "2.1.330"
+    ],
+    "entrypoints": [
+      "claude-desktop"
+    ],
+    "permissionModes": [
+      "auto"
+    ],
+    "subagentTranscripts": 8,
+    "supportedRuntimes": [
+      "claude"
+    ],
+    "codex": "unsupported: no codex transcript was ever observed, so none is parsed"
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "collector": "outcome-collector-3",
+  "dryRun": true,
+  "mode": "state-and-transcripts",
+  "sessions": {
+    "inState": 2,
+    "selected": 1
+  },
+  "delegations": {
+    "seen": 8,
+    "routed": 8,
+    "joined": 8,
+    "unjoined": {},
+    "unrouted": {},
+    "refusedAndReissued": 0,
+    "reroutedAfterRefusal": 8,
+    "repeated": 0,
+    "agentCalls": 16
+  },
+  "skillQuestionMapping": {
+    "decisions": 32,
+    "mapped": 32,
+    "asked": 0,
+    "derived": 32,
+    "unmapped": {},
+    "answersCheckedAgainstLog": 960
+  },
+  "labels": {
+    "written": {
+      "delegation.skills": {
+        "observed-load": 124,
+        "external-verification-with-load": 3,
+        "observed-load-after-injection": 248,
+        "external-verification-with-load-after-injection": 9
+      }
+    },
+    "alreadyPresent": 0,
+    "retracted": {},
+    "unlabelled": {
+      "skills_decision_not_applied_to_launched_call": 16,
+      "skills_access_indeterminate": 4
+    },
+    "indeterminateAccess": {
+      "recursive_search_reaches_skills_folder": 2
+    }
+  },
+  "observations": {
+    "written": 8,
+    "alreadyPresent": 0,
+    "keptVerified": 0
+  },
+  "evaluations": {
+    "produced": 0,
+    "producedByModelMatch": {
+      "exact": 0,
+      "declared": 0
+    },
+    "withheldTasks": 8,
+    "withheld": {
+      "session_ran_under_default_evaluation_context": 8,
+      "effective_model_alias_undeclared": 8
+    },
+    "context": "pilot-alias-demo-20261125",
+    "files": [],
+    "imported": false
+  },
+  "modelMatch": {
+    "delegations": {
+      "exact": 0,
+      "declared": 0,
+      "alias-undeclared": 8,
+      "mismatch": 0,
+      "notCompared": 0
+    },
+    "declarationsKnown": true,
+    "undeclared": [
+      {
+        "registryEntry": "claude-light",
+        "backend": "sonnet",
+        "observedModel": "claude-sonnet-5-5",
+        "delegations": 1,
+        "wouldNeed": {
+          "registryEntry": "claude-light",
+          "resolvesTo": [
+            "claude-sonnet-5-5"
+          ]
+        }
+      },
+      {
+        "registryEntry": "claude-standard",
+        "backend": "opus",
+        "observedModel": "claude-opus-5-5",
+        "delegations": 7,
+        "wouldNeed": {
+          "registryEntry": "claude-standard",
+          "resolvesTo": [
+            "claude-opus-5-5"
+          ]
+        }
+      }
+    ],
+    "resolvedModelCheck": {
+      "hookEvent": {
+        "agreed": 0,
+        "disagreed": 0,
+        "absent": 8
+      },
+      "hostResult": {
+        "agreed": 8,
+        "disagreed": 0,
+        "absent": 0
+      }
+    },
+    "note": "NOT ADDED. For each item, the host recorded `observedModel` for a route whose registry entry names `backend`. To have such runs accepted as evidence, the user adds the id to `resolvesTo` of that registry entry after checking that it is the model the entry means, reinstalls, and runs new sessions: a declaration changes the profile fingerprint, so sessions recorded before it stay unimportable."
+  },
+  "verification": {
+    "entries": 8,
+    "matched": 8,
+    "unmatched": 0
+  },
+  "supervisor": {
+    "judged": 0
+  },
+  "delegationIndex": [
+    {
+      "delegationId": "4cdfb1ecafb4d4d3a1667f79688b3287f0afb903e3bbe08303be25aed3c47eb4",
+      "taskHash": "6e431fa2dfc664cd66465340610300e31dbd51056e59770d93966beee46469f2",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_light_xhigh_ff567b09c6",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "6d73748759866ef5b89107296092d4b6b094f8c6e9f6cf22d6a030fccfc40de4",
+      "taskHash": "4b39ffb543386e14eb60a885934447b7d678c4bbddfdc0d348c20f2b37b29506",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "e64400a87ae0ce5e70b293548a9aa7e5736691b8646bcbf078cef411803ac7eb",
+      "taskHash": "a295882ce3b11bf24517cf4656cc03b65443ce9cbf5ecbdabffe416f2e8df019",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "a35a12cf22d13cd4a761e60c60ea25450ce0a5fe0e7152895b61601ea4421266",
+      "taskHash": "82280f6186d52aecc34eaf6f2201499d0fe163f44ebe8b11e4267120fb406902",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "4acbb682224de8dea086f81fbca6f8cb1b62a4d55f3c14fc4233b8cfb6fb58d6",
+      "taskHash": "a9cea8fc67f5f34f5bf033029ebd8c817952e6132ca867340813d8fc7de7ae9f",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "67f2a33c851697b8e04aec05c46246b9b7cc6f24c75b243108aa24df00925a41",
+      "taskHash": "9508a69da53fa2c6d1964dd99462b7bb403f0c903fa2e2cc9bcc5b9782013f79",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "7bcf4961b17d83ce6d659f5cc0543320b7c838fb582d6e9322c9fef169fdf4cf",
+      "taskHash": "4a8a67ea4b276f73372aa6bc7f0431d9c9f78e79c8a053ab383c3d7e5cf8e4ba",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "ac8a1c3699a4048997215b904dcc2f9a911da8c0dfc897d83d272dfb42b6cc8a",
+      "taskHash": "506f835cbb59a1b8b3e466198f9a1030f21f4797bbe296943f08db306d6d24b8",
+      "routed": true,
+      "joined": true,
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "verified": true,
+      "supersededAttempt": false
+    }
+  ],
+  "warnings": {},
+  "host": {
+    "versions": [
+      "2.1.330"
+    ],
+    "entrypoints": [
+      "claude-desktop"
+    ],
+    "permissionModes": [
+      "auto"
+    ],
+    "subagentTranscripts": 8,
+    "supportedRuntimes": [
+      "claude"
+    ],
+    "codex": "unsupported: no codex transcript was ever observed, so none is parsed"
+  }
+}
