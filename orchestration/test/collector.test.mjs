@@ -1065,7 +1065,7 @@ test('model match kinds: an undeclared alias is withheld and named, a declared i
   aliasRegistry()(withdrawn.registry);
   delete withdrawn.registry.models.find(m => m.id === 'claude-light').resolvesTo;
   const after = await run(d.f, { verification: verificationFor(TASK), config: withdrawn, dryRun: true });
-  assert.deepEqual([after.evaluations.produced, after.evaluations.withheld], [0, { effective_model_alias_undeclared: 1 }]);
+  assert.deepEqual([after.evaluations.produced, after.evaluations.withheld], [0, { effective_model_alias_undeclared: 1, 'importer_refuses:STALE_EVIDENCE_PROFILE': 1 }]);
 
   // 3. A declaration is a list of exact strings: another id of the same family is still undeclared, an unrelated id is a mismatch.
   const near = await reissuedSession(t, { prepare: { registry: aliasRegistry([RESOLVED]) }, sub: { model: 'claude-sonnet-9-8' } });

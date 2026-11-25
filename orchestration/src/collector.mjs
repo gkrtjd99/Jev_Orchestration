@@ -768,6 +768,10 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     // The row states one effective model; attempts on two different accepted ids are not folded into one.
     if (new Set(ran.map(g => g.observation.effective.model)).size > 1) reasons.add('task_ran_on_several_models');
     if (route && !(ident(route.profile) && hex(route.profileFingerprint) && hex(route.projectHash) && typeof route.taskClass === 'string' && route.taskClass)) reasons.add('route_fields_missing');
+    // The importer's stale-profile check, stated here as well so that it is counted next to the other reasons
+    // (the importer itself only sees a row that nothing else withheld): the profile as the given registry
+    // defines it now - declared resolved ids included - must be the one the route was recorded with.
+    if (route && catalog.length && catalog.find(p => p.profileId === route.profile)?.fingerprint !== route.profileFingerprint) reasons.add('importer_refuses:STALE_EVIDENCE_PROFILE');
     for (const g of ran) {
       const e = g.observation.effective;
       if (e.model === null || e.effort === null) reasons.add('effective_setting_not_recorded_by_host');
