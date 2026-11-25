@@ -1,0 +1,112 @@
+{
+  "skills": {
+    "items": 160,
+    "authorLabeled": 160,
+    "blindLabeled": 160,
+    "consensus": 160,
+    "exactSetMatchRate": 1,
+    "anySkillKappa": {
+      "n": 160,
+      "observed": 1,
+      "expected": 0.545,
+      "kappa": 1
+    },
+    "authorNoneTasks": 56,
+    "goldNamesNotInCatalog": {
+      "author": [],
+      "blind": []
+    },
+    "bothLabeled": 160,
+    "issues": {
+      "missingAuthorGold": [],
+      "missingBlindGold": []
+    },
+    "disagreements": []
+  },
+  "supervisor": {
+    "items": 120,
+    "authorLabeled": 120,
+    "blindLabeled": 120,
+    "consensus": 120,
+    "outcomeExactRate": 1,
+    "outcomeKappa": {
+      "n": 120,
+      "observed": 1,
+      "expected": 0.25,
+      "kappa": 1
+    },
+    "evidenceExactRate": 0.9166666666666666,
+    "evidenceMeanAbsDiff": 0.08333333333333333,
+    "authorOutcomeCounts": {
+      "complete": 30,
+      "retry": 30,
+      "replan": 30,
+      "escalate": 30
+    },
+    "bothLabeled": 120,
+    "evidenceBothLabeled": 120,
+    "issues": {
+      "missingAuthorGold": [],
+      "missingBlindGold": []
+    },
+    "consensusOutcomeCounts": {
+      "complete": 30,
+      "retry": 30,
+      "replan": 30,
+      "escalate": 30
+    },
+    "consensusWithEvidence": 110,
+    "evidenceDisagreements": [
+      {
+        "id": "sr-006",
+        "author": 1,
+        "blind": 2
+      },
+      {
+        "id": "sr-017",
+        "author": 1,
+        "blind": 2
+      },
+      {
+        "id": "sr-024",
+        "author": 2,
+        "blind": 1
+      },
+      {
+        "id": "sr-076",
+        "author": 1,
+        "blind": 0
+      },
+      {
+        "id": "sr-087",
+        "author": 1,
+        "blind": 2
+      },
+      {
+        "id": "sr-089",
+        "author": 2,
+        "blind": 1
+      },
+      {
+        "id": "sr-095",
+        "author": 1,
+        "blind": 2
+      },
+      {
+        "id": "sr-110",
+        "author": 1,
+        "blind": 2
+      },
+      {
+        "id": "sr-112",
+        "author": 1,
+        "blind": 2
+      },
+      {
+        "id": "sr-118",
+        "author": 1,
+        "blind": 2
+      }
+    ]
+  }
+}

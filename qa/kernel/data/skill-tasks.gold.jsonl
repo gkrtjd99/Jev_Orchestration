@@ -1,0 +1,160 @@
+{"id":"st-001","gold":["gitlab-ci-pipelines"],"rationale":"Review apps with stop jobs are a GitLab CI-specific pattern the skill documents."}
+{"id":"st-002","gold":["xlsx-modeling"],"rationale":"Robust formula structure in a live workbook is modeling, not data cleaning or profiling."}
+{"id":"st-003","gold":["e2e-playwright"],"rationale":"A multi-page user journey verified in a real browser is an end-to-end Playwright test."}
+{"id":"st-004","gold":[],"rationale":"Routine dead-code removal."}
+{"id":"st-005","gold":[],"rationale":"A trivial shell command."}
+{"id":"st-006","gold":["gitlab-ci-pipelines","load-testing-k6"],"rationale":"GitLab 파이프라인 단계 추가와 임계값이 있는 부하 테스트 설계가 함께 필요하다."}
+{"id":"st-007","gold":[],"rationale":"Reading a stack trace is ordinary debugging."}
+{"id":"st-008","gold":["unit-test-vitest"],"rationale":"함수 단위의 격리된 테스트를 새로 작성하므로 팀의 단위 테스트 규칙이 적용된다."}
+{"id":"st-009","gold":[],"rationale":"작은 동작 수정이다."}
+{"id":"st-010","gold":[],"rationale":"A throwaway script any capable agent writes unaided."}
+{"id":"st-011","gold":["openapi-spec"],"rationale":"Writing the OpenAPI description and regenerating a client is the spec skill's workflow."}
+{"id":"st-012","gold":["dependency-audit"],"rationale":"CVE and license assessment of third-party packages is the dependency audit."}
+{"id":"st-013","gold":["sql-query-tuning"],"rationale":"Diagnosing one slow statement via its plan and indexes is query tuning."}
+{"id":"st-014","gold":[],"rationale":"An image swap that does not touch the Stripe API."}
+{"id":"st-015","gold":["xlsx-modeling"],"rationale":"가정값에 연동되는 수식과 피벗이 있는 엑셀 모델을 만드는 작업이다."}
+{"id":"st-016","gold":["sql-query-tuning"],"rationale":"특정 쿼리의 실행 계획을 분석해 속도를 개선하는 작업이다."}
+{"id":"st-017","gold":[],"rationale":"A routine feature addition with no skill-specific conventions."}
+{"id":"st-018","gold":[],"rationale":"포트 숫자 하나를 바꾸는 수정이다."}
+{"id":"st-019","gold":["secrets-scanning"],"rationale":"보안 점검이라고 했지만 실제 작업은 커밋 기록에서 유출된 자격 증명을 찾고 교체하는 일이다."}
+{"id":"st-020","gold":["docker-image-hardening"],"rationale":"베이스 이미지 교체와 non-root 실행은 이미지 하드닝 작업이다."}
+{"id":"st-021","gold":["a11y-audit"],"rationale":"A WCAG AA review of a flow is the accessibility audit procedure."}
+{"id":"st-022","gold":[],"rationale":"A git history lookup."}
+{"id":"st-023","gold":["terraform-modules"],"rationale":"Factoring duplicated resources into a typed reusable module is module design."}
+{"id":"st-024","gold":[],"rationale":"A small self-contained utility."}
+{"id":"st-025","gold":["engineering-handbook"],"rationale":"새 서비스 저장소의 표준 구조와 등록 절차는 핸드북의 체크리스트에만 있다."}
+{"id":"st-026","gold":[],"rationale":"A trivial endpoint."}
+{"id":"st-027","gold":["css-design-tokens"],"rationale":"Replacing hardcoded colors with themed semantic values is token work even though a component is named."}
+{"id":"st-028","gold":["release-notes"],"rationale":"A customer-facing summary of changes between versions is release notes."}
+{"id":"st-029","gold":[],"rationale":"A simple file reorganization."}
+{"id":"st-030","gold":["k8s-manifests"],"rationale":"클러스터에 워크로드를 올리는 매니페스트를 규칙에 맞게 작성해야 한다."}
+{"id":"st-031","gold":["docx-redline"],"rationale":"상대방이 수락·거부할 수 있는 워드 수정은 변경 내용 추적 처리가 필요하다."}
+{"id":"st-032","gold":[],"rationale":"A routine refactor."}
+{"id":"st-033","gold":["pdf-report-builder"],"rationale":"Form answers are only the data; the deliverable is a newly rendered branded PDF."}
+{"id":"st-034","gold":["github-actions-ci"],"rationale":"Matrix, caching and concurrency changes in a workflow file are covered by the GitHub Actions skill."}
+{"id":"st-035","gold":["postgres-backup-restore"],"rationale":"Moving a whole database between hosts by dump and verified restore is backup/restore, not schema migration."}
+{"id":"st-036","gold":["i18n-extraction","korean-style-guide"],"rationale":"문자열 추출은 국제화 작업이고 한국어 원문 수정은 문체 가이드가 필요하다."}
+{"id":"st-037","gold":[],"rationale":"단순 검색과 집계다."}
+{"id":"st-038","gold":[],"rationale":"A small readability refactor."}
+{"id":"st-039","gold":["github-actions-ci"],"rationale":"GitHub 저장소의 PR 자동 검사는 Actions 워크플로 작성이다."}
+{"id":"st-040","gold":["security-code-review","secrets-scanning"],"rationale":"코드 취약점 검토와 커밋 기록의 자격 증명 탐지를 모두 요구한다."}
+{"id":"st-041","gold":["openapi-spec","api-contract-testing"],"rationale":"One part is authoring the OpenAPI description, the other is Pact provider verification."}
+{"id":"st-042","gold":["xlsx-modeling"],"rationale":"A live formula-driven Excel model with assumptions and scenarios is the skill's core case."}
+{"id":"st-043","gold":["github-actions-ci"],"rationale":"The thing being authored is a GitHub Actions workflow; the GitLab file is only the reference."}
+{"id":"st-044","gold":["secrets-scanning"],"rationale":"Searching history for a leaked key and planning rotation is the secrets response procedure."}
+{"id":"st-045","gold":[],"rationale":"Comparing documentation with code is ordinary analysis."}
+{"id":"st-046","gold":["load-testing-k6"],"rationale":"The flow wording suggests E2E, but the question is behavior under concurrency."}
+{"id":"st-047","gold":[],"rationale":"폴더 이름 변경일 뿐 테스트를 작성하는 일이 아니다."}
+{"id":"st-048","gold":[],"rationale":"Branch housekeeping, not cutting a release or writing notes."}
+{"id":"st-049","gold":[],"rationale":"Only a link to a PDF is removed; no PDF is processed."}
+{"id":"st-050","gold":["css-design-tokens"],"rationale":"Adding a theme purely at the semantic token layer is what the token skill prescribes."}
+{"id":"st-051","gold":["docker-image-hardening","github-actions-ci"],"rationale":"The image rebuild is hardening work and the publish pipeline is a GitHub Actions workflow."}
+{"id":"st-052","gold":["sql-migration"],"rationale":"An online schema change with backfill and rollback on a huge table needs the expand/contract procedure."}
+{"id":"st-053","gold":["pdf-extract"],"rationale":"스캔본이 섞인 PDF에서 값을 읽어 내는 작업이라 OCR·추출 절차가 필요하다."}
+{"id":"st-054","gold":[],"rationale":"단순 확인 작업이다."}
+{"id":"st-055","gold":["ab-test-analysis"],"rationale":"실험 결과의 유의성과 검정력을 판단하는 A/B 분석이다."}
+{"id":"st-056","gold":["pdf-forms"],"rationale":"PDF 양식 필드와 체크박스를 데이터로 채우는 작업이다."}
+{"id":"st-057","gold":["postgres-backup-restore","sql-migration"],"rationale":"복원 검증된 백업과 무중단 스키마 변경 절차가 둘 다 필요하다."}
+{"id":"st-058","gold":["pdf-report-builder"],"rationale":"A freshly rendered, branded PDF from a template needs the report-rendering conventions."}
+{"id":"st-059","gold":["sql-query-tuning"],"rationale":"백업이 언급되지만 손볼 대상은 조회 쿼리와 인덱스다."}
+{"id":"st-060","gold":["csv-cleaning","data-profiling"],"rationale":"깨진 CSV 복구 후 분포·결측 프로파일링까지 요청한다."}
+{"id":"st-061","gold":[],"rationale":"Code reading and summarizing needs no skill."}
+{"id":"st-062","gold":["web-perf-budget"],"rationale":"An LCP regression against the budget calls for the phase-attribution and bundle-diff method."}
+{"id":"st-063","gold":["stripe-integration"],"rationale":"Stripe 구독과 일할 계산(proration) 모델링이 필요한 작업이다."}
+{"id":"st-064","gold":["data-profiling"],"rationale":"A read-only description of an unfamiliar dataset's shape and quality is profiling."}
+{"id":"st-065","gold":["docker-image-hardening"],"rationale":"Reducing image size and dropping root is image hardening."}
+{"id":"st-066","gold":["terraform-modules","k8s-manifests"],"rationale":"It needs a reusable Terraform module and Kubernetes manifests with overlays."}
+{"id":"st-067","gold":["sql-migration","sql-query-tuning"],"rationale":"The online repartitioning is a live schema migration and the report rewrites are plan-driven query tuning."}
+{"id":"st-068","gold":[],"rationale":"A trivial Makefile edit."}
+{"id":"st-069","gold":[],"rationale":"A general SQL concept question, not tuning or migrating anything."}
+{"id":"st-070","gold":["pdf-extract","xlsx-modeling"],"rationale":"Values must be OCR-extracted from PDFs and then delivered as a live formula workbook."}
+{"id":"st-071","gold":["stripe-integration"],"rationale":"Metered usage and subscription lifecycle are Stripe billing-object work."}
+{"id":"st-072","gold":["security-code-review"],"rationale":"Tokens and keys are mentioned, but the task is reviewing code logic for vulnerabilities."}
+{"id":"st-073","gold":["korean-style-guide"],"rationale":"번역 파일을 다루지만 작업은 한국어 문장 품질 개선이다."}
+{"id":"st-074","gold":["sql-migration"],"rationale":"The slowness is a locking DDL change that needs the online migration technique, not query tuning."}
+{"id":"st-075","gold":["i18n-extraction"],"rationale":"하드코딩 문자열 추출과 복수형·날짜 로케일 처리는 국제화 작업이다."}
+{"id":"st-076","gold":[],"rationale":"개발자용 콘솔 메시지 한 줄을 추가하는 일반 수정이다."}
+{"id":"st-077","gold":[],"rationale":"README의 URL 수정일 뿐 워크플로를 건드리지 않는다."}
+{"id":"st-078","gold":[],"rationale":"A trivial config file."}
+{"id":"st-079","gold":[],"rationale":"일반 지식으로 답할 수 있는 설명 요청이다."}
+{"id":"st-080","gold":["security-code-review"],"rationale":"An attacker-perspective review of an upload endpoint is security code review."}
+{"id":"st-081","gold":["dataviz-charts"],"rationale":"A chart for a deck should follow the house chart style and export sizes."}
+{"id":"st-082","gold":[],"rationale":"Debugging one existing failing test is ordinary work; test-authoring conventions do not change it."}
+{"id":"st-083","gold":["openapi-spec"],"rationale":"서비스 간 계약 검증이 아니라 API 명세 작성만 요구한다."}
+{"id":"st-084","gold":["pdf-extract"],"rationale":"보고서 생성이 아니라 기존 PDF에서 표를 추출하는 작업이다."}
+{"id":"st-085","gold":[],"rationale":"Routine documentation comments."}
+{"id":"st-086","gold":["docx-redline"],"rationale":"Reviewable Word edits and comment replies require tracked-change XML handling."}
+{"id":"st-087","gold":[],"rationale":"General reasoning about a small function."}
+{"id":"st-088","gold":["ab-test-analysis"],"rationale":"Deciding whether a variant beat control, with power, requires the experiment analysis method."}
+{"id":"st-089","gold":["react-component-patterns","css-design-tokens"],"rationale":"컴포넌트 변형 추가는 컴포넌트 규칙을, 테마별 색 정의는 토큰 규칙을 따른다."}
+{"id":"st-090","gold":["release-notes"],"rationale":"릴리스 자체는 끝났고 고객용 변경 사항 작성만 남았다."}
+{"id":"st-091","gold":["csv-cleaning"],"rationale":"It is a spreadsheet export, but the work is repairing a delimited file for loading."}
+{"id":"st-092","gold":["pdf-forms"],"rationale":"Making a static PDF fillable and signable is form work, not report rendering or extraction."}
+{"id":"st-093","gold":["stripe-integration","webhook-receiver"],"rationale":"Interpreting Stripe billing events and building a safe, idempotent receiver each need their own skill."}
+{"id":"st-094","gold":[],"rationale":"일반적인 diff 요약이다."}
+{"id":"st-095","gold":["csv-cleaning"],"rationale":"Repairing delimiter, preamble, date and duplicate problems in a delimited export is the cleaning workflow."}
+{"id":"st-096","gold":["postgres-backup-restore"],"rationale":"특정 시점으로 단일 테이블을 복구하는 일은 시점 복구 절차를 따라야 한다."}
+{"id":"st-097","gold":["react-component-patterns"],"rationale":"A new shared UI component must follow the package's controlled/uncontrolled, ref and slot conventions."}
+{"id":"st-098","gold":["react-component-patterns"],"rationale":"공용 패키지의 기존 컴포넌트 규칙에 맞춰 새 컴포넌트를 만드는 작업이다."}
+{"id":"st-099","gold":[],"rationale":"Writing an announcement does not involve any database procedure."}
+{"id":"st-100","gold":["webhook-receiver"],"rationale":"결제 관련이지만 Stripe가 아니며 문제는 수신 측의 중복 처리(멱등성)다."}
+{"id":"st-101","gold":[],"rationale":"문서 문장 삭제이며 엑셀 파일을 다루지 않는다."}
+{"id":"st-102","gold":[],"rationale":"코드 비교와 분석으로 특별한 절차가 필요하지 않다."}
+{"id":"st-103","gold":["pdf-forms"],"rationale":"Filling template fields from data and flattening the result is the form-filling workflow."}
+{"id":"st-104","gold":["e2e-playwright"],"rationale":"여러 화면에 걸친 사용자 흐름을 브라우저에서 검증하는 E2E 테스트다."}
+{"id":"st-105","gold":["pdf-extract"],"rationale":"Reading tables back out of scanned, rotated PDF pages is exactly the OCR and table-extraction procedure the skill defines."}
+{"id":"st-106","gold":["oauth-oidc-flows"],"rationale":"Third-party sign-in for a CLI requires choosing and implementing the right OAuth flow."}
+{"id":"st-107","gold":["postgres-backup-restore"],"rationale":"Restoring into a scratch instance and verifying it is the backup/restore procedure."}
+{"id":"st-108","gold":[],"rationale":"파일 이름 변경이며 스키마나 쿼리와 무관하다."}
+{"id":"st-109","gold":[],"rationale":"일반적인 디버깅이다."}
+{"id":"st-110","gold":["sql-query-tuning"],"rationale":"The migration is done; the question is why the planner ignores the index."}
+{"id":"st-111","gold":[],"rationale":"일반 문서 보완이다."}
+{"id":"st-112","gold":["unit-test-vitest"],"rationale":"New isolated tests for a module should follow the team's Vitest layout, table and coverage rules."}
+{"id":"st-113","gold":[],"rationale":"A simple comparison."}
+{"id":"st-114","gold":["korean-style-guide"],"rationale":"한국어 사용자 문구의 말투를 통일하려면 문체 가이드가 기준이 된다."}
+{"id":"st-115","gold":["webhook-receiver"],"rationale":"An inbound third-party callback with retries and reordering needs the idempotent receiver pattern."}
+{"id":"st-116","gold":["a11y-audit"],"rationale":"라이트하우스가 언급되지만 감점 원인은 성능이 아니라 접근성 항목이다."}
+{"id":"st-117","gold":[],"rationale":"PDF라는 단어만 나올 뿐 파일 하나를 읽으면 되는 질문이다."}
+{"id":"st-118","gold":["api-contract-testing"],"rationale":"Failing the provider build on broken consumer expectations is consumer-driven contract testing."}
+{"id":"st-119","gold":["semver-release"],"rationale":"버전 결정, 태그, 패키지 배포로 이어지는 릴리스 절차다."}
+{"id":"st-120","gold":["pdf-extract"],"rationale":"Despite the word report, the job is reading values out of an existing PDF."}
+{"id":"st-121","gold":["terraform-state-ops"],"rationale":"Adopting an existing resource without recreation is a state import operation."}
+{"id":"st-122","gold":["dependency-audit"],"rationale":"Triage of third-party advisories by reachability is dependency audit, not review of our own code."}
+{"id":"st-123","gold":[],"rationale":"내부용 제목 목록일 뿐 고객용 릴리스 노트가 아니다."}
+{"id":"st-124","gold":[],"rationale":"코드 내 enum 추가이며 결제 연동 지식이 필요하지 않다."}
+{"id":"st-125","gold":[],"rationale":"한 줄짜리 설정 추가다."}
+{"id":"st-126","gold":[],"rationale":"A small localized bug fix."}
+{"id":"st-127","gold":["unit-test-vitest"],"rationale":"Despite \"end to end\", this is branch coverage of one function in isolation."}
+{"id":"st-128","gold":["semver-release"],"rationale":"문서는 끝났고 버전 결정과 배포 절차만 필요하다."}
+{"id":"st-129","gold":["pdf-report-builder","dataviz-charts"],"rationale":"회사 양식의 PDF 렌더링과 그래프 작성 규칙이 모두 적용된다."}
+{"id":"st-130","gold":["api-contract-testing"],"rationale":"Pinning consumer expectations and verifying them in the provider pipeline is contract testing, not unit or browser testing."}
+{"id":"st-131","gold":["gitlab-ci-pipelines"],"rationale":"GitHub Actions는 비교 대상일 뿐이고 고칠 대상은 GitLab CI 캐시 설정이다."}
+{"id":"st-132","gold":[],"rationale":"A validation regex; Korean copywriting guidance is irrelevant."}
+{"id":"st-133","gold":["terraform-state-ops"],"rationale":"Splitting backends without touching resources is a state operation, not module design."}
+{"id":"st-134","gold":["k8s-manifests"],"rationale":"Workload manifests with overlays must follow the cluster conventions in the skill."}
+{"id":"st-135","gold":[],"rationale":"A one-line config change."}
+{"id":"st-136","gold":[],"rationale":"A one-word typo fix; no image hardening is involved."}
+{"id":"st-137","gold":["stripe-integration"],"rationale":"수신 엔드포인트가 아니라 Stripe 쿠폰·환불 객체를 다루는 작업이다."}
+{"id":"st-138","gold":[],"rationale":"기계적인 린트 정리다."}
+{"id":"st-139","gold":[],"rationale":"A general explanation, no module or state work."}
+{"id":"st-140","gold":["a11y-audit"],"rationale":"스크린 리더 사용성 문제 점검과 수정은 접근성 감사 절차에 해당한다."}
+{"id":"st-141","gold":[],"rationale":"A trivial text edit."}
+{"id":"st-142","gold":["data-profiling","dataviz-charts"],"rationale":"Exploring an unfamiliar dataset is profiling and the figures should follow the chart style."}
+{"id":"st-143","gold":["e2e-playwright"],"rationale":"부하가 아니라 화면 흐름이 동작하는지를 브라우저로 확인하려는 것이다."}
+{"id":"st-144","gold":["dependency-audit"],"rationale":"의존성의 라이선스와 취약점을 조사하는 의존성 감사다."}
+{"id":"st-145","gold":["load-testing-k6"],"rationale":"A throughput question with latency thresholds is a load test design."}
+{"id":"st-146","gold":["e2e-playwright","a11y-audit"],"rationale":"It is a browser journey test whose assertions depend on accessibility criteria."}
+{"id":"st-147","gold":[],"rationale":"로그 포맷 수정으로 국제화 작업이 아니다."}
+{"id":"st-148","gold":["sql-migration"],"rationale":"대형 운영 테이블의 무중단 타입 변경과 제약 추가는 마이그레이션 절차가 필요하다."}
+{"id":"st-149","gold":[],"rationale":"Ordinary git troubleshooting."}
+{"id":"st-150","gold":[],"rationale":"Counting rows of a well-formed CSV needs no cleaning or profiling procedure."}
+{"id":"st-151","gold":[],"rationale":"A mechanical rename needs no specialized procedure."}
+{"id":"st-152","gold":["semver-release","release-notes"],"rationale":"Shipping the version and writing customer notes with migration guidance are both required."}
+{"id":"st-153","gold":["terraform-state-ops"],"rationale":"실제 리소스를 건드리지 않고 주소 변경을 state에 반영하는 작업이다."}
+{"id":"st-154","gold":["react-component-patterns"],"rationale":"The gap is in the component API conventions, not in styling or tokens."}
+{"id":"st-155","gold":[],"rationale":"내부 문서 맞춤법 교정이며 제품 문구 가이드 대상이 아니다."}
+{"id":"st-156","gold":["e2e-playwright"],"rationale":"Only a real-browser test of the rendered page can catch an overlapping element."}
+{"id":"st-157","gold":[],"rationale":"상수 하나를 바꾸는 단순 수정이다."}
+{"id":"st-158","gold":[],"rationale":"A plain code search."}
+{"id":"st-159","gold":["i18n-extraction"],"rationale":"문구 자체가 아니라 복수형 메시지 포맷 처리가 필요하다."}
+{"id":"st-160","gold":["data-profiling"],"rationale":"A read-only quality assessment is profiling even though cleaning is mentioned."}

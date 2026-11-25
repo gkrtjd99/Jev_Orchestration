@@ -1,0 +1,3246 @@
+{
+  "schema": 1,
+  "runId": "20261125-local-only",
+  "startedAt": "2026-11-25T04:22:50.316Z",
+  "finishedAt": "2026-11-25T04:22:50.868Z",
+  "live": true,
+  "transport": "live",
+  "remoteArms": false,
+  "product": {
+    "version": "3.2.0",
+    "git": {
+      "commit": "bbb7452556d35e76babc6ceda2c8e66ca2c06a7f",
+      "branch": "qa/kernel-eval",
+      "dirty": false
+    }
+  },
+  "node": "v24.19.0",
+  "options": {
+    "arms": [
+      "local"
+    ],
+    "suites": [
+      "skills"
+    ],
+    "limit": null,
+    "timeoutMs": 20000,
+    "concurrency": 4,
+    "retryTransportErrorsOnce": true,
+    "maxRequestsPerArm": 3000,
+    "openaiModelOverride": null,
+    "dataDir": "qa/kernel/data"
+  },
+  "plan": [
+    {
+      "suite": "skills",
+      "arm": "local"
+    }
+  ],
+  "dataset": {
+    "skills": {
+      "items": 160,
+      "authorLabeled": 160,
+      "blindLabeled": 160,
+      "consensus": 160,
+      "exactSetMatchRate": 1,
+      "anySkillKappa": {
+        "n": 160,
+        "observed": 1,
+        "expected": 0.545,
+        "kappa": 1
+      },
+      "authorNoneTasks": 56,
+      "goldNamesNotInCatalog": {
+        "author": [],
+        "blind": []
+      },
+      "bothLabeled": 160,
+      "issues": {
+        "missingAuthorGold": [],
+        "missingBlindGold": []
+      },
+      "catalog": {
+        "skills": 40,
+        "skipped": 0,
+        "skippedReasons": []
+      },
+      "byLanguage": {
+        "en": 96,
+        "ko": 64
+      },
+      "byCategory": {
+        "single": 56,
+        "confusable": 32,
+        "none": 56,
+        "multi": 16
+      }
+    }
+  },
+  "retrieval": {
+    "catalogSkills": 40,
+    "consensus": [
+      {
+        "k": 4,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 82,
+          "inTopKWithPositiveScore": 79,
+          "tasks": 104,
+          "tasksAllInTopK": 70,
+          "goldSkillRecall": 0.6833333333333333,
+          "taskAllGoldRetrievedRate": 0.6730769230769231
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 64,
+            "inTopKWithPositiveScore": 64,
+            "tasks": 62,
+            "tasksAllInTopK": 55,
+            "goldSkillRecall": 0.9014084507042254,
+            "taskAllGoldRetrievedRate": 0.8870967741935484
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 18,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 15,
+            "goldSkillRecall": 0.3673469387755102,
+            "taskAllGoldRetrievedRate": 0.35714285714285715
+          }
+        }
+      },
+      {
+        "k": 8,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 85,
+          "inTopKWithPositiveScore": 80,
+          "tasks": 104,
+          "tasksAllInTopK": 72,
+          "goldSkillRecall": 0.7083333333333334,
+          "taskAllGoldRetrievedRate": 0.6923076923076923
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 65,
+            "inTopKWithPositiveScore": 65,
+            "tasks": 62,
+            "tasksAllInTopK": 56,
+            "goldSkillRecall": 0.9154929577464789,
+            "taskAllGoldRetrievedRate": 0.9032258064516129
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 20,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 16,
+            "goldSkillRecall": 0.40816326530612246,
+            "taskAllGoldRetrievedRate": 0.38095238095238093
+          }
+        }
+      },
+      {
+        "k": 12,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 90,
+          "inTopKWithPositiveScore": 82,
+          "tasks": 104,
+          "tasksAllInTopK": 77,
+          "goldSkillRecall": 0.75,
+          "taskAllGoldRetrievedRate": 0.7403846153846154
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 67,
+            "inTopKWithPositiveScore": 67,
+            "tasks": 62,
+            "tasksAllInTopK": 58,
+            "goldSkillRecall": 0.9436619718309859,
+            "taskAllGoldRetrievedRate": 0.9354838709677419
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 23,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 19,
+            "goldSkillRecall": 0.46938775510204084,
+            "taskAllGoldRetrievedRate": 0.4523809523809524
+          }
+        }
+      },
+      {
+        "k": 16,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 95,
+          "inTopKWithPositiveScore": 83,
+          "tasks": 104,
+          "tasksAllInTopK": 82,
+          "goldSkillRecall": 0.7916666666666666,
+          "taskAllGoldRetrievedRate": 0.7884615384615384
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 69,
+            "inTopKWithPositiveScore": 68,
+            "tasks": 62,
+            "tasksAllInTopK": 60,
+            "goldSkillRecall": 0.971830985915493,
+            "taskAllGoldRetrievedRate": 0.967741935483871
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 26,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 22,
+            "goldSkillRecall": 0.5306122448979592,
+            "taskAllGoldRetrievedRate": 0.5238095238095238
+          }
+        }
+      },
+      {
+        "k": 40,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 120,
+          "inTopKWithPositiveScore": 83,
+          "tasks": 104,
+          "tasksAllInTopK": 104,
+          "goldSkillRecall": 1,
+          "taskAllGoldRetrievedRate": 1
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 71,
+            "inTopKWithPositiveScore": 68,
+            "tasks": 62,
+            "tasksAllInTopK": 62,
+            "goldSkillRecall": 1,
+            "taskAllGoldRetrievedRate": 1
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 49,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 42,
+            "goldSkillRecall": 1,
+            "taskAllGoldRetrievedRate": 1
+          }
+        }
+      }
+    ],
+    "author": [
+      {
+        "k": 4,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 82,
+          "inTopKWithPositiveScore": 79,
+          "tasks": 104,
+          "tasksAllInTopK": 70,
+          "goldSkillRecall": 0.6833333333333333,
+          "taskAllGoldRetrievedRate": 0.6730769230769231
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 64,
+            "inTopKWithPositiveScore": 64,
+            "tasks": 62,
+            "tasksAllInTopK": 55,
+            "goldSkillRecall": 0.9014084507042254,
+            "taskAllGoldRetrievedRate": 0.8870967741935484
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 18,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 15,
+            "goldSkillRecall": 0.3673469387755102,
+            "taskAllGoldRetrievedRate": 0.35714285714285715
+          }
+        }
+      },
+      {
+        "k": 8,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 85,
+          "inTopKWithPositiveScore": 80,
+          "tasks": 104,
+          "tasksAllInTopK": 72,
+          "goldSkillRecall": 0.7083333333333334,
+          "taskAllGoldRetrievedRate": 0.6923076923076923
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 65,
+            "inTopKWithPositiveScore": 65,
+            "tasks": 62,
+            "tasksAllInTopK": 56,
+            "goldSkillRecall": 0.9154929577464789,
+            "taskAllGoldRetrievedRate": 0.9032258064516129
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 20,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 16,
+            "goldSkillRecall": 0.40816326530612246,
+            "taskAllGoldRetrievedRate": 0.38095238095238093
+          }
+        }
+      },
+      {
+        "k": 12,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 90,
+          "inTopKWithPositiveScore": 82,
+          "tasks": 104,
+          "tasksAllInTopK": 77,
+          "goldSkillRecall": 0.75,
+          "taskAllGoldRetrievedRate": 0.7403846153846154
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 67,
+            "inTopKWithPositiveScore": 67,
+            "tasks": 62,
+            "tasksAllInTopK": 58,
+            "goldSkillRecall": 0.9436619718309859,
+            "taskAllGoldRetrievedRate": 0.9354838709677419
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 23,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 19,
+            "goldSkillRecall": 0.46938775510204084,
+            "taskAllGoldRetrievedRate": 0.4523809523809524
+          }
+        }
+      },
+      {
+        "k": 16,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 95,
+          "inTopKWithPositiveScore": 83,
+          "tasks": 104,
+          "tasksAllInTopK": 82,
+          "goldSkillRecall": 0.7916666666666666,
+          "taskAllGoldRetrievedRate": 0.7884615384615384
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 69,
+            "inTopKWithPositiveScore": 68,
+            "tasks": 62,
+            "tasksAllInTopK": 60,
+            "goldSkillRecall": 0.971830985915493,
+            "taskAllGoldRetrievedRate": 0.967741935483871
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 26,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 22,
+            "goldSkillRecall": 0.5306122448979592,
+            "taskAllGoldRetrievedRate": 0.5238095238095238
+          }
+        }
+      },
+      {
+        "k": 40,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 120,
+          "inTopKWithPositiveScore": 83,
+          "tasks": 104,
+          "tasksAllInTopK": 104,
+          "goldSkillRecall": 1,
+          "taskAllGoldRetrievedRate": 1
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 71,
+            "inTopKWithPositiveScore": 68,
+            "tasks": 62,
+            "tasksAllInTopK": 62,
+            "goldSkillRecall": 1,
+            "taskAllGoldRetrievedRate": 1
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 49,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 42,
+            "goldSkillRecall": 1,
+            "taskAllGoldRetrievedRate": 1
+          }
+        }
+      }
+    ],
+    "blind": [
+      {
+        "k": 4,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 82,
+          "inTopKWithPositiveScore": 79,
+          "tasks": 104,
+          "tasksAllInTopK": 70,
+          "goldSkillRecall": 0.6833333333333333,
+          "taskAllGoldRetrievedRate": 0.6730769230769231
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 64,
+            "inTopKWithPositiveScore": 64,
+            "tasks": 62,
+            "tasksAllInTopK": 55,
+            "goldSkillRecall": 0.9014084507042254,
+            "taskAllGoldRetrievedRate": 0.8870967741935484
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 18,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 15,
+            "goldSkillRecall": 0.3673469387755102,
+            "taskAllGoldRetrievedRate": 0.35714285714285715
+          }
+        }
+      },
+      {
+        "k": 8,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 85,
+          "inTopKWithPositiveScore": 80,
+          "tasks": 104,
+          "tasksAllInTopK": 72,
+          "goldSkillRecall": 0.7083333333333334,
+          "taskAllGoldRetrievedRate": 0.6923076923076923
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 65,
+            "inTopKWithPositiveScore": 65,
+            "tasks": 62,
+            "tasksAllInTopK": 56,
+            "goldSkillRecall": 0.9154929577464789,
+            "taskAllGoldRetrievedRate": 0.9032258064516129
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 20,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 16,
+            "goldSkillRecall": 0.40816326530612246,
+            "taskAllGoldRetrievedRate": 0.38095238095238093
+          }
+        }
+      },
+      {
+        "k": 12,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 90,
+          "inTopKWithPositiveScore": 82,
+          "tasks": 104,
+          "tasksAllInTopK": 77,
+          "goldSkillRecall": 0.75,
+          "taskAllGoldRetrievedRate": 0.7403846153846154
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 67,
+            "inTopKWithPositiveScore": 67,
+            "tasks": 62,
+            "tasksAllInTopK": 58,
+            "goldSkillRecall": 0.9436619718309859,
+            "taskAllGoldRetrievedRate": 0.9354838709677419
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 23,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 19,
+            "goldSkillRecall": 0.46938775510204084,
+            "taskAllGoldRetrievedRate": 0.4523809523809524
+          }
+        }
+      },
+      {
+        "k": 16,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 95,
+          "inTopKWithPositiveScore": 83,
+          "tasks": 104,
+          "tasksAllInTopK": 82,
+          "goldSkillRecall": 0.7916666666666666,
+          "taskAllGoldRetrievedRate": 0.7884615384615384
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 69,
+            "inTopKWithPositiveScore": 68,
+            "tasks": 62,
+            "tasksAllInTopK": 60,
+            "goldSkillRecall": 0.971830985915493,
+            "taskAllGoldRetrievedRate": 0.967741935483871
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 26,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 22,
+            "goldSkillRecall": 0.5306122448979592,
+            "taskAllGoldRetrievedRate": 0.5238095238095238
+          }
+        }
+      },
+      {
+        "k": 40,
+        "overall": {
+          "goldSkills": 120,
+          "inTopK": 120,
+          "inTopKWithPositiveScore": 83,
+          "tasks": 104,
+          "tasksAllInTopK": 104,
+          "goldSkillRecall": 1,
+          "taskAllGoldRetrievedRate": 1
+        },
+        "byLanguage": {
+          "en": {
+            "goldSkills": 71,
+            "inTopK": 71,
+            "inTopKWithPositiveScore": 68,
+            "tasks": 62,
+            "tasksAllInTopK": 62,
+            "goldSkillRecall": 1,
+            "taskAllGoldRetrievedRate": 1
+          },
+          "ko": {
+            "goldSkills": 49,
+            "inTopK": 49,
+            "inTopKWithPositiveScore": 15,
+            "tasks": 42,
+            "tasksAllInTopK": 42,
+            "goldSkillRecall": 1,
+            "taskAllGoldRetrievedRate": 1
+          }
+        }
+      }
+    ]
+  },
+  "skills": {
+    "local": {
+      "judges": [
+        "local"
+      ],
+      "escalateBelow": 0,
+      "thresholds": {
+        "need": 0.5,
+        "autoLoad": 0.9,
+        "suggest": 0.5,
+        "maxCandidates": 8,
+        "maxLoaded": 3,
+        "maxSuggested": 3
+      },
+      "operations": {
+        "items": 160,
+        "judgeCalls": 160,
+        "itemsWithoutJudgeCall": 0,
+        "retriedTransportErrors": 0,
+        "failuresFirstPassByCode": {},
+        "failedItems": 0,
+        "failureRate": 0,
+        "failuresByCode": {},
+        "timeouts": 0,
+        "latencyMs": {
+          "n": 160,
+          "p50": 0.06683300000000258,
+          "p90": 0.09758400000001188,
+          "p95": 0.1189160000000129,
+          "max": 1.7769580000000076,
+          "mean": 0.1013872000000001
+        },
+        "latencySuccessfulMs": {
+          "n": 160,
+          "p50": 0.06683300000000258,
+          "p90": 0.09758400000001188,
+          "p95": 0.1189160000000129,
+          "max": 1.7769580000000076,
+          "mean": 0.1013872000000001
+        },
+        "latencyByJudgeMs": {
+          "local": {
+            "n": 160,
+            "p50": 0.048583000000007814,
+            "p90": 0.06979199999997832,
+            "p95": 0.0817079999999919,
+            "max": 1.6797500000000127,
+            "mean": 0.08074793124999946
+          }
+        },
+        "shareOverBudgetMs": {
+          "1200": 0,
+          "2500": 0,
+          "3000": 0,
+          "5000": 0
+        },
+        "tokens": {
+          "responsesWithUsage": 160,
+          "inputTokens": 0,
+          "outputTokens": 0
+        },
+        "http": {
+          "requests": 0,
+          "byHost": {},
+          "byStatus": {},
+          "threw": 0,
+          "wireUsage": {
+            "responsesWithUsage": 0,
+            "fieldsSeen": [],
+            "inputTokens": null,
+            "outputTokens": null
+          }
+        },
+        "chain": null,
+        "context": {
+          "itemsWithInjection": 46,
+          "meanInjectedChars": 413.60869565217394,
+          "maxInjectedChars": 573,
+          "meanCharsOverAllItems": 118.9125,
+          "wholeCatalogListingChars": 9589,
+          "catalogSkills": 40,
+          "injectedToCatalogRatio": 0.04313366311942579
+        }
+      },
+      "gold": {
+        "consensus": {
+          "n": 160,
+          "failedItems": 0,
+          "retrievalAtMaxCandidates": {
+            "goldSkills": 120,
+            "inCandidates": 85,
+            "tasks": 104,
+            "tasksAllGoldInCandidates": 72,
+            "goldSkillRecall": 0.7083333333333334,
+            "taskAllGoldRetrievedRate": 0.6923076923076923
+          },
+          "needGate": {
+            "n": 160,
+            "tn": 55,
+            "accuracy": 0.625,
+            "tp": 45,
+            "fp": 1,
+            "fn": 59,
+            "precision": 0.9782608695652174,
+            "recall": 0.4326923076923077,
+            "f1": 0.6
+          },
+          "loaded": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 120,
+            "precision": null,
+            "recall": 0,
+            "f1": null,
+            "exactSetMatches": 56,
+            "exactSetMatchRate": 0.35
+          },
+          "loadedOrSuggested": {
+            "tp": 41,
+            "fp": 23,
+            "fn": 79,
+            "precision": 0.640625,
+            "recall": 0.3416666666666667,
+            "f1": 0.44565217391304346,
+            "exactSetMatches": 80,
+            "exactSetMatchRate": 0.5
+          },
+          "noneTasks": {
+            "tasks": 56,
+            "anyLoaded": 0,
+            "anyLoadedOrSuggested": 1,
+            "falseInjectionRate": 0,
+            "falseInjectionOrSuggestionRate": 0.017857142857142856
+          },
+          "goldTasks": {
+            "tasks": 104,
+            "noGoldSkillLoaded": 104,
+            "notAllGoldLoaded": 104,
+            "noGoldSkillLoadedOrSuggested": 66,
+            "notAllGoldLoadedOrSuggested": 68,
+            "missRate": 1,
+            "incompleteRate": 1,
+            "missRateCountingSuggested": 0.6346153846153846,
+            "incompleteRateCountingSuggested": 0.6538461538461539
+          },
+          "goldSkillNotLoadedByStage": {
+            "suggested": 41,
+            "need_gate": 37,
+            "retrieval": 35,
+            "below_threshold": 7
+          },
+          "answeredOnly": {
+            "n": 160,
+            "failedItems": 0,
+            "retrievalAtMaxCandidates": {
+              "goldSkills": 120,
+              "inCandidates": 85,
+              "tasks": 104,
+              "tasksAllGoldInCandidates": 72,
+              "goldSkillRecall": 0.7083333333333334,
+              "taskAllGoldRetrievedRate": 0.6923076923076923
+            },
+            "needGate": {
+              "n": 160,
+              "tn": 55,
+              "accuracy": 0.625,
+              "tp": 45,
+              "fp": 1,
+              "fn": 59,
+              "precision": 0.9782608695652174,
+              "recall": 0.4326923076923077,
+              "f1": 0.6
+            },
+            "loaded": {
+              "tp": 0,
+              "fp": 0,
+              "fn": 120,
+              "precision": null,
+              "recall": 0,
+              "f1": null,
+              "exactSetMatches": 56,
+              "exactSetMatchRate": 0.35
+            },
+            "loadedOrSuggested": {
+              "tp": 41,
+              "fp": 23,
+              "fn": 79,
+              "precision": 0.640625,
+              "recall": 0.3416666666666667,
+              "f1": 0.44565217391304346,
+              "exactSetMatches": 80,
+              "exactSetMatchRate": 0.5
+            },
+            "noneTasks": {
+              "tasks": 56,
+              "anyLoaded": 0,
+              "anyLoadedOrSuggested": 1,
+              "falseInjectionRate": 0,
+              "falseInjectionOrSuggestionRate": 0.017857142857142856
+            },
+            "goldTasks": {
+              "tasks": 104,
+              "noGoldSkillLoaded": 104,
+              "notAllGoldLoaded": 104,
+              "noGoldSkillLoadedOrSuggested": 66,
+              "notAllGoldLoadedOrSuggested": 68,
+              "missRate": 1,
+              "incompleteRate": 1,
+              "missRateCountingSuggested": 0.6346153846153846,
+              "incompleteRateCountingSuggested": 0.6538461538461539
+            },
+            "goldSkillNotLoadedByStage": {
+              "suggested": 41,
+              "need_gate": 37,
+              "retrieval": 35,
+              "below_threshold": 7
+            }
+          },
+          "byLanguage": {
+            "en": {
+              "n": 96,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 71,
+                "inCandidates": 65,
+                "tasks": 62,
+                "tasksAllGoldInCandidates": 56,
+                "goldSkillRecall": 0.9154929577464789,
+                "taskAllGoldRetrievedRate": 0.9032258064516129
+              },
+              "needGate": {
+                "n": 96,
+                "tn": 33,
+                "accuracy": 0.8020833333333334,
+                "tp": 44,
+                "fp": 1,
+                "fn": 18,
+                "precision": 0.9777777777777777,
+                "recall": 0.7096774193548387,
+                "f1": 0.8224299065420562
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 71,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 34,
+                "exactSetMatchRate": 0.3541666666666667
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 22,
+                "fn": 30,
+                "precision": 0.6507936507936508,
+                "recall": 0.5774647887323944,
+                "f1": 0.6119402985074627,
+                "exactSetMatches": 58,
+                "exactSetMatchRate": 0.6041666666666666
+              },
+              "noneTasks": {
+                "tasks": 34,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 1,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0.029411764705882353
+              },
+              "goldTasks": {
+                "tasks": 62,
+                "noGoldSkillLoaded": 62,
+                "notAllGoldLoaded": 62,
+                "noGoldSkillLoadedOrSuggested": 24,
+                "notAllGoldLoadedOrSuggested": 26,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.3870967741935484,
+                "incompleteRateCountingSuggested": 0.41935483870967744
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 41,
+                "need_gate": 18,
+                "retrieval": 6,
+                "below_threshold": 6
+              }
+            },
+            "ko": {
+              "n": 64,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 49,
+                "inCandidates": 20,
+                "tasks": 42,
+                "tasksAllGoldInCandidates": 16,
+                "goldSkillRecall": 0.40816326530612246,
+                "taskAllGoldRetrievedRate": 0.38095238095238093
+              },
+              "needGate": {
+                "n": 64,
+                "tn": 22,
+                "accuracy": 0.359375,
+                "tp": 1,
+                "fp": 0,
+                "fn": 41,
+                "precision": 1,
+                "recall": 0.023809523809523808,
+                "f1": 0.046511627906976744
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 49,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.34375
+              },
+              "loadedOrSuggested": {
+                "tp": 0,
+                "fp": 1,
+                "fn": 49,
+                "precision": 0,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.34375
+              },
+              "noneTasks": {
+                "tasks": 22,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0
+              },
+              "goldTasks": {
+                "tasks": 42,
+                "noGoldSkillLoaded": 42,
+                "notAllGoldLoaded": 42,
+                "noGoldSkillLoadedOrSuggested": 42,
+                "notAllGoldLoadedOrSuggested": 42,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 1,
+                "incompleteRateCountingSuggested": 1
+              },
+              "goldSkillNotLoadedByStage": {
+                "need_gate": 19,
+                "retrieval": 29,
+                "below_threshold": 1
+              }
+            }
+          },
+          "byCategory": {
+            "confusable": {
+              "n": 32,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 32,
+                "inCandidates": 20,
+                "tasks": 32,
+                "tasksAllGoldInCandidates": 20,
+                "goldSkillRecall": 0.625,
+                "taskAllGoldRetrievedRate": 0.625
+              },
+              "needGate": {
+                "n": 32,
+                "tn": 0,
+                "accuracy": 0.40625,
+                "tp": 13,
+                "fp": 0,
+                "fn": 19,
+                "precision": 1,
+                "recall": 0.40625,
+                "f1": 0.5777777777777777
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 32,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 7,
+                "fp": 14,
+                "fn": 25,
+                "precision": 0.3333333333333333,
+                "recall": 0.21875,
+                "f1": 0.2641509433962264,
+                "exactSetMatches": 2,
+                "exactSetMatchRate": 0.0625
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 32,
+                "noGoldSkillLoaded": 32,
+                "notAllGoldLoaded": 32,
+                "noGoldSkillLoadedOrSuggested": 25,
+                "notAllGoldLoadedOrSuggested": 25,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.78125,
+                "incompleteRateCountingSuggested": 0.78125
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 7,
+                "retrieval": 12,
+                "need_gate": 9,
+                "below_threshold": 4
+              }
+            },
+            "multi": {
+              "n": 16,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 32,
+                "inCandidates": 21,
+                "tasks": 16,
+                "tasksAllGoldInCandidates": 8,
+                "goldSkillRecall": 0.65625,
+                "taskAllGoldRetrievedRate": 0.5
+              },
+              "needGate": {
+                "n": 16,
+                "tn": 0,
+                "accuracy": 0.3125,
+                "tp": 5,
+                "fp": 0,
+                "fn": 11,
+                "precision": 1,
+                "recall": 0.3125,
+                "f1": 0.47619047619047616
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 32,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 8,
+                "fp": 2,
+                "fn": 24,
+                "precision": 0.8,
+                "recall": 0.25,
+                "f1": 0.38095238095238093,
+                "exactSetMatches": 1,
+                "exactSetMatchRate": 0.0625
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 16,
+                "noGoldSkillLoaded": 16,
+                "notAllGoldLoaded": 16,
+                "noGoldSkillLoadedOrSuggested": 11,
+                "notAllGoldLoadedOrSuggested": 13,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.6875,
+                "incompleteRateCountingSuggested": 0.8125
+              },
+              "goldSkillNotLoadedByStage": {
+                "need_gate": 11,
+                "retrieval": 11,
+                "suggested": 8,
+                "below_threshold": 2
+              }
+            },
+            "none": {
+              "n": 56,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 0,
+                "inCandidates": 0,
+                "tasks": 0,
+                "tasksAllGoldInCandidates": 0,
+                "goldSkillRecall": null,
+                "taskAllGoldRetrievedRate": null
+              },
+              "needGate": {
+                "n": 56,
+                "tn": 55,
+                "accuracy": 0.9821428571428571,
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0,
+                "recall": null,
+                "f1": null
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 1
+              },
+              "loadedOrSuggested": {
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0,
+                "recall": null,
+                "f1": null,
+                "exactSetMatches": 55,
+                "exactSetMatchRate": 0.9821428571428571
+              },
+              "noneTasks": {
+                "tasks": 56,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 1,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0.017857142857142856
+              },
+              "goldTasks": {
+                "tasks": 0,
+                "noGoldSkillLoaded": 0,
+                "notAllGoldLoaded": 0,
+                "noGoldSkillLoadedOrSuggested": 0,
+                "notAllGoldLoadedOrSuggested": 0,
+                "missRate": null,
+                "incompleteRate": null,
+                "missRateCountingSuggested": null,
+                "incompleteRateCountingSuggested": null
+              },
+              "goldSkillNotLoadedByStage": {}
+            },
+            "single": {
+              "n": 56,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 56,
+                "inCandidates": 44,
+                "tasks": 56,
+                "tasksAllGoldInCandidates": 44,
+                "goldSkillRecall": 0.7857142857142857,
+                "taskAllGoldRetrievedRate": 0.7857142857142857
+              },
+              "needGate": {
+                "n": 56,
+                "tn": 0,
+                "accuracy": 0.48214285714285715,
+                "tp": 27,
+                "fp": 0,
+                "fn": 29,
+                "precision": 1,
+                "recall": 0.48214285714285715,
+                "f1": 0.6506024096385542
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 56,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 26,
+                "fp": 6,
+                "fn": 30,
+                "precision": 0.8125,
+                "recall": 0.4642857142857143,
+                "f1": 0.5909090909090908,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.39285714285714285
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 56,
+                "noGoldSkillLoaded": 56,
+                "notAllGoldLoaded": 56,
+                "noGoldSkillLoadedOrSuggested": 30,
+                "notAllGoldLoadedOrSuggested": 30,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.5357142857142857,
+                "incompleteRateCountingSuggested": 0.5357142857142857
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 26,
+                "need_gate": 17,
+                "retrieval": 12,
+                "below_threshold": 1
+              }
+            }
+          }
+        },
+        "author": {
+          "n": 160,
+          "failedItems": 0,
+          "retrievalAtMaxCandidates": {
+            "goldSkills": 120,
+            "inCandidates": 85,
+            "tasks": 104,
+            "tasksAllGoldInCandidates": 72,
+            "goldSkillRecall": 0.7083333333333334,
+            "taskAllGoldRetrievedRate": 0.6923076923076923
+          },
+          "needGate": {
+            "n": 160,
+            "tn": 55,
+            "accuracy": 0.625,
+            "tp": 45,
+            "fp": 1,
+            "fn": 59,
+            "precision": 0.9782608695652174,
+            "recall": 0.4326923076923077,
+            "f1": 0.6
+          },
+          "loaded": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 120,
+            "precision": null,
+            "recall": 0,
+            "f1": null,
+            "exactSetMatches": 56,
+            "exactSetMatchRate": 0.35
+          },
+          "loadedOrSuggested": {
+            "tp": 41,
+            "fp": 23,
+            "fn": 79,
+            "precision": 0.640625,
+            "recall": 0.3416666666666667,
+            "f1": 0.44565217391304346,
+            "exactSetMatches": 80,
+            "exactSetMatchRate": 0.5
+          },
+          "noneTasks": {
+            "tasks": 56,
+            "anyLoaded": 0,
+            "anyLoadedOrSuggested": 1,
+            "falseInjectionRate": 0,
+            "falseInjectionOrSuggestionRate": 0.017857142857142856
+          },
+          "goldTasks": {
+            "tasks": 104,
+            "noGoldSkillLoaded": 104,
+            "notAllGoldLoaded": 104,
+            "noGoldSkillLoadedOrSuggested": 66,
+            "notAllGoldLoadedOrSuggested": 68,
+            "missRate": 1,
+            "incompleteRate": 1,
+            "missRateCountingSuggested": 0.6346153846153846,
+            "incompleteRateCountingSuggested": 0.6538461538461539
+          },
+          "goldSkillNotLoadedByStage": {
+            "suggested": 41,
+            "need_gate": 37,
+            "retrieval": 35,
+            "below_threshold": 7
+          },
+          "answeredOnly": {
+            "n": 160,
+            "failedItems": 0,
+            "retrievalAtMaxCandidates": {
+              "goldSkills": 120,
+              "inCandidates": 85,
+              "tasks": 104,
+              "tasksAllGoldInCandidates": 72,
+              "goldSkillRecall": 0.7083333333333334,
+              "taskAllGoldRetrievedRate": 0.6923076923076923
+            },
+            "needGate": {
+              "n": 160,
+              "tn": 55,
+              "accuracy": 0.625,
+              "tp": 45,
+              "fp": 1,
+              "fn": 59,
+              "precision": 0.9782608695652174,
+              "recall": 0.4326923076923077,
+              "f1": 0.6
+            },
+            "loaded": {
+              "tp": 0,
+              "fp": 0,
+              "fn": 120,
+              "precision": null,
+              "recall": 0,
+              "f1": null,
+              "exactSetMatches": 56,
+              "exactSetMatchRate": 0.35
+            },
+            "loadedOrSuggested": {
+              "tp": 41,
+              "fp": 23,
+              "fn": 79,
+              "precision": 0.640625,
+              "recall": 0.3416666666666667,
+              "f1": 0.44565217391304346,
+              "exactSetMatches": 80,
+              "exactSetMatchRate": 0.5
+            },
+            "noneTasks": {
+              "tasks": 56,
+              "anyLoaded": 0,
+              "anyLoadedOrSuggested": 1,
+              "falseInjectionRate": 0,
+              "falseInjectionOrSuggestionRate": 0.017857142857142856
+            },
+            "goldTasks": {
+              "tasks": 104,
+              "noGoldSkillLoaded": 104,
+              "notAllGoldLoaded": 104,
+              "noGoldSkillLoadedOrSuggested": 66,
+              "notAllGoldLoadedOrSuggested": 68,
+              "missRate": 1,
+              "incompleteRate": 1,
+              "missRateCountingSuggested": 0.6346153846153846,
+              "incompleteRateCountingSuggested": 0.6538461538461539
+            },
+            "goldSkillNotLoadedByStage": {
+              "suggested": 41,
+              "need_gate": 37,
+              "retrieval": 35,
+              "below_threshold": 7
+            }
+          },
+          "byLanguage": {
+            "en": {
+              "n": 96,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 71,
+                "inCandidates": 65,
+                "tasks": 62,
+                "tasksAllGoldInCandidates": 56,
+                "goldSkillRecall": 0.9154929577464789,
+                "taskAllGoldRetrievedRate": 0.9032258064516129
+              },
+              "needGate": {
+                "n": 96,
+                "tn": 33,
+                "accuracy": 0.8020833333333334,
+                "tp": 44,
+                "fp": 1,
+                "fn": 18,
+                "precision": 0.9777777777777777,
+                "recall": 0.7096774193548387,
+                "f1": 0.8224299065420562
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 71,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 34,
+                "exactSetMatchRate": 0.3541666666666667
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 22,
+                "fn": 30,
+                "precision": 0.6507936507936508,
+                "recall": 0.5774647887323944,
+                "f1": 0.6119402985074627,
+                "exactSetMatches": 58,
+                "exactSetMatchRate": 0.6041666666666666
+              },
+              "noneTasks": {
+                "tasks": 34,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 1,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0.029411764705882353
+              },
+              "goldTasks": {
+                "tasks": 62,
+                "noGoldSkillLoaded": 62,
+                "notAllGoldLoaded": 62,
+                "noGoldSkillLoadedOrSuggested": 24,
+                "notAllGoldLoadedOrSuggested": 26,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.3870967741935484,
+                "incompleteRateCountingSuggested": 0.41935483870967744
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 41,
+                "need_gate": 18,
+                "retrieval": 6,
+                "below_threshold": 6
+              }
+            },
+            "ko": {
+              "n": 64,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 49,
+                "inCandidates": 20,
+                "tasks": 42,
+                "tasksAllGoldInCandidates": 16,
+                "goldSkillRecall": 0.40816326530612246,
+                "taskAllGoldRetrievedRate": 0.38095238095238093
+              },
+              "needGate": {
+                "n": 64,
+                "tn": 22,
+                "accuracy": 0.359375,
+                "tp": 1,
+                "fp": 0,
+                "fn": 41,
+                "precision": 1,
+                "recall": 0.023809523809523808,
+                "f1": 0.046511627906976744
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 49,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.34375
+              },
+              "loadedOrSuggested": {
+                "tp": 0,
+                "fp": 1,
+                "fn": 49,
+                "precision": 0,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.34375
+              },
+              "noneTasks": {
+                "tasks": 22,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0
+              },
+              "goldTasks": {
+                "tasks": 42,
+                "noGoldSkillLoaded": 42,
+                "notAllGoldLoaded": 42,
+                "noGoldSkillLoadedOrSuggested": 42,
+                "notAllGoldLoadedOrSuggested": 42,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 1,
+                "incompleteRateCountingSuggested": 1
+              },
+              "goldSkillNotLoadedByStage": {
+                "need_gate": 19,
+                "retrieval": 29,
+                "below_threshold": 1
+              }
+            }
+          },
+          "byCategory": {
+            "confusable": {
+              "n": 32,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 32,
+                "inCandidates": 20,
+                "tasks": 32,
+                "tasksAllGoldInCandidates": 20,
+                "goldSkillRecall": 0.625,
+                "taskAllGoldRetrievedRate": 0.625
+              },
+              "needGate": {
+                "n": 32,
+                "tn": 0,
+                "accuracy": 0.40625,
+                "tp": 13,
+                "fp": 0,
+                "fn": 19,
+                "precision": 1,
+                "recall": 0.40625,
+                "f1": 0.5777777777777777
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 32,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 7,
+                "fp": 14,
+                "fn": 25,
+                "precision": 0.3333333333333333,
+                "recall": 0.21875,
+                "f1": 0.2641509433962264,
+                "exactSetMatches": 2,
+                "exactSetMatchRate": 0.0625
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 32,
+                "noGoldSkillLoaded": 32,
+                "notAllGoldLoaded": 32,
+                "noGoldSkillLoadedOrSuggested": 25,
+                "notAllGoldLoadedOrSuggested": 25,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.78125,
+                "incompleteRateCountingSuggested": 0.78125
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 7,
+                "retrieval": 12,
+                "need_gate": 9,
+                "below_threshold": 4
+              }
+            },
+            "multi": {
+              "n": 16,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 32,
+                "inCandidates": 21,
+                "tasks": 16,
+                "tasksAllGoldInCandidates": 8,
+                "goldSkillRecall": 0.65625,
+                "taskAllGoldRetrievedRate": 0.5
+              },
+              "needGate": {
+                "n": 16,
+                "tn": 0,
+                "accuracy": 0.3125,
+                "tp": 5,
+                "fp": 0,
+                "fn": 11,
+                "precision": 1,
+                "recall": 0.3125,
+                "f1": 0.47619047619047616
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 32,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 8,
+                "fp": 2,
+                "fn": 24,
+                "precision": 0.8,
+                "recall": 0.25,
+                "f1": 0.38095238095238093,
+                "exactSetMatches": 1,
+                "exactSetMatchRate": 0.0625
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 16,
+                "noGoldSkillLoaded": 16,
+                "notAllGoldLoaded": 16,
+                "noGoldSkillLoadedOrSuggested": 11,
+                "notAllGoldLoadedOrSuggested": 13,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.6875,
+                "incompleteRateCountingSuggested": 0.8125
+              },
+              "goldSkillNotLoadedByStage": {
+                "need_gate": 11,
+                "retrieval": 11,
+                "suggested": 8,
+                "below_threshold": 2
+              }
+            },
+            "none": {
+              "n": 56,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 0,
+                "inCandidates": 0,
+                "tasks": 0,
+                "tasksAllGoldInCandidates": 0,
+                "goldSkillRecall": null,
+                "taskAllGoldRetrievedRate": null
+              },
+              "needGate": {
+                "n": 56,
+                "tn": 55,
+                "accuracy": 0.9821428571428571,
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0,
+                "recall": null,
+                "f1": null
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 1
+              },
+              "loadedOrSuggested": {
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0,
+                "recall": null,
+                "f1": null,
+                "exactSetMatches": 55,
+                "exactSetMatchRate": 0.9821428571428571
+              },
+              "noneTasks": {
+                "tasks": 56,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 1,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0.017857142857142856
+              },
+              "goldTasks": {
+                "tasks": 0,
+                "noGoldSkillLoaded": 0,
+                "notAllGoldLoaded": 0,
+                "noGoldSkillLoadedOrSuggested": 0,
+                "notAllGoldLoadedOrSuggested": 0,
+                "missRate": null,
+                "incompleteRate": null,
+                "missRateCountingSuggested": null,
+                "incompleteRateCountingSuggested": null
+              },
+              "goldSkillNotLoadedByStage": {}
+            },
+            "single": {
+              "n": 56,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 56,
+                "inCandidates": 44,
+                "tasks": 56,
+                "tasksAllGoldInCandidates": 44,
+                "goldSkillRecall": 0.7857142857142857,
+                "taskAllGoldRetrievedRate": 0.7857142857142857
+              },
+              "needGate": {
+                "n": 56,
+                "tn": 0,
+                "accuracy": 0.48214285714285715,
+                "tp": 27,
+                "fp": 0,
+                "fn": 29,
+                "precision": 1,
+                "recall": 0.48214285714285715,
+                "f1": 0.6506024096385542
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 56,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 26,
+                "fp": 6,
+                "fn": 30,
+                "precision": 0.8125,
+                "recall": 0.4642857142857143,
+                "f1": 0.5909090909090908,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.39285714285714285
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 56,
+                "noGoldSkillLoaded": 56,
+                "notAllGoldLoaded": 56,
+                "noGoldSkillLoadedOrSuggested": 30,
+                "notAllGoldLoadedOrSuggested": 30,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.5357142857142857,
+                "incompleteRateCountingSuggested": 0.5357142857142857
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 26,
+                "need_gate": 17,
+                "retrieval": 12,
+                "below_threshold": 1
+              }
+            }
+          }
+        },
+        "blind": {
+          "n": 160,
+          "failedItems": 0,
+          "retrievalAtMaxCandidates": {
+            "goldSkills": 120,
+            "inCandidates": 85,
+            "tasks": 104,
+            "tasksAllGoldInCandidates": 72,
+            "goldSkillRecall": 0.7083333333333334,
+            "taskAllGoldRetrievedRate": 0.6923076923076923
+          },
+          "needGate": {
+            "n": 160,
+            "tn": 55,
+            "accuracy": 0.625,
+            "tp": 45,
+            "fp": 1,
+            "fn": 59,
+            "precision": 0.9782608695652174,
+            "recall": 0.4326923076923077,
+            "f1": 0.6
+          },
+          "loaded": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 120,
+            "precision": null,
+            "recall": 0,
+            "f1": null,
+            "exactSetMatches": 56,
+            "exactSetMatchRate": 0.35
+          },
+          "loadedOrSuggested": {
+            "tp": 41,
+            "fp": 23,
+            "fn": 79,
+            "precision": 0.640625,
+            "recall": 0.3416666666666667,
+            "f1": 0.44565217391304346,
+            "exactSetMatches": 80,
+            "exactSetMatchRate": 0.5
+          },
+          "noneTasks": {
+            "tasks": 56,
+            "anyLoaded": 0,
+            "anyLoadedOrSuggested": 1,
+            "falseInjectionRate": 0,
+            "falseInjectionOrSuggestionRate": 0.017857142857142856
+          },
+          "goldTasks": {
+            "tasks": 104,
+            "noGoldSkillLoaded": 104,
+            "notAllGoldLoaded": 104,
+            "noGoldSkillLoadedOrSuggested": 66,
+            "notAllGoldLoadedOrSuggested": 68,
+            "missRate": 1,
+            "incompleteRate": 1,
+            "missRateCountingSuggested": 0.6346153846153846,
+            "incompleteRateCountingSuggested": 0.6538461538461539
+          },
+          "goldSkillNotLoadedByStage": {
+            "suggested": 41,
+            "need_gate": 37,
+            "retrieval": 35,
+            "below_threshold": 7
+          },
+          "answeredOnly": {
+            "n": 160,
+            "failedItems": 0,
+            "retrievalAtMaxCandidates": {
+              "goldSkills": 120,
+              "inCandidates": 85,
+              "tasks": 104,
+              "tasksAllGoldInCandidates": 72,
+              "goldSkillRecall": 0.7083333333333334,
+              "taskAllGoldRetrievedRate": 0.6923076923076923
+            },
+            "needGate": {
+              "n": 160,
+              "tn": 55,
+              "accuracy": 0.625,
+              "tp": 45,
+              "fp": 1,
+              "fn": 59,
+              "precision": 0.9782608695652174,
+              "recall": 0.4326923076923077,
+              "f1": 0.6
+            },
+            "loaded": {
+              "tp": 0,
+              "fp": 0,
+              "fn": 120,
+              "precision": null,
+              "recall": 0,
+              "f1": null,
+              "exactSetMatches": 56,
+              "exactSetMatchRate": 0.35
+            },
+            "loadedOrSuggested": {
+              "tp": 41,
+              "fp": 23,
+              "fn": 79,
+              "precision": 0.640625,
+              "recall": 0.3416666666666667,
+              "f1": 0.44565217391304346,
+              "exactSetMatches": 80,
+              "exactSetMatchRate": 0.5
+            },
+            "noneTasks": {
+              "tasks": 56,
+              "anyLoaded": 0,
+              "anyLoadedOrSuggested": 1,
+              "falseInjectionRate": 0,
+              "falseInjectionOrSuggestionRate": 0.017857142857142856
+            },
+            "goldTasks": {
+              "tasks": 104,
+              "noGoldSkillLoaded": 104,
+              "notAllGoldLoaded": 104,
+              "noGoldSkillLoadedOrSuggested": 66,
+              "notAllGoldLoadedOrSuggested": 68,
+              "missRate": 1,
+              "incompleteRate": 1,
+              "missRateCountingSuggested": 0.6346153846153846,
+              "incompleteRateCountingSuggested": 0.6538461538461539
+            },
+            "goldSkillNotLoadedByStage": {
+              "suggested": 41,
+              "need_gate": 37,
+              "retrieval": 35,
+              "below_threshold": 7
+            }
+          },
+          "byLanguage": {
+            "en": {
+              "n": 96,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 71,
+                "inCandidates": 65,
+                "tasks": 62,
+                "tasksAllGoldInCandidates": 56,
+                "goldSkillRecall": 0.9154929577464789,
+                "taskAllGoldRetrievedRate": 0.9032258064516129
+              },
+              "needGate": {
+                "n": 96,
+                "tn": 33,
+                "accuracy": 0.8020833333333334,
+                "tp": 44,
+                "fp": 1,
+                "fn": 18,
+                "precision": 0.9777777777777777,
+                "recall": 0.7096774193548387,
+                "f1": 0.8224299065420562
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 71,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 34,
+                "exactSetMatchRate": 0.3541666666666667
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 22,
+                "fn": 30,
+                "precision": 0.6507936507936508,
+                "recall": 0.5774647887323944,
+                "f1": 0.6119402985074627,
+                "exactSetMatches": 58,
+                "exactSetMatchRate": 0.6041666666666666
+              },
+              "noneTasks": {
+                "tasks": 34,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 1,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0.029411764705882353
+              },
+              "goldTasks": {
+                "tasks": 62,
+                "noGoldSkillLoaded": 62,
+                "notAllGoldLoaded": 62,
+                "noGoldSkillLoadedOrSuggested": 24,
+                "notAllGoldLoadedOrSuggested": 26,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.3870967741935484,
+                "incompleteRateCountingSuggested": 0.41935483870967744
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 41,
+                "need_gate": 18,
+                "retrieval": 6,
+                "below_threshold": 6
+              }
+            },
+            "ko": {
+              "n": 64,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 49,
+                "inCandidates": 20,
+                "tasks": 42,
+                "tasksAllGoldInCandidates": 16,
+                "goldSkillRecall": 0.40816326530612246,
+                "taskAllGoldRetrievedRate": 0.38095238095238093
+              },
+              "needGate": {
+                "n": 64,
+                "tn": 22,
+                "accuracy": 0.359375,
+                "tp": 1,
+                "fp": 0,
+                "fn": 41,
+                "precision": 1,
+                "recall": 0.023809523809523808,
+                "f1": 0.046511627906976744
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 49,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.34375
+              },
+              "loadedOrSuggested": {
+                "tp": 0,
+                "fp": 1,
+                "fn": 49,
+                "precision": 0,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.34375
+              },
+              "noneTasks": {
+                "tasks": 22,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0
+              },
+              "goldTasks": {
+                "tasks": 42,
+                "noGoldSkillLoaded": 42,
+                "notAllGoldLoaded": 42,
+                "noGoldSkillLoadedOrSuggested": 42,
+                "notAllGoldLoadedOrSuggested": 42,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 1,
+                "incompleteRateCountingSuggested": 1
+              },
+              "goldSkillNotLoadedByStage": {
+                "need_gate": 19,
+                "retrieval": 29,
+                "below_threshold": 1
+              }
+            }
+          },
+          "byCategory": {
+            "confusable": {
+              "n": 32,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 32,
+                "inCandidates": 20,
+                "tasks": 32,
+                "tasksAllGoldInCandidates": 20,
+                "goldSkillRecall": 0.625,
+                "taskAllGoldRetrievedRate": 0.625
+              },
+              "needGate": {
+                "n": 32,
+                "tn": 0,
+                "accuracy": 0.40625,
+                "tp": 13,
+                "fp": 0,
+                "fn": 19,
+                "precision": 1,
+                "recall": 0.40625,
+                "f1": 0.5777777777777777
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 32,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 7,
+                "fp": 14,
+                "fn": 25,
+                "precision": 0.3333333333333333,
+                "recall": 0.21875,
+                "f1": 0.2641509433962264,
+                "exactSetMatches": 2,
+                "exactSetMatchRate": 0.0625
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 32,
+                "noGoldSkillLoaded": 32,
+                "notAllGoldLoaded": 32,
+                "noGoldSkillLoadedOrSuggested": 25,
+                "notAllGoldLoadedOrSuggested": 25,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.78125,
+                "incompleteRateCountingSuggested": 0.78125
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 7,
+                "retrieval": 12,
+                "need_gate": 9,
+                "below_threshold": 4
+              }
+            },
+            "multi": {
+              "n": 16,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 32,
+                "inCandidates": 21,
+                "tasks": 16,
+                "tasksAllGoldInCandidates": 8,
+                "goldSkillRecall": 0.65625,
+                "taskAllGoldRetrievedRate": 0.5
+              },
+              "needGate": {
+                "n": 16,
+                "tn": 0,
+                "accuracy": 0.3125,
+                "tp": 5,
+                "fp": 0,
+                "fn": 11,
+                "precision": 1,
+                "recall": 0.3125,
+                "f1": 0.47619047619047616
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 32,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 8,
+                "fp": 2,
+                "fn": 24,
+                "precision": 0.8,
+                "recall": 0.25,
+                "f1": 0.38095238095238093,
+                "exactSetMatches": 1,
+                "exactSetMatchRate": 0.0625
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 16,
+                "noGoldSkillLoaded": 16,
+                "notAllGoldLoaded": 16,
+                "noGoldSkillLoadedOrSuggested": 11,
+                "notAllGoldLoadedOrSuggested": 13,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.6875,
+                "incompleteRateCountingSuggested": 0.8125
+              },
+              "goldSkillNotLoadedByStage": {
+                "need_gate": 11,
+                "retrieval": 11,
+                "suggested": 8,
+                "below_threshold": 2
+              }
+            },
+            "none": {
+              "n": 56,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 0,
+                "inCandidates": 0,
+                "tasks": 0,
+                "tasksAllGoldInCandidates": 0,
+                "goldSkillRecall": null,
+                "taskAllGoldRetrievedRate": null
+              },
+              "needGate": {
+                "n": 56,
+                "tn": 55,
+                "accuracy": 0.9821428571428571,
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0,
+                "recall": null,
+                "f1": null
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 0,
+                "precision": null,
+                "recall": null,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 1
+              },
+              "loadedOrSuggested": {
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0,
+                "recall": null,
+                "f1": null,
+                "exactSetMatches": 55,
+                "exactSetMatchRate": 0.9821428571428571
+              },
+              "noneTasks": {
+                "tasks": 56,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 1,
+                "falseInjectionRate": 0,
+                "falseInjectionOrSuggestionRate": 0.017857142857142856
+              },
+              "goldTasks": {
+                "tasks": 0,
+                "noGoldSkillLoaded": 0,
+                "notAllGoldLoaded": 0,
+                "noGoldSkillLoadedOrSuggested": 0,
+                "notAllGoldLoadedOrSuggested": 0,
+                "missRate": null,
+                "incompleteRate": null,
+                "missRateCountingSuggested": null,
+                "incompleteRateCountingSuggested": null
+              },
+              "goldSkillNotLoadedByStage": {}
+            },
+            "single": {
+              "n": 56,
+              "failedItems": 0,
+              "retrievalAtMaxCandidates": {
+                "goldSkills": 56,
+                "inCandidates": 44,
+                "tasks": 56,
+                "tasksAllGoldInCandidates": 44,
+                "goldSkillRecall": 0.7857142857142857,
+                "taskAllGoldRetrievedRate": 0.7857142857142857
+              },
+              "needGate": {
+                "n": 56,
+                "tn": 0,
+                "accuracy": 0.48214285714285715,
+                "tp": 27,
+                "fp": 0,
+                "fn": 29,
+                "precision": 1,
+                "recall": 0.48214285714285715,
+                "f1": 0.6506024096385542
+              },
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 56,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 0,
+                "exactSetMatchRate": 0
+              },
+              "loadedOrSuggested": {
+                "tp": 26,
+                "fp": 6,
+                "fn": 30,
+                "precision": 0.8125,
+                "recall": 0.4642857142857143,
+                "f1": 0.5909090909090908,
+                "exactSetMatches": 22,
+                "exactSetMatchRate": 0.39285714285714285
+              },
+              "noneTasks": {
+                "tasks": 0,
+                "anyLoaded": 0,
+                "anyLoadedOrSuggested": 0,
+                "falseInjectionRate": null,
+                "falseInjectionOrSuggestionRate": null
+              },
+              "goldTasks": {
+                "tasks": 56,
+                "noGoldSkillLoaded": 56,
+                "notAllGoldLoaded": 56,
+                "noGoldSkillLoadedOrSuggested": 30,
+                "notAllGoldLoadedOrSuggested": 30,
+                "missRate": 1,
+                "incompleteRate": 1,
+                "missRateCountingSuggested": 0.5357142857142857,
+                "incompleteRateCountingSuggested": 0.5357142857142857
+              },
+              "goldSkillNotLoadedByStage": {
+                "suggested": 26,
+                "need_gate": 17,
+                "retrieval": 12,
+                "below_threshold": 1
+              }
+            }
+          }
+        }
+      },
+      "autoLoadSweep": {
+        "replayOfShippedThresholdsMismatches": 0,
+        "points": [
+          {
+            "autoLoad": 0.5,
+            "suggest": 0.5,
+            "consensus": {
+              "n": 160,
+              "loaded": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0.017857142857142856,
+              "missRate": 0.6346153846153846,
+              "incompleteRate": 0.6538461538461539
+            },
+            "author": {
+              "n": 160,
+              "loaded": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0.017857142857142856,
+              "missRate": 0.6346153846153846,
+              "incompleteRate": 0.6538461538461539
+            }
+          },
+          {
+            "autoLoad": 0.6,
+            "suggest": 0.5,
+            "consensus": {
+              "n": 160,
+              "loaded": {
+                "tp": 28,
+                "fp": 4,
+                "fn": 92,
+                "precision": 0.875,
+                "recall": 0.23333333333333334,
+                "f1": 0.3684210526315789,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 0.7307692307692307,
+              "incompleteRate": 0.7596153846153846
+            },
+            "author": {
+              "n": 160,
+              "loaded": {
+                "tp": 28,
+                "fp": 4,
+                "fn": 92,
+                "precision": 0.875,
+                "recall": 0.23333333333333334,
+                "f1": 0.3684210526315789,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 0.7307692307692307,
+              "incompleteRate": 0.7596153846153846
+            }
+          },
+          {
+            "autoLoad": 0.7,
+            "suggest": 0.5,
+            "consensus": {
+              "n": 160,
+              "loaded": {
+                "tp": 10,
+                "fp": 1,
+                "fn": 110,
+                "precision": 0.9090909090909091,
+                "recall": 0.08333333333333333,
+                "f1": 0.15267175572519082,
+                "exactSetMatches": 64,
+                "exactSetMatchRate": 0.4
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 0.9038461538461539,
+              "incompleteRate": 0.9230769230769231
+            },
+            "author": {
+              "n": 160,
+              "loaded": {
+                "tp": 10,
+                "fp": 1,
+                "fn": 110,
+                "precision": 0.9090909090909091,
+                "recall": 0.08333333333333333,
+                "f1": 0.15267175572519082,
+                "exactSetMatches": 64,
+                "exactSetMatchRate": 0.4
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 0.9038461538461539,
+              "incompleteRate": 0.9230769230769231
+            }
+          },
+          {
+            "autoLoad": 0.8,
+            "suggest": 0.5,
+            "consensus": {
+              "n": 160,
+              "loaded": {
+                "tp": 1,
+                "fp": 0,
+                "fn": 119,
+                "precision": 1,
+                "recall": 0.008333333333333333,
+                "f1": 0.01652892561983471,
+                "exactSetMatches": 57,
+                "exactSetMatchRate": 0.35625
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 0.9903846153846154,
+              "incompleteRate": 0.9903846153846154
+            },
+            "author": {
+              "n": 160,
+              "loaded": {
+                "tp": 1,
+                "fp": 0,
+                "fn": 119,
+                "precision": 1,
+                "recall": 0.008333333333333333,
+                "f1": 0.01652892561983471,
+                "exactSetMatches": 57,
+                "exactSetMatchRate": 0.35625
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 0.9903846153846154,
+              "incompleteRate": 0.9903846153846154
+            }
+          },
+          {
+            "autoLoad": 0.9,
+            "suggest": 0.5,
+            "consensus": {
+              "n": 160,
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 120,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 0.35
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 1,
+              "incompleteRate": 1
+            },
+            "author": {
+              "n": 160,
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 120,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 0.35
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 1,
+              "incompleteRate": 1
+            }
+          },
+          {
+            "autoLoad": 0.95,
+            "suggest": 0.5,
+            "consensus": {
+              "n": 160,
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 120,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 0.35
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 1,
+              "incompleteRate": 1
+            },
+            "author": {
+              "n": 160,
+              "loaded": {
+                "tp": 0,
+                "fp": 0,
+                "fn": 120,
+                "precision": null,
+                "recall": 0,
+                "f1": null,
+                "exactSetMatches": 56,
+                "exactSetMatchRate": 0.35
+              },
+              "loadedOrSuggested": {
+                "tp": 41,
+                "fp": 23,
+                "fn": 79,
+                "precision": 0.640625,
+                "recall": 0.3416666666666667,
+                "f1": 0.44565217391304346,
+                "exactSetMatches": 80,
+                "exactSetMatchRate": 0.5
+              },
+              "falseInjectionRate": 0,
+              "missRate": 1,
+              "incompleteRate": 1
+            }
+          }
+        ]
+      },
+      "calibration": {
+        "product": {
+          "labeledDecisions": 160,
+          "labelsWritten": 1440,
+          "labelSource": "qa-consensus-gold",
+          "report": {
+            "generatedFrom": {
+              "decisions": 160,
+              "labels": 1440
+            },
+            "invalidLabels": 0,
+            "points": [
+              {
+                "pointId": "delegation.skills",
+                "decisions": 160,
+                "failed": 0,
+                "failureRate": 0,
+                "escalated": 0,
+                "escalationRate": 0,
+                "judges": [
+                  {
+                    "provider": "local",
+                    "attempts": 160,
+                    "failures": 0,
+                    "lowConfidence": 0,
+                    "failureRate": 0
+                  }
+                ]
+              }
+            ],
+            "groups": [
+              {
+                "pointId": "delegation.skills",
+                "provider": "local",
+                "type": "noul",
+                "models": [
+                  "local-rules"
+                ],
+                "counts": {
+                  "decisions": 160,
+                  "answers": 1440,
+                  "labeled": 1440
+                },
+                "invalidLabels": 0,
+                "sufficient": true,
+                "operational": {
+                  "cachedRate": 0,
+                  "latencyMs": {
+                    "p50": 0.06683300000000258,
+                    "p95": 0.1189160000000129
+                  },
+                  "meanConfidence": 0.38901379182586
+                },
+                "metrics": {
+                  "brier": 0.09222662495077648,
+                  "ece": 0.12164861612116867,
+                  "baseRate": 0.13125,
+                  "threshold": 0.9,
+                  "precision": null,
+                  "recall": 0,
+                  "f1": null,
+                  "tp": 0,
+                  "fp": 0,
+                  "tn": 1251,
+                  "fn": 189,
+                  "reliability": [
+                    {
+                      "lower": 0,
+                      "upper": 0.1,
+                      "count": 622,
+                      "meanPredicted": 0.0009654868562220691,
+                      "observedRate": 0.04180064308681672
+                    },
+                    {
+                      "lower": 0.1,
+                      "upper": 0.2,
+                      "count": 130,
+                      "meanPredicted": 0.15846367562668884,
+                      "observedRate": 0.015384615384615385
+                    },
+                    {
+                      "lower": 0.2,
+                      "upper": 0.3,
+                      "count": 233,
+                      "meanPredicted": 0.25604656443720974,
+                      "observedRate": 0.060085836909871244
+                    },
+                    {
+                      "lower": 0.3,
+                      "upper": 0.4,
+                      "count": 213,
+                      "meanPredicted": 0.3314160815328803,
+                      "observedRate": 0.10328638497652583
+                    },
+                    {
+                      "lower": 0.4,
+                      "upper": 0.5,
+                      "count": 132,
+                      "meanPredicted": 0.4448629918479825,
+                      "observedRate": 0.29545454545454547
+                    },
+                    {
+                      "lower": 0.5,
+                      "upper": 0.6,
+                      "count": 47,
+                      "meanPredicted": 0.5486860854540385,
+                      "observedRate": 0.574468085106383
+                    },
+                    {
+                      "lower": 0.6,
+                      "upper": 0.7,
+                      "count": 41,
+                      "meanPredicted": 0.6513242960815032,
+                      "observedRate": 0.926829268292683
+                    },
+                    {
+                      "lower": 0.7,
+                      "upper": 0.8,
+                      "count": 20,
+                      "meanPredicted": 0.7340085004650835,
+                      "observedRate": 0.95
+                    },
+                    {
+                      "lower": 0.8,
+                      "upper": 0.9,
+                      "count": 2,
+                      "meanPredicted": 0.8127077158702543,
+                      "observedRate": 1
+                    },
+                    {
+                      "lower": 0.9,
+                      "upper": 1,
+                      "count": 0,
+                      "meanPredicted": null,
+                      "observedRate": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "direct": {
+          "labelGold": {
+            "need": {
+              "n": 160,
+              "brier": 0.2968023072247311,
+              "ece": 0.2874131544419385,
+              "baseRate": 0.65,
+              "meanPredicted": 0.36258684555806125,
+              "reliability": [
+                {
+                  "lower": 0,
+                  "upper": 0.1,
+                  "count": 37,
+                  "meanPredicted": 0,
+                  "observedRate": 0.5675675675675675
+                },
+                {
+                  "lower": 0.1,
+                  "upper": 0.2,
+                  "count": 0,
+                  "meanPredicted": null,
+                  "observedRate": null
+                },
+                {
+                  "lower": 0.2,
+                  "upper": 0.3,
+                  "count": 12,
+                  "meanPredicted": 0.2577154708600182,
+                  "observedRate": 0.5833333333333334
+                },
+                {
+                  "lower": 0.3,
+                  "upper": 0.4,
+                  "count": 32,
+                  "meanPredicted": 0.33583976220028866,
+                  "observedRate": 0.375
+                },
+                {
+                  "lower": 0.4,
+                  "upper": 0.5,
+                  "count": 33,
+                  "meanPredicted": 0.44758944975843706,
+                  "observedRate": 0.5757575757575758
+                },
+                {
+                  "lower": 0.5,
+                  "upper": 0.6,
+                  "count": 15,
+                  "meanPredicted": 0.5494368286130875,
+                  "observedRate": 0.9333333333333333
+                },
+                {
+                  "lower": 0.6,
+                  "upper": 0.7,
+                  "count": 20,
+                  "meanPredicted": 0.6504820128407276,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.7,
+                  "upper": 0.8,
+                  "count": 10,
+                  "meanPredicted": 0.7340085004650836,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.8,
+                  "upper": 0.9,
+                  "count": 1,
+                  "meanPredicted": 0.8127077158702543,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.9,
+                  "upper": 1,
+                  "count": 0,
+                  "meanPredicted": null,
+                  "observedRate": null
+                }
+              ]
+            },
+            "perSkill": {
+              "n": 1280,
+              "brier": 0.06665466466653219,
+              "ece": 0.12270427336917493,
+              "baseRate": 0.06640625,
+              "meanPredicted": 0.17262299434982833,
+              "reliability": [
+                {
+                  "lower": 0,
+                  "upper": 0.1,
+                  "count": 585,
+                  "meanPredicted": 0.001026551836872012,
+                  "observedRate": 0.008547008547008548
+                },
+                {
+                  "lower": 0.1,
+                  "upper": 0.2,
+                  "count": 130,
+                  "meanPredicted": 0.15846367562668884,
+                  "observedRate": 0.015384615384615385
+                },
+                {
+                  "lower": 0.2,
+                  "upper": 0.3,
+                  "count": 221,
+                  "meanPredicted": 0.25595594508393515,
+                  "observedRate": 0.03167420814479638
+                },
+                {
+                  "lower": 0.3,
+                  "upper": 0.4,
+                  "count": 181,
+                  "meanPredicted": 0.3306339943430621,
+                  "observedRate": 0.055248618784530384
+                },
+                {
+                  "lower": 0.4,
+                  "upper": 0.5,
+                  "count": 99,
+                  "meanPredicted": 0.4439541725444976,
+                  "observedRate": 0.20202020202020202
+                },
+                {
+                  "lower": 0.5,
+                  "upper": 0.6,
+                  "count": 32,
+                  "meanPredicted": 0.5483341745982341,
+                  "observedRate": 0.40625
+                },
+                {
+                  "lower": 0.6,
+                  "upper": 0.7,
+                  "count": 21,
+                  "meanPredicted": 0.6521264705965274,
+                  "observedRate": 0.8571428571428571
+                },
+                {
+                  "lower": 0.7,
+                  "upper": 0.8,
+                  "count": 10,
+                  "meanPredicted": 0.7340085004650836,
+                  "observedRate": 0.9
+                },
+                {
+                  "lower": 0.8,
+                  "upper": 0.9,
+                  "count": 1,
+                  "meanPredicted": 0.8127077158702543,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.9,
+                  "upper": 1,
+                  "count": 0,
+                  "meanPredicted": null,
+                  "observedRate": null
+                }
+              ]
+            },
+            "allNoulByProvider": {
+              "local": {
+                "n": 1440,
+                "brier": 0.09222662495077648,
+                "ece": 0.12164861612116867,
+                "baseRate": 0.13125,
+                "meanPredicted": 0.1937300889285211,
+                "reliability": [
+                  {
+                    "lower": 0,
+                    "upper": 0.1,
+                    "count": 622,
+                    "meanPredicted": 0.0009654868562220691,
+                    "observedRate": 0.04180064308681672
+                  },
+                  {
+                    "lower": 0.1,
+                    "upper": 0.2,
+                    "count": 130,
+                    "meanPredicted": 0.15846367562668884,
+                    "observedRate": 0.015384615384615385
+                  },
+                  {
+                    "lower": 0.2,
+                    "upper": 0.3,
+                    "count": 233,
+                    "meanPredicted": 0.25604656443720974,
+                    "observedRate": 0.060085836909871244
+                  },
+                  {
+                    "lower": 0.3,
+                    "upper": 0.4,
+                    "count": 213,
+                    "meanPredicted": 0.3314160815328803,
+                    "observedRate": 0.10328638497652583
+                  },
+                  {
+                    "lower": 0.4,
+                    "upper": 0.5,
+                    "count": 132,
+                    "meanPredicted": 0.4448629918479825,
+                    "observedRate": 0.29545454545454547
+                  },
+                  {
+                    "lower": 0.5,
+                    "upper": 0.6,
+                    "count": 47,
+                    "meanPredicted": 0.5486860854540385,
+                    "observedRate": 0.574468085106383
+                  },
+                  {
+                    "lower": 0.6,
+                    "upper": 0.7,
+                    "count": 41,
+                    "meanPredicted": 0.6513242960815032,
+                    "observedRate": 0.926829268292683
+                  },
+                  {
+                    "lower": 0.7,
+                    "upper": 0.8,
+                    "count": 20,
+                    "meanPredicted": 0.7340085004650835,
+                    "observedRate": 0.95
+                  },
+                  {
+                    "lower": 0.8,
+                    "upper": 0.9,
+                    "count": 2,
+                    "meanPredicted": 0.8127077158702543,
+                    "observedRate": 1
+                  },
+                  {
+                    "lower": 0.9,
+                    "upper": 1,
+                    "count": 0,
+                    "meanPredicted": null,
+                    "observedRate": null
+                  }
+                ]
+              }
+            }
+          },
+          "author": {
+            "need": {
+              "n": 160,
+              "brier": 0.2968023072247311,
+              "ece": 0.2874131544419385,
+              "baseRate": 0.65,
+              "meanPredicted": 0.36258684555806125,
+              "reliability": [
+                {
+                  "lower": 0,
+                  "upper": 0.1,
+                  "count": 37,
+                  "meanPredicted": 0,
+                  "observedRate": 0.5675675675675675
+                },
+                {
+                  "lower": 0.1,
+                  "upper": 0.2,
+                  "count": 0,
+                  "meanPredicted": null,
+                  "observedRate": null
+                },
+                {
+                  "lower": 0.2,
+                  "upper": 0.3,
+                  "count": 12,
+                  "meanPredicted": 0.2577154708600182,
+                  "observedRate": 0.5833333333333334
+                },
+                {
+                  "lower": 0.3,
+                  "upper": 0.4,
+                  "count": 32,
+                  "meanPredicted": 0.33583976220028866,
+                  "observedRate": 0.375
+                },
+                {
+                  "lower": 0.4,
+                  "upper": 0.5,
+                  "count": 33,
+                  "meanPredicted": 0.44758944975843706,
+                  "observedRate": 0.5757575757575758
+                },
+                {
+                  "lower": 0.5,
+                  "upper": 0.6,
+                  "count": 15,
+                  "meanPredicted": 0.5494368286130875,
+                  "observedRate": 0.9333333333333333
+                },
+                {
+                  "lower": 0.6,
+                  "upper": 0.7,
+                  "count": 20,
+                  "meanPredicted": 0.6504820128407276,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.7,
+                  "upper": 0.8,
+                  "count": 10,
+                  "meanPredicted": 0.7340085004650836,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.8,
+                  "upper": 0.9,
+                  "count": 1,
+                  "meanPredicted": 0.8127077158702543,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.9,
+                  "upper": 1,
+                  "count": 0,
+                  "meanPredicted": null,
+                  "observedRate": null
+                }
+              ]
+            },
+            "perSkill": {
+              "n": 1280,
+              "brier": 0.06665466466653219,
+              "ece": 0.12270427336917493,
+              "baseRate": 0.06640625,
+              "meanPredicted": 0.17262299434982833,
+              "reliability": [
+                {
+                  "lower": 0,
+                  "upper": 0.1,
+                  "count": 585,
+                  "meanPredicted": 0.001026551836872012,
+                  "observedRate": 0.008547008547008548
+                },
+                {
+                  "lower": 0.1,
+                  "upper": 0.2,
+                  "count": 130,
+                  "meanPredicted": 0.15846367562668884,
+                  "observedRate": 0.015384615384615385
+                },
+                {
+                  "lower": 0.2,
+                  "upper": 0.3,
+                  "count": 221,
+                  "meanPredicted": 0.25595594508393515,
+                  "observedRate": 0.03167420814479638
+                },
+                {
+                  "lower": 0.3,
+                  "upper": 0.4,
+                  "count": 181,
+                  "meanPredicted": 0.3306339943430621,
+                  "observedRate": 0.055248618784530384
+                },
+                {
+                  "lower": 0.4,
+                  "upper": 0.5,
+                  "count": 99,
+                  "meanPredicted": 0.4439541725444976,
+                  "observedRate": 0.20202020202020202
+                },
+                {
+                  "lower": 0.5,
+                  "upper": 0.6,
+                  "count": 32,
+                  "meanPredicted": 0.5483341745982341,
+                  "observedRate": 0.40625
+                },
+                {
+                  "lower": 0.6,
+                  "upper": 0.7,
+                  "count": 21,
+                  "meanPredicted": 0.6521264705965274,
+                  "observedRate": 0.8571428571428571
+                },
+                {
+                  "lower": 0.7,
+                  "upper": 0.8,
+                  "count": 10,
+                  "meanPredicted": 0.7340085004650836,
+                  "observedRate": 0.9
+                },
+                {
+                  "lower": 0.8,
+                  "upper": 0.9,
+                  "count": 1,
+                  "meanPredicted": 0.8127077158702543,
+                  "observedRate": 1
+                },
+                {
+                  "lower": 0.9,
+                  "upper": 1,
+                  "count": 0,
+                  "meanPredicted": null,
+                  "observedRate": null
+                }
+              ]
+            },
+            "allNoulByProvider": {
+              "local": {
+                "n": 1440,
+                "brier": 0.09222662495077648,
+                "ece": 0.12164861612116867,
+                "baseRate": 0.13125,
+                "meanPredicted": 0.1937300889285211,
+                "reliability": [
+                  {
+                    "lower": 0,
+                    "upper": 0.1,
+                    "count": 622,
+                    "meanPredicted": 0.0009654868562220691,
+                    "observedRate": 0.04180064308681672
+                  },
+                  {
+                    "lower": 0.1,
+                    "upper": 0.2,
+                    "count": 130,
+                    "meanPredicted": 0.15846367562668884,
+                    "observedRate": 0.015384615384615385
+                  },
+                  {
+                    "lower": 0.2,
+                    "upper": 0.3,
+                    "count": 233,
+                    "meanPredicted": 0.25604656443720974,
+                    "observedRate": 0.060085836909871244
+                  },
+                  {
+                    "lower": 0.3,
+                    "upper": 0.4,
+                    "count": 213,
+                    "meanPredicted": 0.3314160815328803,
+                    "observedRate": 0.10328638497652583
+                  },
+                  {
+                    "lower": 0.4,
+                    "upper": 0.5,
+                    "count": 132,
+                    "meanPredicted": 0.4448629918479825,
+                    "observedRate": 0.29545454545454547
+                  },
+                  {
+                    "lower": 0.5,
+                    "upper": 0.6,
+                    "count": 47,
+                    "meanPredicted": 0.5486860854540385,
+                    "observedRate": 0.574468085106383
+                  },
+                  {
+                    "lower": 0.6,
+                    "upper": 0.7,
+                    "count": 41,
+                    "meanPredicted": 0.6513242960815032,
+                    "observedRate": 0.926829268292683
+                  },
+                  {
+                    "lower": 0.7,
+                    "upper": 0.8,
+                    "count": 20,
+                    "meanPredicted": 0.7340085004650835,
+                    "observedRate": 0.95
+                  },
+                  {
+                    "lower": 0.8,
+                    "upper": 0.9,
+                    "count": 2,
+                    "meanPredicted": 0.8127077158702543,
+                    "observedRate": 1
+                  },
+                  {
+                    "lower": 0.9,
+                    "upper": 1,
+                    "count": 0,
+                    "meanPredicted": null,
+                    "observedRate": null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "crossCheck": {
+          "comparedMetrics": 2,
+          "maxAbsDiff": 0,
+          "countMismatch": false,
+          "agrees": true
+        }
+      },
+      "decisionLog": {
+        "decisions": 160,
+        "corruptLines": 0
+      }
+    }
+  },
+  "supervisor": {},
+  "liveRequests": {
+    "byHost": {},
+    "total": 0
+  },
+  "files": [
+    "rows-skills-local.jsonl",
+    "decision-log/skills-local/decisions-2026-11.jsonl",
+    "decision-log/skills-local/labels-2026-11.jsonl"
+  ]
+}

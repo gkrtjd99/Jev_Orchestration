@@ -1,0 +1,160 @@
+{"id":"st-001","lang":"en","category":"single","task":"Add a review-app stage to .gitlab-ci.yml that deploys each merge request to a temporary environment and tears it down on merge."}
+{"id":"st-002","lang":"en","category":"confusable","task":"Finance's budget.xlsx has a lookup chain that breaks every time they insert a row. The data itself is clean. Rework the sheet so it survives edits."}
+{"id":"st-003","lang":"en","category":"single","task":"Automate the signup, email verification and first-project-creation journey in a real browser so we catch breakage before each release."}
+{"id":"st-004","lang":"en","category":"none","task":"Delete the unused legacy/ directory and make sure nothing imports from it."}
+{"id":"st-005","lang":"en","category":"none","task":"Write a bash one-liner that lists the ten largest files under ./logs."}
+{"id":"st-006","lang":"ko","category":"multi","task":"사내 GitLab 파이프라인에 야간 부하 테스트 단계를 넣어 주세요. 초당 500건 기준으로 p95가 300ms를 넘으면 실패 처리되어야 합니다."}
+{"id":"st-007","lang":"en","category":"none","task":"Look at the stack trace in logs/crash-1123.txt and tell me which line threw and the likely cause."}
+{"id":"st-008","lang":"ko","category":"single","task":"utils/date.ts의 영업일 계산 함수에 테스트가 하나도 없습니다. 공휴일, 주말, 연말 경계 케이스를 포함해서 작성해 주세요."}
+{"id":"st-009","lang":"ko","category":"none","task":"utils/format.ts의 formatCurrency가 음수일 때 괄호 대신 마이너스 기호를 쓰게 바꿔 주세요."}
+{"id":"st-010","lang":"en","category":"none","task":"Write a small Node script that reads a list of URLs from stdin and prints the HTTP status of each. It is a one-off for me to check a list of links; no retries, no concurrency limits, nothing fancy. Plain fetch is fine and it only needs to run on my machine."}
+{"id":"st-011","lang":"en","category":"single","task":"Document the v2 orders endpoints in api/openapi.yaml with proper schemas, error responses and examples, then regenerate the TypeScript client."}
+{"id":"st-012","lang":"en","category":"single","task":"Before the SOC 2 audit we need to know which of our npm and pip packages have known CVEs or licenses we cannot ship. Produce the list with fix versions."}
+{"id":"st-013","lang":"en","category":"single","task":"The /search endpoint's main statement takes 4s at p95. The SQL is in src/search/query.sql. Figure out why and make it fast."}
+{"id":"st-014","lang":"en","category":"none","task":"The Stripe logo in the footer is pixelated on retina screens; swap it for the SVG in assets/logos/."}
+{"id":"st-015","lang":"ko","category":"single","task":"내년도 부서별 예산안 엑셀을 만들어 주세요. 가정 시트의 인상률을 바꾸면 전체 합계가 따라 바뀌어야 하고, 분기별 피벗도 필요합니다."}
+{"id":"st-016","lang":"ko","category":"single","task":"정산 배치의 집계 쿼리가 요즘 40분씩 걸립니다. 실행 계획 보고 원인 찾아서 개선해 주세요. 쿼리는 batch/settlement.sql에 있습니다."}
+{"id":"st-017","lang":"en","category":"none","task":"Add a --verbose flag to the CLI that prints each HTTP request it makes."}
+{"id":"st-018","lang":"ko","category":"none","task":"docker-compose.yml에서 redis 포트를 6379에서 6380으로 바꿔 주세요."}
+{"id":"st-019","lang":"ko","category":"confusable","task":"보안 점검 차원에서, 저장소에 .env 파일이 올라간 적이 있는지 전체 커밋 기록을 뒤져서 확인해 주세요. 노출된 키가 있으면 목록과 교체 순서도 정리해 주세요."}
+{"id":"st-020","lang":"ko","category":"single","task":"배포 이미지에서 취약점 스캐너가 OS 패키지 경고를 80개 넘게 띄웁니다. 베이스 이미지부터 다시 잡고 루트가 아닌 계정으로 돌게 해 주세요."}
+{"id":"st-021","lang":"en","category":"single","task":"Go through the checkout flow and tell me everything that would fail a WCAG 2.2 AA review. Keyboard traps, contrast, missing labels, all of it."}
+{"id":"st-022","lang":"en","category":"none","task":"Which commit introduced the `maxRetries = 0` default? Use git to find out and tell me the author date and message."}
+{"id":"st-023","lang":"en","category":"single","task":"Extract the three near-identical S3+CloudFront stacks in infra/ into one reusable unit with typed inputs and outputs, and have the three call sites use it."}
+{"id":"st-024","lang":"en","category":"none","task":"Add a small function that parses ISO-8601 duration strings from config (PT5M, P1D) into milliseconds."}
+{"id":"st-025","lang":"ko","category":"single","task":"새 마이크로서비스 저장소를 하나 만들어야 합니다. 회사 표준 구조와 소유자 등록 절차대로 초기 세팅해 주세요."}
+{"id":"st-026","lang":"en","category":"none","task":"Add a GET /healthz endpoint that returns 200 and the current git sha."}
+{"id":"st-027","lang":"en","category":"confusable","task":"The Card component looks wrong in dark mode because its border is a hardcoded #e5e5e5. Fix it properly, and check whether siblings have the same problem."}
+{"id":"st-028","lang":"en","category":"single","task":"Write up what changed between v4.2.0 and HEAD for customers."}
+{"id":"st-029","lang":"en","category":"none","task":"Move the three helper functions at the bottom of server.ts into src/helpers/ and fix the imports."}
+{"id":"st-030","lang":"ko","category":"single","task":"결제 워커를 쿠버네티스에 올려야 합니다. 리소스 제한, 헬스 체크, 롤링 업데이트 설정까지 포함해서 배포 정의를 작성해 주세요."}
+{"id":"st-031","lang":"ko","category":"single","task":"협력사가 보낸 계약서 워드 파일에 우리 쪽 수정 의견을 남겨야 합니다. 3조와 7조 문구를 notes.md대로 고치되 상대방이 어디가 바뀌었는지 하나씩 확인하고 수락할 수 있어야 하고, 메모도 달아 주세요."}
+{"id":"st-032","lang":"en","category":"none","task":"Convert the callback-style function in lib/fs-walk.js to async/await."}
+{"id":"st-033","lang":"en","category":"confusable","task":"Take each customer's questionnaire answers from the DB and render them into a nicely laid out, branded PDF summary. The answers were filled in through our web form, there is no PDF template involved."}
+{"id":"st-034","lang":"en","category":"single","task":"Our .github/workflows/test.yml takes 18 minutes. Split it into a matrix, cache pnpm properly and make the lint job cancel when a newer push supersedes it."}
+{"id":"st-035","lang":"en","category":"confusable","task":"We need to migrate the main database from the old Postgres 12 host to a new Postgres 16 host. Plan the dump, transfer and cutover, and prove the copy is complete. No schema changes."}
+{"id":"st-036","lang":"ko","category":"multi","task":"결제 화면 문구를 번역 키로 분리하고, 그 김에 한국어 원문도 우리 서비스 말투에 맞게 다시 써 주세요."}
+{"id":"st-037","lang":"ko","category":"none","task":"이 저장소에서 TODO 주석이 몇 개인지 파일별로 세어 주세요."}
+{"id":"st-038","lang":"en","category":"none","task":"Turn the nested if/else in resolvePlan() into early returns. Behavior must stay identical."}
+{"id":"st-039","lang":"ko","category":"single","task":"PR 올릴 때마다 린트랑 테스트가 자동으로 돌게 해 주세요. 저장소는 GitHub에 있고 pnpm 모노레포입니다. 아직 아무 설정도 없습니다."}
+{"id":"st-040","lang":"ko","category":"multi","task":"외주사가 넘긴 코드를 병합하기 전에 살펴봐 주세요. 인증 우회나 인젝션 같은 취약점이 있는지, 그리고 토큰이나 비밀번호가 코드나 커밋 기록에 박혀 있지 않은지 둘 다 확인이 필요합니다."}
+{"id":"st-041","lang":"en","category":"multi","task":"Write the spec for the new inventory API and set up provider verification so that consumers' recorded expectations are checked in the inventory service build."}
+{"id":"st-042","lang":"en","category":"single","task":"Build a 3-year headcount cost model workbook: an inputs sheet, a per-team monthly sheet whose cells reference the inputs, and a summary with a base/optimistic/pessimistic toggle. Finance will change the assumptions themselves, so nothing may be hardcoded."}
+{"id":"st-043","lang":"en","category":"confusable","task":"We moved the repo from our GitLab to GitHub. Recreate the pipeline there with the same stages as the old .gitlab-ci.yml: lint, test, build image."}
+{"id":"st-044","lang":"en","category":"single","task":"I think an AWS key got committed somewhere in the last few months. Find it in history and tell me what needs rotating and in what order."}
+{"id":"st-045","lang":"en","category":"none","task":"Read docs/architecture.md and tell me whether the retry policy described there matches what src/http/retry.ts actually does."}
+{"id":"st-046","lang":"en","category":"confusable","task":"Check that the checkout flow still works when 500 users go through it at the same time."}
+{"id":"st-047","lang":"ko","category":"none","task":"테스트 폴더 이름이 tests와 __tests__로 섞여 있습니다. __tests__로 통일하고 import 경로를 고쳐 주세요."}
+{"id":"st-048","lang":"en","category":"none","task":"Yesterday's release went fine. Now list the branches that were merged more than 30 days ago so I can decide which to delete."}
+{"id":"st-049","lang":"en","category":"none","task":"The README links to docs/setup.pdf, which no longer exists. Remove the dead link."}
+{"id":"st-050","lang":"en","category":"single","task":"Marketing wants a high-contrast theme. Add it alongside light and dark without touching any component CSS."}
+{"id":"st-051","lang":"en","category":"multi","task":"Rebuild the worker image as a distroless multi-stage build and add a workflow in .github/ that builds, scans and pushes it to GHCR on every tag."}
+{"id":"st-052","lang":"en","category":"single","task":"Add a non-null tenant_id column to the orders table (about 400M rows, Postgres 15) without taking the API down. I need the migration steps in order, the backfill job, and what to do if we have to back out halfway."}
+{"id":"st-053","lang":"ko","category":"single","task":"거래처에서 받은 세금계산서 PDF 30개가 invoices/에 있어요. 공급가액, 세액, 사업자등록번호를 뽑아서 하나의 표로 정리해 주세요. 절반 정도는 스캔본입니다."}
+{"id":"st-054","lang":"ko","category":"none","task":"config.yaml에 중복된 키가 있는지 확인해 주세요."}
+{"id":"st-055","lang":"ko","category":"single","task":"추천 알고리즘 B안 실험이 2주 돌았습니다. 클릭률 차이가 통계적으로 의미가 있는지, 표본은 충분했는지 봐 주세요. 데이터는 exp/reco_b.csv입니다."}
+{"id":"st-056","lang":"ko","category":"single","task":"입사 서류 양식(hr/onboarding_form.pdf)에 new_hires.json의 신규 입사자 정보를 채워서 사람별로 저장해 주세요. 체크박스 항목도 있습니다."}
+{"id":"st-057","lang":"ko","category":"multi","task":"orders 테이블 컬럼 타입 변경을 운영에 적용해야 합니다. 적용 전에 백업을 떠서 실제로 복원되는지까지 검증한 다음, 서비스 중단 없이 진행해 주세요."}
+{"id":"st-058","lang":"en","category":"single","task":"Generate the monthly SLA report for customer Acme as a PDF from reports/sla.html.j2 with our letterhead, page numbers and a table of contents. Data comes from metrics/acme-2026-10.json."}
+{"id":"st-059","lang":"ko","category":"confusable","task":"새벽 백업 작업이 도는 동안 주문 조회가 눈에 띄게 느려집니다. 백업 방식은 그대로 두고, 조회 쪽이 버틸 수 있게 인덱스나 쿼리를 손봐 주세요."}
+{"id":"st-060","lang":"ko","category":"multi","task":"설문 응답 CSV가 인코딩도 깨져 있고 열이 밀린 행도 있습니다. 먼저 정리하고, 정리된 데이터의 문항별 응답 분포와 결측 현황을 요약해 주세요."}
+{"id":"st-061","lang":"en","category":"none","task":"Summarize what src/scheduler/ does in ten bullet points for a new teammate."}
+{"id":"st-062","lang":"en","category":"single","task":"LCP on the product page regressed from 2.1s to 3.4s after last week's release. Find what caused it and get us back under budget."}
+{"id":"st-063","lang":"ko","category":"single","task":"구독 요금제를 월간/연간으로 나누고, 중간에 플랜을 바꾸면 일할 계산되게 결제 연동을 수정해 주세요. 결제는 Stripe를 씁니다."}
+{"id":"st-064","lang":"en","category":"single","task":"We just received events_2026.parquet from the partner. Before anyone models on it, tell me what is in there: column types, null rates, cardinalities, weird distributions, obvious quality problems. Do not alter the file."}
+{"id":"st-065","lang":"en","category":"single","task":"The api image is 1.9GB and runs as root. Shrink it and lock it down."}
+{"id":"st-066","lang":"en","category":"multi","task":"Stand up the new \"reports\" service: reusable Terraform for its queue, bucket and IAM role, plus the manifests and overlays to deploy it to the staging and prod clusters."}
+{"id":"st-067","lang":"en","category":"multi","task":"Split the 2TB events table into monthly partitions online, and afterwards rework the three reporting statements in reports/*.sql so they prune partitions instead of scanning everything."}
+{"id":"st-068","lang":"en","category":"none","task":"Add a `make clean` target that removes dist/ and coverage/."}
+{"id":"st-069","lang":"en","category":"none","task":"Explain the difference between a LEFT JOIN and an INNER JOIN with a tiny example; our intern asked."}
+{"id":"st-070","lang":"en","category":"multi","task":"Take the figures from the scanned supplier price lists (PDFs in inbox/) and build a comparison workbook with formulas for landed cost per SKU that purchasing can keep adjusting."}
+{"id":"st-071","lang":"en","category":"single","task":"Add metered billing for API usage: report usage records hourly and handle the subscription lifecycle for upgrades and cancellations. We are on Stripe."}
+{"id":"st-072","lang":"en","category":"confusable","task":"Look over the password-reset and API-key issuance code for flaws: predictable tokens, missing expiry, user enumeration. This is about the logic, not about anything having leaked."}
+{"id":"st-073","lang":"ko","category":"confusable","task":"영어 온보딩 문구의 한국어 번역본이 번역투가 심합니다. 키 구조나 코드는 건드리지 말고 한국어 문장만 자연스럽게 고쳐 주세요."}
+{"id":"st-074","lang":"en","category":"confusable","task":"Adding the foreign key from payments to invoices is slow: in staging it held a lock on payments for four minutes. Make that change safe to run in prod."}
+{"id":"st-075","lang":"ko","category":"single","task":"설정 화면에 하드코딩된 한글 문구들을 번역 가능하게 분리해 주세요. 개수 표현이랑 날짜 표기도 언어별로 달라져야 합니다."}
+{"id":"st-076","lang":"ko","category":"none","task":"서버 시작할 때 포트가 이미 사용 중이면 알아보기 쉬운 에러 메시지를 내고 종료하게 해 주세요."}
+{"id":"st-077","lang":"ko","category":"none","task":"깃허브 액션 배지가 README에서 깨져 보입니다. 링크 주소가 옛 저장소 이름으로 되어 있어요. 고쳐 주세요."}
+{"id":"st-078","lang":"en","category":"none","task":"Add a .editorconfig with 2-space indentation and LF line endings."}
+{"id":"st-079","lang":"ko","category":"none","task":"이 정규식이 무슨 뜻인지 설명해 주세요: ^(?=.*\\d)(?=.*[a-z]).{8,}$"}
+{"id":"st-080","lang":"en","category":"single","task":"Review PR #482 (the file upload endpoint) strictly from an attacker's point of view before we merge."}
+{"id":"st-081","lang":"en","category":"single","task":"Make a chart of weekly active users by plan tier for the last 12 months for the board deck."}
+{"id":"st-082","lang":"en","category":"none","task":"The test `should parse empty input` is failing on main. Find out why and fix the code or the test, whichever is wrong."}
+{"id":"st-083","lang":"ko","category":"confusable","task":"프런트 팀이 볼 수 있게 주문 API 명세를 정리해 주세요. 검증 테스트는 필요 없고 스키마와 예시 응답만 정확하면 됩니다."}
+{"id":"st-084","lang":"ko","category":"confusable","task":"분기 보고서 PDF를 새로 만드는 게 아닙니다. 작년에 만든 보고서 PDF 12개에서 요약 표만 다시 뽑아서 분기별로 비교해야 합니다."}
+{"id":"st-085","lang":"en","category":"none","task":"Add JSDoc comments to the exported functions in src/cache/lru.ts."}
+{"id":"st-086","lang":"en","category":"single","task":"Legal sent back MSA_v3.docx. Apply the edits in notes/legal_feedback.md so they can accept or reject each one individually in Word, and answer the two comments they left in the margin."}
+{"id":"st-087","lang":"en","category":"none","task":"What is the time complexity of the dedupe() helper in utils/array.ts, and is it worth changing for lists under 1,000 items?"}
+{"id":"st-088","lang":"en","category":"single","task":"The new onboarding variant ran for three weeks. Data is in experiments/onboarding_v2.csv with one row per user (arm, signup date, retained_d7). Did it actually improve 7-day retention or is it noise? I also want to know whether we ran it long enough."}
+{"id":"st-089","lang":"ko","category":"multi","task":"공용 Button 컴포넌트에 danger 변형을 추가하고, 그 색상은 라이트/다크 테마 양쪽에서 변수로 정의해 주세요."}
+{"id":"st-090","lang":"ko","category":"confusable","task":"v2.3.1 태그는 이미 달았고 배포도 끝났습니다. 고객 공지에 올릴 변경 사항 요약만 써 주세요."}
+{"id":"st-091","lang":"en","category":"confusable","task":"This spreadsheet export (sales.csv) has subtotal rows mixed in with the data, leftover merged-header lines and currency symbols inside numeric columns. Fix the file so the warehouse loader accepts it."}
+{"id":"st-092","lang":"en","category":"confusable","task":"Convert the invoice template PDF so customers can type into the amount and address boxes in Acrobat and then sign it."}
+{"id":"st-093","lang":"en","category":"multi","task":"Handle Stripe invoice.payment_failed and customer.subscription.deleted: build the endpoint that takes these in safely (duplicates, replays, forged requests) and update our dunning state from them."}
+{"id":"st-094","lang":"ko","category":"none","task":"main 브랜치와 제 브랜치의 차이를 요약해 주세요. 파일 단위로 무엇이 바뀌었는지만 알면 됩니다."}
+{"id":"st-095","lang":"en","category":"single","task":"exports/crm_dump.csv has mixed delimiters, six junk lines before the header, dates in three formats and duplicate rows that differ only by trailing whitespace. Normalize it into a file we can actually load."}
+{"id":"st-096","lang":"ko","category":"single","task":"어제 오후 3시 10분쯤 누가 운영 DB에서 coupons 테이블을 잘못 지웠습니다. 그 직전 상태로 해당 테이블만 살려 주세요."}
+{"id":"st-097","lang":"en","category":"single","task":"Add a new <DateRangePicker> to packages/ui. It should behave like the other form controls there: usable with or without external state, ref reaches the input, parts composable."}
+{"id":"st-098","lang":"ko","category":"single","task":"공용 UI 패키지에 Toast 컴포넌트를 새로 추가해 주세요. 기존 Modal, Tooltip과 같은 방식으로 만들어야 합니다."}
+{"id":"st-099","lang":"en","category":"none","task":"Draft a short Slack message telling the team that the staging database will be down for maintenance Thursday 14:00-15:00 UTC."}
+{"id":"st-100","lang":"ko","category":"confusable","task":"국내 PG사에서 결제 승인 결과를 우리 서버로 통지해 주는데, 같은 통지가 두세 번씩 와서 주문이 중복 처리됩니다. 받는 쪽을 고쳐 주세요."}
+{"id":"st-101","lang":"ko","category":"none","task":"엑셀로 관리하던 담당자 목록은 이제 안 씁니다. docs/에서 그 파일을 가리키는 문장을 지워 주세요."}
+{"id":"st-102","lang":"ko","category":"none","task":"lib/a.js의 merge와 lib/b.js의 combine이 하는 일이 같은지 비교해 주세요. 입력이 배열일 때와 null일 때 동작이 달라 보이는데, 실제로 다른지, 다르다면 어느 쪽 호출부가 그 차이에 의존하는지도 같이 알려 주세요. 코드는 아직 고치지 마세요."}
+{"id":"st-103","lang":"en","category":"single","task":"We have the W-8BEN template in forms/. Populate it for each of the 12 contractors in contractors.json and save one flattened file per person."}
+{"id":"st-104","lang":"ko","category":"single","task":"장바구니에 담고 결제 완료 화면까지 가는 흐름을 실제 브라우저로 돌리는 자동화 시나리오를 추가해 주세요. 지금은 QA가 매번 손으로 확인하고 있습니다."}
+{"id":"st-105","lang":"en","category":"single","task":"Pull the quarterly revenue table out of vendor_statements/2026-Q3.pdf (pages 4-9, they are scans and a couple are rotated) and write it to out/q3_revenue.csv."}
+{"id":"st-106","lang":"en","category":"single","task":"Add \"Sign in with Google\" to the CLI tool. It has no way to receive a browser callback today."}
+{"id":"st-107","lang":"en","category":"single","task":"Restore last night's snapshot of the billing DB into a scratch instance and verify the row counts match prod as of 02:00 UTC."}
+{"id":"st-108","lang":"ko","category":"none","task":"SQL 파일들 확장자가 .SQL 대문자로 된 게 섞여 있습니다. 전부 소문자로 바꿔 주세요."}
+{"id":"st-109","lang":"ko","category":"none","task":"이 함수가 왜 가끔 undefined를 반환하는지 봐 주세요. utils/pick.ts의 pickFirst입니다."}
+{"id":"st-110","lang":"en","category":"confusable","task":"The migration that added the index on orders(created_at) ran fine, but the order list statement still does a sequential scan. Why, and what do we change?"}
+{"id":"st-111","lang":"ko","category":"none","task":"README에 로컬 실행 방법 섹션을 추가해 주세요. 지금은 설치 방법만 있습니다."}
+{"id":"st-112","lang":"en","category":"single","task":"Write tests for src/pricing/discount.ts. Cover the tier boundaries and the rounding cases; the module currently has zero coverage."}
+{"id":"st-113","lang":"en","category":"none","task":"Compare the two JSON files in fixtures/ and list keys that exist in one but not the other."}
+{"id":"st-114","lang":"ko","category":"single","task":"앱 오류 메시지 문구가 제각각입니다. 어떤 건 반말이고 어떤 건 너무 딱딱해요. 전체를 일관된 말투로 다듬어 주세요."}
+{"id":"st-115","lang":"en","category":"single","task":"Build the endpoint that receives shipment status callbacks from the carrier. They retry aggressively and sometimes deliver updates out of order."}
+{"id":"st-116","lang":"ko","category":"confusable","task":"라이트하우스 점수가 낮다는 지적을 받았습니다. 성능 항목은 괜찮은데 색 대비와 대체 텍스트 때문에 감점됐어요. 고쳐 주세요."}
+{"id":"st-117","lang":"ko","category":"none","task":"PDF 뷰어 라이브러리 버전이 package.json에 몇으로 되어 있는지 알려 주세요."}
+{"id":"st-118","lang":"en","category":"single","task":"The mobile team keeps getting broken by backend response changes. Set things up between mobile-bff and orders-service so that the orders-service build goes red when it stops honoring what mobile-bff relies on."}
+{"id":"st-119","lang":"ko","category":"single","task":"이번 변경분으로 새 버전을 내야 합니다. 버전 올리고 태그 달고 npm에 배포까지 해 주세요. 호환이 깨지는 변경이 하나 들어갔습니다."}
+{"id":"st-120","lang":"en","category":"confusable","task":"The PDF report we send out has a table on page 3. I need those numbers back as JSON because we lost the source data."}
+{"id":"st-121","lang":"en","category":"single","task":"Someone created the prod RDS instance by hand in the console. Bring it under Terraform without recreating it."}
+{"id":"st-122","lang":"en","category":"confusable","task":"Dependabot is noisy. Of the 40 open alerts, tell me which are actually reachable from our code and which upgrades are safe to take this sprint."}
+{"id":"st-123","lang":"ko","category":"none","task":"지난주에 머지된 PR 목록을 뽑아서 제목만 정리해 주세요. 팀 주간 회의에서 훑어볼 용도입니다."}
+{"id":"st-124","lang":"ko","category":"none","task":"주문 상태 enum에 REFUNDED를 추가하고 switch 문에서 빠진 곳이 없는지 확인해 주세요."}
+{"id":"st-125","lang":"ko","category":"none","task":"package.json의 scripts에 typecheck 명령을 추가해 주세요."}
+{"id":"st-126","lang":"en","category":"none","task":"Fix the off-by-one in paginate(): the last page is dropped when total is an exact multiple of pageSize."}
+{"id":"st-127","lang":"en","category":"confusable","task":"The discount logic needs to be covered end to end: every branch of calculateTotal() exercised in isolation with stubbed tax rates. No browser, no network."}
+{"id":"st-128","lang":"ko","category":"confusable","task":"변경 내역 문서는 이미 써 놨습니다. 이번이 마이너인지 메이저인지 판단해서 버전 올리고 패키지 배포해 주세요."}
+{"id":"st-129","lang":"ko","category":"multi","task":"월간 운영 리포트를 PDF로 자동 생성하게 해 주세요. 장애 건수 추이와 응답 시간 분포 그래프가 들어가야 하고 회사 양식을 따라야 합니다."}
+{"id":"st-130","lang":"en","category":"confusable","task":"Backend changed `amount` from a number to a string and the web app broke in production. Pin down what the web client expects from the payments API in a test that the backend pipeline has to pass."}
+{"id":"st-131","lang":"ko","category":"confusable","task":"빌드 파이프라인이 러너에서 캐시를 못 써서 매번 20분 걸립니다. 저장소는 사내 GitLab입니다. 예전에 GitHub Actions에서 하던 것처럼 lockfile 기준으로 캐시가 잡히게 해 주세요."}
+{"id":"st-132","lang":"en","category":"none","task":"Write a regex that matches Korean mobile numbers in the form 010-1234-5678 or 01012345678 and add it to validators.ts."}
+{"id":"st-133","lang":"en","category":"confusable","task":"Split the single Terraform state file into one backend per environment. Nothing may be destroyed or recreated; the module code can stay as it is."}
+{"id":"st-134","lang":"en","category":"single","task":"Write the Deployment, Service, HPA and PodDisruptionBudget for the notifier service, with a staging and a prod overlay."}
+{"id":"st-135","lang":"en","category":"none","task":"Change the default log level from debug to info in config/default.json."}
+{"id":"st-136","lang":"en","category":"none","task":"Our Dockerfile has a typo: `COPPY package.json`. Fix it."}
+{"id":"st-137","lang":"ko","category":"confusable","task":"Stripe 대시보드에서 만든 쿠폰을 체크아웃 세션에 적용하고, 환불할 때 쿠폰 금액을 제외하고 돌려주게 해 주세요. 이벤트 수신 쪽은 이미 잘 돌아갑니다."}
+{"id":"st-138","lang":"ko","category":"none","task":"eslint 경고 중 no-unused-vars만 전부 정리해 주세요."}
+{"id":"st-139","lang":"en","category":"none","task":"In one paragraph, what does Terraform's \"Error: Unsupported argument\" mean in general? I do not need you to fix anything."}
+{"id":"st-140","lang":"ko","category":"single","task":"회원가입 페이지를 스크린 리더로 쓰기 어렵다는 민원이 들어왔습니다. 어떤 부분이 문제인지 점검하고 고쳐 주세요."}
+{"id":"st-141","lang":"en","category":"none","task":"Bump the copyright year in LICENSE and in the footer component."}
+{"id":"st-142","lang":"en","category":"multi","task":"Explore the churn dataset in data/churn.parquet and give me a short findings summary with three or four figures I can paste into the quarterly review."}
+{"id":"st-143","lang":"ko","category":"confusable","task":"로그인 API가 동시 접속을 얼마나 버티는지가 궁금한 게 아닙니다. 로그인 화면에서 대시보드까지 실제로 넘어가는지를 배포할 때마다 자동으로 확인하고 싶습니다."}
+{"id":"st-144","lang":"ko","category":"single","task":"우리 서비스가 쓰는 오픈소스 중에 GPL 계열이 섞여 있는지, 알려진 취약점이 있는 버전은 없는지 전수 조사해 주세요."}
+{"id":"st-145","lang":"en","category":"single","task":"Can the new ingest endpoint hold 2k requests per second for 15 minutes? Write a ramping scenario with pass/fail limits on p99 latency and error rate and run it against staging."}
+{"id":"st-146","lang":"en","category":"multi","task":"Add browser automation for the checkout journey and have every step assert that the page has no WCAG AA violations."}
+{"id":"st-147","lang":"ko","category":"none","task":"로그에 찍히는 타임스탬프를 UTC에서 KST로 바꿔 주세요."}
+{"id":"st-148","lang":"ko","category":"single","task":"users 테이블의 email 컬럼을 citext로 바꾸고 유니크 제약을 걸어야 하는데, 서비스 중단 없이 진행할 수 있게 단계별 스크립트를 짜 주세요. 행이 8천만 건쯤 됩니다."}
+{"id":"st-149","lang":"en","category":"none","task":"Why does `git rebase -i` keep saying \"cannot rebase: you have unstaged changes\"? Explain and get my working tree into a state where I can rebase without losing work."}
+{"id":"st-150","lang":"en","category":"none","task":"Print the row count of data/users.csv and its header names."}
+{"id":"st-151","lang":"en","category":"none","task":"Rename the variable `tmp` to `pendingOrders` in src/orders/queue.ts and update its usages."}
+{"id":"st-152","lang":"en","category":"multi","task":"Cut 3.0.0: bump, tag, publish, and write the customer-facing changelog with a migration section for the removed endpoints."}
+{"id":"st-153","lang":"ko","category":"single","task":"테라폼 plan을 돌리면 건드리지도 않은 보안 그룹을 지웠다가 다시 만들겠다고 나옵니다. 지난번 리팩터링 때 리소스 주소가 바뀐 것 같은데, 실제 인프라는 그대로 두고 맞춰 주세요."}
+{"id":"st-154","lang":"en","category":"confusable","task":"Our Select is styled fine and themes correctly, but a parent form cannot drive its value and refs do not reach the element. Bring it in line with the other inputs."}
+{"id":"st-155","lang":"ko","category":"none","task":"회의록 초안입니다. 맞춤법만 봐 주세요. 말투는 그대로 두세요."}
+{"id":"st-156","lang":"en","category":"confusable","task":"We test the React form components heavily in isolation but still shipped a bug where the cookie banner sat on top of the submit button. Add coverage that would have caught that."}
+{"id":"st-157","lang":"ko","category":"none","task":"src/api/client.ts에서 타임아웃 기본값을 5초에서 10초로 바꿔 주세요."}
+{"id":"st-158","lang":"en","category":"none","task":"Find every place we call the deprecated `fetchUser()` and list file:line. Do not change anything."}
+{"id":"st-159","lang":"ko","category":"confusable","task":"한국어 문구는 확정됐습니다. 이제 \"파일 {n}개\" 같은 문장이 영어와 일본어에서도 수에 맞게 나오도록 메시지 형식을 바꿔 주세요."}
+{"id":"st-160","lang":"en","category":"confusable","task":"Is the already-cleaned customer table trustworthy? Check for outliers, impossible values and columns that are mostly empty. I do not want anything changed, just a report."}

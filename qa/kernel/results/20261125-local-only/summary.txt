@@ -1,0 +1,11 @@
+Decision kernel evaluation  run=20261125-local-only  OFFLINE (local judge only, no API call)  product=3.2.0@bbb74525
+failures count as "nothing selected / no advice"; tok = usage fields in the API response bodies (n/a = not returned)
+skills data: 160 tasks, 40 skills; consensus 160; labeler exact-set agreement 100.0%, any-skill kappa 1.000
+BM25 retrieval recall of gold skills: @4 68.3%  @8 70.8%  @12 75.0%  @16 79.2%  @40 100.0%
+  by language @8: en 91.5% (65/71)  ko 40.8% (20/49)
+SKILLS (gold: consensus; thresholds need 0.5, autoLoad 0.9)
+  arm    n    fail  needAcc  load P  load R  load F1  exact  F1+sugg  falseInj  miss    ECE need  ECE skill  p50ms  p95ms  maxms  tok in/out
+  local  160  0     62.5%    n/a     0.000   n/a      35.0%  0.446    0.0%      100.0%  0.287     0.123      0      0      2      n/a/n/a
+  local: failures none; retried 0; injected ctx mean 414 chars vs catalog 9589; product/direct calibration agree
+live HTTP requests: none  (total 0)
+results: qa/kernel/results/20261125-local-only/metrics.json
