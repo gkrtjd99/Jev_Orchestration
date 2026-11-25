@@ -6,7 +6,7 @@ import { projectFor } from './config.mjs';
 import { SessionStore } from './state.mjs';
 import { inventory, revisionFingerprint, readDocumentMetadata } from './documents.mjs';
 import { routeQuestions, failureQuestions, readQuestions, QUESTION_VERSION } from './questions.mjs';
-import { routeContext, policyFingerprint, hasRoutingPacket } from './policy.mjs';
+import { routeContext, policyFingerprint, splitRoutingTail } from './policy.mjs';
 import { routeTask } from './router.mjs';
 import { assertInstalledProfile } from './profiles.mjs';
 import { profileCatalog } from './catalog.mjs';
@@ -322,9 +322,19 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       // no rewrite, the output of a preserved call. Its id is linked to the original decision so the launch
       // acknowledgement, the agent mapping and the report check apply to the call that actually runs.
       const known=await store.getTask(e.tool_use_id);
-      if(known?.reissueOf)return {}; // replay of a recognised re-issue
+      // Replay of a call this extension already left as issued. Only the identical input is answered here;
+      // the same id with another input goes to the reuse check below, like any other stored id.
+      if(known&&(known.reissueOf||known.repeatOf||known.asIssued)&&known.inputHash===inputHash)
+        return visible&&known.message?contextOutput(e.event,known.message):{};
+      // True when the task text routed below is the prompt without a trailing routing packet nothing vouched for.
+      let stripped=false;
+      const strip=()=>{const tail=d.managed?splitRoutingTail(d.text):null;if(tail){d.text=tail.task;stripped=true;}};
       if(!known){
-        const original=await store.claimReissue(inputHash,e.tool_use_id);
+        // A problem with the rewrite index (a leftover lock, a damaged file) must not turn a call that needs
+        // no decision into a hook error: the lookup is skipped and the read-only check below still applies.
+        let original=null;
+        try{original=await store.claimReissue(inputHash,e.tool_use_id);}
+        catch(error){try{await store.record('reissue_lookup_failed',{taskId:e.tool_use_id,code:errorCode(error)});}catch{/* bookkeeping only */}}
         if(original){
           const {task}=original;
           const skills=await store.getEvent('skills',original.taskId);
@@ -335,15 +345,33 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
             skillsInjected:skills?.injected===true,inputHash,ageMs:original.ageMs},e.tool_use_id);
           return {};
         }
-        // No stored rewrite matches (state lost, look-back passed, decision already used by another call), yet the
-        // call names a managed profile and its prompt already ends in a routing packet: routing it again would
-        // judge the packet as if it were task text and append a second one. The packet is not trusted for
-        // anything; the call is only left alone, so nothing is mapped to a route and no report is checked.
-        if(d.managed&&hasRoutingPacket(d.text)){
-          await store.record('routing_skipped',{reason:'managed_call_already_carries_routing_packet',taskId:e.tool_use_id,inputHash});
-          return {};
+        // Not a re-issue (the decision was already handed out, a Post hook already reported the original, the
+        // look-back passed), but the input is byte for byte one this extension returned in this session under
+        // the current policy: the task text, the profile and the packet are its own. The call is left as
+        // issued and linked to that stored route, so the launch mapping, the report check and failure
+        // attribution keep working. It is NOT routed again, so it gets no retry escalation; when a failure is
+        // on record for that task, Main is told so and how to get retry routing.
+        const earlier=await store.rewriteOrigin(inputHash);
+        if(earlier&&earlier.task.policy===policy){
+          const {task}=earlier;const route=task.route;
+          const skills=await store.getEvent('skills',earlier.taskId);
+          const failed=route.taskSignature?await store.failureFor(route.taskSignature):null;
+          const message=failed?`Jev: this delegation repeats an input this extension already routed (profile ${route.profile}), and a failure (${failed.category}, ${failed.count} recorded attempt${failed.count===1?'':'s'}) is on record for that task. The call is left exactly as issued and was NOT routed again, so no retry escalation was applied. To get retry routing, issue the delegation with the original task text (without the appended <jev-routing> block) and the original agent type. No worker was started by this extension.`:'';
+          await store.putTask(e.tool_use_id,{inputHash,outputHash:inputHash,policy:task.policy,stamp:task.stamp,route,
+            ...(task.skillsText?{skillsText:task.skillsText}:{}),...(object(skills)?{skills}:{}),repeatOf:earlier.taskId,...(message?{message}:{})});
+          await store.record('delegation_repeated',{taskId:e.tool_use_id,repeatOf:earlier.taskId,decisionId:route.decisionId||null,
+            profile:route.profile||null,role:route.role,tier:route.tier,model:route.model,effort:route.effort,inputHash,
+            priorFailure:failed?.category||null,priorAttempts:failed?.count||0},e.tool_use_id);
+          return visible&&message?contextOutput(e.event,message):{};
         }
-      }
+        // Nothing in this session's state vouches for the call (state lost, another session, or a packet Main
+        // typed itself). A packet is a shape, not provenance, so it skips nothing: a managed call whose prompt
+        // ends in the appended tail is routed like any other call, on the task text in front of that tail.
+        // Classification, profile choice, skills, minimumConfidence and retry escalation all run, and the
+        // rewrite carries one packet, not two.
+        strip();
+        if(stripped){try{await store.record('routing_packet_unverified',{taskId:e.tool_use_id,inputHash});}catch{/* bookkeeping only */}}
+      }else if(known.stripped&&known.inputHash===inputHash)strip(); // replay: the same text the stored route was made for
       const docs=await inventory(project,cfg);const snap=await store.snapshot();
       const revision=await revisionFingerprint(project,docs);
       const plan=cfg.safety.sharePlanContext&&snap.goalEligible?await planContext(project,snap.goalHash,apiKey):null;
@@ -431,9 +459,14 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         }
         // The exact skills text is stored so an idempotent replay reproduces the identical rewrite.
         const outputHash=hash(output.hookSpecificOutput?.updatedInput||e.input);
-        await store.putTask(e.tool_use_id,{inputHash,outputHash,policy,stamp,route,...(skillsText?{skillsText}:{})});
-        // Lets a re-issue of this rewritten input be recognised under its new tool_use_id (claimReissue).
-        if(outputHash!==inputHash){try{await store.noteRewrite(outputHash,e.tool_use_id);}catch{/* without the index the re-issue is still preserved by the routing-packet check */}}
+        // The fresh decision for a call that arrived with an unverified tail reproduced that input exactly:
+        // there is nothing to change, so nothing is returned (an unchanged updatedInput would only invite the
+        // host's refusal round). The route is stored, so the call is checked like any routed call.
+        const asIssued=stripped&&canRewrite&&outputHash===inputHash;
+        if(asIssued)output={};
+        await store.putTask(e.tool_use_id,{inputHash,outputHash,policy,stamp,route,...(skillsText?{skillsText}:{}),...(stripped?{stripped:true}:{}),...(asIssued?{asIssued:true}:{})});
+        // Lets a later call with this returned input be recognised under its new tool_use_id (claimReissue, rewriteOrigin).
+        if(canRewrite&&(outputHash!==inputHash||asIssued)){try{await store.noteRewrite(outputHash,e.tool_use_id);}catch{/* without the index the next call with this input is routed again, on the text in front of its packet */}}
         await recordSkills(injected);
         await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
         return output;

@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fixture, event, answer, server } from './helpers.mjs';
 import { handleHook } from '../src/hooks.mjs';
 import { SessionStore, REISSUE_WINDOW_MS, REISSUE_KEEP } from '../src/state.mjs';
-import { hasRoutingPacket, routeContext } from '../src/policy.mjs';
+import { splitRoutingTail, routeContext } from '../src/policy.mjs';
 import { hash, readJSON, writeJSON } from '../src/util.mjs';
 import { DecisionLog, decisionLogDir } from '../src/kernel/log.mjs';
 
@@ -231,36 +231,70 @@ test('a later real failure of the launched call keeps today\'s behaviour, attrib
   assert.deepEqual({ ...(await store.failureFor(route.taskSignature)), time: 0 }, { category: 'environment', profileId: route.profile, time: 0, count: 1 });
 });
 
-test('if a host ever reported the refusal as a tool failure, the re-issue removes it from retry escalation', async t => {
-  // Not observed: in the recorded sessions no PostToolUse/PostToolUseFailure hook fired for a refused call.
+test('a call a Post hook reported is never treated as refused: its failure stays in retry accounting', async t => {
+  // Observed: no Post hook fires for a refused call (0 of 15), so only a call without one can be a refusal.
+  // A failure report cannot be told apart from a subagent that started and returned an error, so it is kept.
+  for (const variant of ['failure hook without an agent id', 'started agent that returned an error']) {
+    const f = await fixture(t);
+    const judge = client({ failure: 'implementation' });
+    const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
+    const pre = first(f.project, 'toolu_first_1');
+    const routed = await handleHook(pre, 'claude', deps);
+    if (variant.startsWith('started')) {
+      await handleHook(started(f.project, AGENT, updatedOf(routed).subagent_type), 'claude', deps);
+      await handleHook({ ...pre, hook_event_name: 'PostToolUse', tool_response: { is_error: true, agentId: AGENT, content: 'worker crashed: tests failing' } }, 'claude', deps);
+    } else await handleHook({ ...pre, hook_event_name: 'PostToolUseFailure', error: 'The call did not complete.' }, 'claude', deps);
+    const store = storeOf(f);
+    const route = (await store.getTask(pre.tool_use_id)).route;
+    assert.equal((await store.failureFor(route.taskSignature)).count, 1, variant);
+    assert.equal((await store.snapshot()).lastFailure, 'implementation');
+    const calls = judge.count;
+
+    // The rewritten input under a new id: not a re-issue. It is left as issued, linked to the stored route, and Main is told.
+    const second = again(f.project, 'toolu_second_1', updatedOf(routed));
+    const out = await handleHook(second, 'claude', deps);
+    assert.equal(updatedOf(out), undefined);
+    assert.equal(out.hookSpecificOutput.permissionDecision, undefined);
+    assert.match(out.hookSpecificOutput.additionalContext, /NOT routed again.*original task text/);
+    assert.match(out.hookSpecificOutput.additionalContext, /implementation, 1 recorded attempt\)/);
+    assert.equal(judge.count, calls, variant);
+    const linked = await store.getTask(second.tool_use_id);
+    assert.equal(linked.reissueOf, undefined);
+    assert.equal(linked.repeatOf, pre.tool_use_id);
+    assert.equal((await eventsOf(f, 'delegation_reissued')).length, 0);
+    assert.equal((await readJSON(store.rewriteFile(hash(updatedOf(routed))))).entries[0].reissuedAs, undefined, 'the decision was not handed out as a re-issue');
+    // Nothing was erased: the failure still drives retry routing, in the projection and after a rebuild from the event files.
+    for (const rebuilt of [false, true]) {
+      if (rebuilt) await fs.rm(store.projectionFile);
+      const snapshot = await store.snapshot();
+      assert.equal(snapshot.lastFailure, 'implementation', variant);
+      assert.equal((await store.failureFor(route.taskSignature)).count, 1, variant);
+      assert.deepEqual(snapshot.tasks.map(x => [x.taskId, x.status]).sort(), [[pre.tool_use_id, 'spawn_failed'], [second.tool_use_id, 'route_requested']], variant);
+    }
+    // The ORIGINAL task text issued again gets retry escalation.
+    const fresh = await handleHook(first(f.project, 'toolu_fresh_1'), 'claude', deps);
+    assert.equal((await store.getTask('toolu_fresh_1')).route.recoveryAction, 'compare_more_effort_and_higher_tier');
+    assert.notEqual(updatedOf(fresh).subagent_type, updatedOf(routed).subagent_type);
+  }
+});
+
+test('a failure reported for the refused id after its re-issue was linked is kept as reported, too', async t => {
+  // Not observed (0 of 15). Both orders end the same: the failure counts and nothing is silently dropped.
   const f = await fixture(t);
   const judge = client({ failure: 'implementation' });
   const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
-  const pre = first(f.project, 'toolu_refused_1');
-  const routed = await handleHook(pre, 'claude', deps);
-  await handleHook({ ...pre, hook_event_name: 'PostToolUseFailure', error: 'The call was refused before it ran.' }, 'claude', deps);
+  const { pre, second } = await refusedThenReissued(f, deps);
   const store = storeOf(f);
   const route = (await store.getTask(pre.tool_use_id)).route;
-  assert.equal((await store.failureFor(route.taskSignature)).count, 1);
-  assert.equal((await store.snapshot()).lastFailure, 'implementation');
-  const calls = judge.count;
-
-  const second = again(f.project, 'toolu_reissued_1', updatedOf(routed));
-  assert.deepEqual(await handleHook(second, 'claude', deps), {});
-  assert.equal(judge.count, calls);
-  assert.equal((await storeOf(f).getTask(second.tool_use_id)).reissueOf, pre.tool_use_id);
-  assert.equal(await store.failureFor(route.taskSignature), null);
-  const snapshot = await store.snapshot();
-  assert.equal(snapshot.lastFailure, null);
-  assert.deepEqual(snapshot.tasks.map(x => [x.taskId, x.status]), [[second.tool_use_id, 'route_requested']]);
-  // A projection rebuilt from the event files says the same.
-  await fs.rm(store.projectionFile);
-  assert.equal((await store.snapshot()).lastFailure, null);
-  assert.equal(await store.failureFor(route.taskSignature), null);
-  // The same task issued afresh is routed without a retry escalation.
-  const fresh = await handleHook(first(f.project, 'toolu_fresh_1'), 'claude', deps);
-  assert.equal(updatedOf(fresh).subagent_type, updatedOf(routed).subagent_type);
-  assert.equal((await store.getTask('toolu_fresh_1')).route.recoveryAction, 'none');
+  assert.equal((await store.getTask(second.tool_use_id)).reissueOf, pre.tool_use_id);
+  await handleHook({ ...pre, hook_event_name: 'PostToolUseFailure', error: 'The call did not complete.' }, 'claude', deps);
+  for (const rebuilt of [false, true]) {
+    if (rebuilt) await fs.rm(store.projectionFile);
+    const snapshot = await store.snapshot(); // rebuilds the projection when it is missing
+    assert.deepEqual({ ...(await store.failureFor(route.taskSignature)), time: 0 }, { category: 'implementation', profileId: route.profile, time: 0, count: 1 });
+    assert.equal(snapshot.lastFailure, 'implementation');
+    assert.deepEqual(snapshot.tasks.map(x => [x.taskId, x.status]).sort(), [[pre.tool_use_id, 'spawn_failed'], [second.tool_use_id, 'route_requested']]);
+  }
 });
 
 test('identical tasks issued twice on purpose are two decisions, each with its own re-issue', async t => {
@@ -300,14 +334,18 @@ test('identical tasks issued twice on purpose are two decisions, each with its o
   assert.equal(other.count, judgedTwice);
   const links = [(await storeOf(g).getTask('toolu_q1')).reissueOf, (await storeOf(g).getTask('toolu_q2')).reissueOf];
   assert.deepEqual([...links].sort(), ['toolu_p1', 'toolu_p2'], 'no decision is handed out twice');
-  // A third identical input has no open decision left: it is not a re-issue.
+  // A third identical input has no open decision left: it is not a re-issue. It is a repeat of an input this
+  // extension produced, left as issued and linked to that stored route.
   assert.deepEqual(await handleHook(again(g.project, 'toolu_q3', updatedOf(r1)), 'claude', deps2), {});
-  assert.equal(await storeOf(g).getTask('toolu_q3'), null);
+  const third = await storeOf(g).getTask('toolu_q3');
+  assert.equal(third.reissueOf, undefined);
+  assert.ok(['toolu_p1', 'toolu_p2'].includes(third.repeatOf));
   assert.equal((await eventsOf(g, 'delegation_reissued')).length, 2);
+  assert.equal((await eventsOf(g, 'delegation_repeated')).length, 1);
   assert.equal(other.count, judgedTwice);
 });
 
-test('the same input after an observed launch is not a re-issue', async t => {
+test('the same input after an observed launch is not a re-issue: it is linked to the stored route as a repeat', async t => {
   const f = await fixture(t);
   const judge = client();
   const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
@@ -320,17 +358,35 @@ test('the same input after an observed launch is not a re-issue', async t => {
   const calls = judge.count;
   const later = again(f.project, 'toolu_later_1', updatedOf(routed));
   assert.deepEqual(await handleHook(later, 'claude', deps), {});
-  assert.equal(await store.getTask('toolu_later_1'), null);
   assert.equal((await eventsOf(f, 'delegation_reissued')).length, 0);
-  // It is still never routed or skill-judged again: it names a managed profile and already carries the packet.
+  // It is never routed or skill-judged again: the input is byte for byte what this extension returned here.
   assert.equal(judge.count, calls);
-  assert.deepEqual((await eventsOf(f, 'routing_skipped')).map(x => [x.reason, x.taskId]), [['managed_call_already_carries_routing_packet', 'toolu_later_1']]);
-  // Nothing is mapped to the earlier route, so its report is not checked against it.
+  assert.equal((await eventsOf(f, 'routing_skipped')).length, 0);
+  const original = await store.getTask(pre.tool_use_id);
+  const linked = await store.getTask(later.tool_use_id);
+  assert.equal(linked.reissueOf, undefined);
+  assert.equal(linked.repeatOf, pre.tool_use_id);
+  assert.deepEqual(linked.route, original.route);
+  assert.equal(linked.message, undefined, 'no failure on record: nothing to tell Main');
+  const marks = await eventsOf(f, 'delegation_repeated');
+  assert.deepEqual(marks.map(x => Object.keys(x).sort()), [['decisionId', 'effort', 'inputHash', 'model', 'priorAttempts', 'priorFailure', 'profile', 'repeatOf', 'role', 'taskId', 'tier', 'time', 'type']]);
+  assert.deepEqual([marks[0].taskId, marks[0].repeatOf, marks[0].decisionId, marks[0].profile, marks[0].priorFailure, marks[0].priorAttempts],
+    [later.tool_use_id, pre.tool_use_id, original.route.decisionId, original.route.profile, null, 0]);
+  assert.ok(!JSON.stringify(marks).includes('TASK_MARKER') && !JSON.stringify(marks).includes('jev-routing'));
+  // The original keeps its own entry and agent; the repeat is listed next to it.
+  assert.deepEqual((await store.snapshot()).tasks.map(x => [x.taskId, x.status, x.decisionId]),
+    [[pre.tool_use_id, 'spawn_acknowledged', original.route.decisionId], [later.tool_use_id, 'route_requested', original.route.decisionId]]);
+  // A replay of the repeat answers the same and records nothing new.
+  assert.deepEqual(await handleHook(structuredClone(later), 'claude', deps), {});
+  assert.equal((await eventsOf(f, 'delegation_repeated')).length, 1);
+  assert.equal(judge.count, calls);
+  // It ran with the routed input, so its report is checked against that route.
   f.config.kernel.points['supervisor.outcome'].mode = 'active';
   await handleHook({ ...later, hook_event_name: 'PostToolUse', tool_response: { content: [{ type: 'text', text: REPORT }] } }, 'claude', deps);
-  assert.equal(judge.of('supervisor'), 0);
+  assert.equal(judge.of('supervisor'), 1);
+  assert.equal((await eventsOf(f, 'supervisor'))[0].taskId, later.tool_use_id);
 
-  // Refused, re-issued and launched: a second re-issue of the same input afterwards is new, not a re-issue.
+  // Refused, re-issued and launched: the same input once more afterwards is a repeat, not a second re-issue.
   const g = await fixture(t);
   const other = client();
   const deps2 = { config: g.config, apiKey: 'fixture-key', client: other, runtimeEnv: {} };
@@ -338,7 +394,7 @@ test('the same input after an observed launch is not a re-issue', async t => {
   await handleHook(launchedPost(round.second), 'claude', deps2);
   const before = other.count;
   assert.deepEqual(await handleHook(again(g.project, 'toolu_reissued_2', updatedOf(round.routed)), 'claude', deps2), {});
-  assert.equal(await storeOf(g).getTask('toolu_reissued_2'), null);
+  assert.equal((await storeOf(g).getTask('toolu_reissued_2')).repeatOf, round.pre.tool_use_id);
   assert.equal((await eventsOf(g, 'delegation_reissued')).length, 1);
   assert.equal(other.count, before);
   assert.equal((await storeOf(g).taskForAgent(AGENT)).taskId, round.second.tool_use_id);
@@ -366,12 +422,14 @@ test('the look-back is bounded in time and in count', async t => {
   assert.equal(await store.claimReissue(hash('another input'), 'probe', at), null);
   assert.equal((await readJSON(store.rewriteFile(outputHash))).entries[0].reissuedAs, undefined, 'a refused probe claims nothing');
 
-  // A re-issue that arrives after the window: not linked, not judged, preserved because it already carries the packet.
+  // The same input after the window: not a re-issue (the decision stays open), not judged; a repeat linked to the stored route.
   await writeJSON(store.rewriteFile(outputHash), { schema: 1, entries: [{ taskId: pre.tool_use_id, time: Date.now() - REISSUE_WINDOW_MS - 1000 }] });
   assert.deepEqual(await handleHook(again(f.project, 'toolu_late_1', updatedOf(routed)), 'claude', deps), {});
-  assert.equal(await store.getTask('toolu_late_1'), null);
+  assert.equal((await store.getTask('toolu_late_1')).reissueOf, undefined);
+  assert.equal((await store.getTask('toolu_late_1')).repeatOf, pre.tool_use_id);
+  assert.equal((await readJSON(store.rewriteFile(outputHash))).entries[0].reissuedAs, undefined);
   assert.equal(judge.count, calls);
-  assert.deepEqual((await eventsOf(f, 'routing_skipped')).map(x => x.reason), ['managed_call_already_carries_routing_packet']);
+  assert.equal((await eventsOf(f, 'routing_skipped')).length, 0);
   // Inside the window the same call links.
   await writeJSON(store.rewriteFile(outputHash), { schema: 1, entries: [{ taskId: pre.tool_use_id, time: Date.now() - REISSUE_WINDOW_MS + 5000 }] });
   assert.deepEqual(await handleHook(again(f.project, 'toolu_intime_1', updatedOf(routed)), 'claude', deps), {});
@@ -386,73 +444,278 @@ test('the look-back is bounded in time and in count', async t => {
   assert.deepEqual(kept, Array.from({ length: REISSUE_KEEP }, (_, i) => 'task-' + (i + 3)));
   // An index entry without a stored routed decision behind it links nothing.
   assert.equal(await store.claimReissue('h', 'probe', now + 20), null);
-  // A damaged index is ignored rather than trusted.
+  // A damaged index is ignored rather than trusted: a wrong shape and a file that is not JSON are both an empty index.
   await writeJSON(store.rewriteFile('h'), { entries: 'x' });
   assert.equal(await store.claimReissue('h', 'probe', now), null);
+  await fs.writeFile(store.rewriteFile('h'), '{not json');
+  assert.equal(await store.claimReissue('h', 'probe', now), null);
+  assert.equal(await store.rewriteOrigin('h'), null);
+  assert.deepEqual(await store.rewriteEntries('h'), []);
+  await store.noteRewrite('h', 'task-new', now);
+  assert.deepEqual((await readJSON(store.rewriteFile('h'))).entries, [{ taskId: 'task-new', time: now }]);
 });
 
-test('after state loss a managed call that already carries the packet is preserved, and only that', async t => {
+test('a routing packet nothing vouches for skips nothing: the call is routed on the task text in front of it', async t => {
   const f = await fixture(t);
   const judge = client();
   const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
   const routed = await handleHook(first(f.project, 'toolu_refused_1'), 'claude', deps);
   const updated = updatedOf(routed);
+  const perDecision = judge.count;
   const store = storeOf(f);
+  const before = (await store.getTask('toolu_refused_1')).route;
   await fs.rm(store.dir, { recursive: true, force: true }); // the session's state is gone
-  const calls = judge.count;
 
-  const out = await handleHook(again(f.project, 'toolu_reissued_1', updated), 'claude', deps);
-  assert.deepEqual(out, {});
-  assert.equal(judge.count, calls, 'no routing or skills judgment on an already rewritten prompt');
-  assert.equal(await store.getTask('toolu_reissued_1'), null);
-  const skipped = await eventsOf(f, 'routing_skipped');
-  assert.deepEqual(skipped.map(x => Object.keys(x).sort()), [['inputHash', 'reason', 'taskId', 'time', 'type']]);
-  assert.equal(skipped[0].reason, 'managed_call_already_carries_routing_packet');
-  assert.equal(skipped[0].inputHash, hash(updated));
+  // True state loss: the re-issued input cannot be verified, so it is routed again, on the ORIGINAL task text.
+  // The fresh decision reproduces the input exactly, so nothing is returned and nothing is doubled.
+  const second = again(f.project, 'toolu_reissued_1', updated);
+  assert.deepEqual(await handleHook(second, 'claude', deps), {});
+  assert.equal(judge.count, 2 * perDecision, 'judged like the first call, on the same task text');
+  assert.deepEqual(judge.calls.slice(perDecision).map(c => c.state.task).filter(Boolean), judge.calls.slice(0, perDecision).map(c => c.state.task).filter(Boolean));
+  assert.ok(judge.calls.every(c => !JSON.stringify(c.state).includes('jev-routing')), 'no judge ever saw a packet as task text');
+  const stored = await store.getTask('toolu_reissued_1');
+  assert.deepEqual([stored.asIssued, stored.stripped, stored.inputHash, stored.outputHash], [true, true, hash(updated), hash(updated)]);
+  assert.equal(stored.route.decisionId, before.decisionId);
+  assert.equal(stored.route.taskSignature, before.taskSignature);
+  assert.equal(stored.route.profile, updated.subagent_type);
+  assert.deepEqual((await eventsOf(f, 'routing_packet_unverified')).map(x => Object.keys(x).sort()), [['inputHash', 'taskId', 'time', 'type']]);
+  assert.equal((await eventsOf(f, 'route')).length, 1);
+  assert.equal((await eventsOf(f, 'routing_skipped')).length, 0);
   assert.ok(!(await stateText(store.dir)).includes('TASK_MARKER'));
-  // The packet buys nothing else: no route is attached, so the launch is observed but its report is never checked.
+  // A replay answers the same; the same input under yet another id is now a verified repeat. Neither is judged.
+  assert.deepEqual(await handleHook(structuredClone(second), 'claude', deps), {});
+  assert.deepEqual(await handleHook(again(f.project, 'toolu_reissued_2', updated), 'claude', deps), {});
+  assert.equal((await store.getTask('toolu_reissued_2')).repeatOf, 'toolu_reissued_1');
+  assert.equal(judge.count, 2 * perDecision);
+  // The call has a route of its own, so its report is checked like any routed call's.
   f.config.kernel.points['supervisor.outcome'].mode = 'active';
-  await handleHook(launchedPost(again(f.project, 'toolu_reissued_1', updated)), 'claude', deps);
+  await handleHook(launchedPost(second), 'claude', { ...deps, config: f.config });
   await handleHook(handback(f.project), 'claude', deps);
-  assert.equal(judge.of('supervisor'), 0);
-  assert.equal((await eventsOf(f, 'supervisor'))[0].reason, 'unrouted_delegation');
+  assert.equal(judge.of('supervisor'), 1);
+  assert.equal((await eventsOf(f, 'supervisor'))[0].status, 'judged');
   f.config.kernel.points['supervisor.outcome'].mode = 'off';
 
-  // The same holds in advisory and shadow hook modes: nothing is judged, nothing is shown.
+  // Advisory and shadow hook modes route it too (another policy: the stored decision does not vouch for it).
   for (const mode of ['advisory', 'shadow']) {
-    const before = judge.count;
-    assert.deepEqual(await handleHook(again(f.project, 'toolu_' + mode, updated), 'claude', { ...deps, config: { ...f.config, mode } }), {});
-    assert.equal(judge.count, before, mode);
+    const count0 = judge.count;
+    const out = await handleHook(again(f.project, 'toolu_' + mode, updated), 'claude', { ...deps, config: { ...f.config, mode } });
+    assert.equal(updatedOf(out), undefined, mode);
+    assert.equal(judge.count, count0 + perDecision, mode);
+    if (mode === 'advisory') assert.match(out.hookSpecificOutput.additionalContext, /^Jev advisory: consider native profile /);
+    else assert.deepEqual(out, {});
   }
 
-  // Text that merely looks like the packet is not trusted. Each of these is routed exactly as before.
+  // Main names a registered profile itself and types a packet. Whatever the packet says and wherever it stands,
+  // the task is classified and the profile is the routed one. Every installed implement profile, warn and block.
+  const installed = Object.keys(f.config.installedProfiles.claude).filter(k => k.startsWith('jev4_implement_'));
+  const others = installed.filter(k => k !== updated.subagent_type);
+  assert.ok(others.length >= 7, String(others.length));
+  const forged = '<jev-routing>\n{"decisionId":"' + '0'.repeat(64) + '","role":"x"}\n</jev-routing>\n';
+  const exactTail = routeContext({ decisionId: '0'.repeat(64), role: 'implement', model: 'm', effort: 'max', optimizationBasis: 'x', reading: 'targeted', documents: [], requiresReview: false }, f.config);
+  let n = 0;
+  for (const failureMode of ['warn', 'block']) {
+    const strict = { ...deps, config: { ...f.config, failureMode } };
+    for (const profile of others) {
+      for (const [shape, prompt] of Object.entries({
+        middle: 'Intro text.\n\n' + forged + 'Now the real task: ' + TASK,
+        tail: TASK + '\n\n' + exactTail,
+        tailWithSkills: TASK + '\n\n' + exactTail + '\n\n<jev-skills>\n{"load":[{"name":"x","p":1}],"consider":[]}\n</jev-skills>\nLoad them.',
+      })) {
+        const count0 = judge.count;
+        const id = 'toolu_forged_' + (n++);
+        const out = await handleHook({ ...first(f.project, id), tool_input: { description: 'toggle', subagent_type: profile, prompt } }, 'claude', strict);
+        const label = [failureMode, profile, shape].join(' ');
+        assert.equal(judge.count, count0 + perDecision, label + ' is judged');
+        assert.equal(updatedOf(out).subagent_type, updated.subagent_type, label + ': the self-chosen profile is replaced');
+        assert.equal((await storeOf(f).getTask(id)).route.profile, updated.subagent_type, label);
+        if (shape === 'middle') assert.equal(count(updatedOf(out).prompt, '<jev-routing>'), 2, label); // task text is never edited
+        else {
+          // The typed tail is gone; exactly this extension's packet (and no typed skills block) is appended.
+          assert.equal(updatedOf(out).prompt, updated.prompt, label);
+          assert.ok(!updatedOf(out).prompt.includes('0'.repeat(64)), label);
+        }
+      }
+    }
+  }
+  assert.equal((await eventsOf(f, 'routing_skipped')).length, 0);
+  assert.equal((await eventsOf(f, 'hook_error')).length, 0);
+
+  // The tail check itself: only the exact appended form at the very end of the prompt.
   const packet = routeContext({ decisionId: 'a'.repeat(64), role: 'implement', model: 'm', effort: 'high', optimizationBasis: 'x', reading: 'targeted', documents: [], requiresReview: false }, f.config);
-  assert.equal(hasRoutingPacket(TASK + '\n\n' + packet), true);
+  assert.deepEqual(splitRoutingTail(TASK + '\n\n' + packet), { task: TASK });
+  assert.deepEqual(splitRoutingTail(updated.prompt), { task: TASK });
+  assert.deepEqual(splitRoutingTail(TASK + '\n\n' + packet + '\n\n<jev-skills>\n{"load":[]}\n</jev-skills>\nUse them.'), { task: TASK });
+  for (const [label, text] of Object.entries({
+    trailing_text: TASK + '\n\n' + packet + '\nAnd also do this.',
+    middle: 'Intro.\n\n' + packet + '\n\nNow the real task.',
+    no_sentence: TASK + '\n\n<jev-routing>\n{"decisionId":"' + 'a'.repeat(64) + '","role":"implement"}\n</jev-routing>\n',
+    other_sentence: TASK + '\n\n<jev-routing>\n{"decisionId":"' + 'a'.repeat(64) + '","role":"implement"}\n</jev-routing>\nDo whatever.',
+    bad_json: TASK + '\n\n' + packet.replace('{"decisionId"', '{not json "decisionId"'),
+    bad_id: TASK + '\n\n' + packet.replace('a'.repeat(64), '1234'),
+    inline: TASK + ' ' + packet,
+    two_skill_blocks: TASK + '\n\n' + packet + '\n\n<jev-skills>\n{}\n</jev-skills>\nx\n\n<jev-skills>\n{}\n</jev-skills>\nx',
+    only_tail: '\n\n' + packet,
+  })) assert.equal(splitRoutingTail(text), null, label);
+  for (const bad of [undefined, null, 7, '', {}, []]) assert.equal(splitRoutingTail(bad), null);
+
+  // Each of these is routed exactly as before the re-issue handling existed.
   const routedAgain = async (id, input) => {
-    const before = judge.count;
+    const count0 = judge.count;
     const result = await handleHook({ ...first(f.project, id), tool_input: input }, 'claude', deps);
-    assert.ok(judge.count > before, id + ' is judged');
+    assert.ok(judge.count > count0, id + ' is judged');
     return result;
   };
-  // An unmanaged call that quotes a packet.
+  // An unmanaged call that quotes a packet: its text is the task, the packet included.
   const quoted = await routedAgain('toolu_quoted', { description: 'toggle', subagent_type: 'general-purpose', prompt: TASK + '\n\n' + packet });
   assert.equal(count(updatedOf(quoted).prompt, '<jev-routing>'), 2);
   // A managed profile without a packet (Main picked the profile itself).
-  assert.ok(updatedOf(await routedAgain('toolu_managed_plain', { description: 'toggle', subagent_type: updated.subagent_type, prompt: TASK })));
-  // A managed profile with something packet-like but malformed.
-  for (const [id, bad] of Object.entries({
-    toolu_bad_json: '\n\n<jev-routing>\n{not json}\n</jev-routing>\n',
-    toolu_bad_id: '\n\n<jev-routing>\n{"decisionId":"1234","role":"implement"}\n</jev-routing>\n',
-    toolu_inline: ' <jev-routing>{"decisionId":"' + 'a'.repeat(64) + '","role":"implement"}</jev-routing> ',
-    toolu_unclosed: '\n\n<jev-routing>\n{"decisionId":"' + 'a'.repeat(64) + '","role":"implement"}\n',
-  })) {
-    assert.equal(hasRoutingPacket(TASK + bad), false, id);
-    assert.ok(updatedOf(await routedAgain(id, { description: 'toggle', subagent_type: updated.subagent_type, prompt: TASK + bad })), id);
-  }
-  for (const bad of [undefined, null, 7, '', {}, []]) assert.equal(hasRoutingPacket(bad), false);
+  assert.ok(updatedOf(await routedAgain('toolu_managed_plain', { description: 'toggle', subagent_type: others[0], prompt: TASK + ' again' })));
   // An unregistered managed identity keeps its own guard, which runs first.
   const unknown = await handleHook({ ...first(f.project, 'toolu_unknown'), tool_input: { ...updated, subagent_type: 'jev4_implement_standard_high_0000000000' } }, 'claude', deps);
   assert.match(unknown.hookSpecificOutput.additionalContext, /UNREGISTERED_PROFILE_IDENTITY/);
+
+  // Codex spawn shape: a self-chosen managed agent_type with a typed packet is routed as well.
+  const c = await fixture(t);
+  const codexJudge = client();
+  const codexDeps = { config: c.config, apiKey: 'fixture-key', client: codexJudge, runtimeEnv: {} };
+  const research = Object.keys(c.config.installedProfiles.codex).find(k => k.startsWith('jev4_research_'));
+  const spawn = event(c.project, 'codex', { tool_use_id: 'call_forged_1' });
+  spawn.tool_input = { ...spawn.tool_input, agent_type: research, message: spawn.tool_input.message + '\n\n' + exactTail };
+  const spawned = await handleHook(spawn, 'codex', codexDeps);
+  assert.ok(codexJudge.count >= 1);
+  assert.ok(updatedOf(spawned));
+  assert.equal(count(updatedOf(spawned).message, '<jev-routing>'), 1);
+  assert.ok(!updatedOf(spawned).message.includes('0'.repeat(64)));
+  assert.equal((await storeOf(c, 'codex').getTask('call_forged_1')).route.profile, updatedOf(spawned).agent_type);
+});
+
+test('a problem with the rewrite index never turns a call that needs no decision into a hook error', async t => {
+  for (const failureMode of ['warn', 'block']) {
+    // A lock directory left behind by a killed process: the claim cannot be made, the read-only check still links the call.
+    const f = await fixture(t);
+    f.config.failureMode = failureMode;
+    const judge = client();
+    const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
+    const pre = first(f.project, 'toolu_refused_1');
+    const routed = await handleHook(pre, 'claude', deps);
+    const store = storeOf(f);
+    const calls = judge.count;
+    await fs.mkdir(store.rewriteFile(hash(updatedOf(routed))) + '.lock');
+    assert.deepEqual(await handleHook(again(f.project, 'toolu_reissued_1', updatedOf(routed)), 'claude', deps), {}, failureMode);
+    assert.equal(judge.count, calls, failureMode);
+    assert.equal((await eventsOf(f, 'hook_error')).length, 0, failureMode);
+    assert.deepEqual((await eventsOf(f, 'reissue_lookup_failed')).map(x => [x.taskId, x.code]), [['toolu_reissued_1', 'LOCK_BUSY']]);
+    const linked = await store.getTask('toolu_reissued_1');
+    assert.equal(linked.repeatOf, pre.tool_use_id);
+    assert.deepEqual(linked.route, (await store.getTask(pre.tool_use_id)).route);
+
+    // An index file that is not JSON: nothing vouches for the call, so it is routed (never denied as "routing unavailable").
+    const g = await fixture(t);
+    g.config.failureMode = failureMode;
+    const other = client();
+    const deps2 = { config: g.config, apiKey: 'fixture-key', client: other, runtimeEnv: {} };
+    const routed2 = await handleHook(first(g.project, 'toolu_refused_1'), 'claude', deps2);
+    const perDecision = other.count;
+    await fs.writeFile(storeOf(g).rewriteFile(hash(updatedOf(routed2))), '{not json');
+    assert.deepEqual(await handleHook(again(g.project, 'toolu_reissued_1', updatedOf(routed2)), 'claude', deps2), {}, failureMode);
+    assert.equal(other.count, 2 * perDecision, failureMode);
+    assert.equal((await eventsOf(g, 'hook_error')).length, 0, failureMode);
+    assert.equal((await storeOf(g).getTask('toolu_reissued_1')).asIssued, true);
+    // The index is healed by that decision: the next identical call is verified again.
+    assert.deepEqual(await handleHook(again(g.project, 'toolu_reissued_2', updatedOf(routed2)), 'claude', deps2), {});
+    assert.equal(other.count, 2 * perDecision);
+  }
+});
+
+test('a linked id reused with a different input gets the reuse warning, like every other stored id', async t => {
+  const f = await fixture(t);
+  const judge = client();
+  const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
+  const { pre, routed, second } = await refusedThenReissued(f, deps);
+  await handleHook(launchedPost(second), 'claude', deps);
+  const repeat = again(f.project, 'toolu_repeat_1', updatedOf(routed));
+  assert.deepEqual(await handleHook(repeat, 'claude', deps), {});
+  assert.equal((await storeOf(f).getTask(repeat.tool_use_id)).repeatOf, pre.tool_use_id);
+  const calls = judge.count;
+  const changed = { description: 'toggle', subagent_type: 'general-purpose', prompt: 'Something else entirely.' };
+  for (const id of [pre.tool_use_id, second.tool_use_id, repeat.tool_use_id]) {
+    const out = await handleHook({ ...second, tool_use_id: id, tool_input: changed }, 'claude', deps);
+    assert.match(out.hookSpecificOutput.additionalContext, /TOOL_ID_REUSED_WITH_DIFFERENT_INPUT/, id);
+    assert.equal(updatedOf(out), undefined, id);
+  }
+  // A changed policy is reported for a linked id with a different input as well.
+  const out = await handleHook({ ...second, tool_input: changed }, 'claude', { ...deps, config: { ...f.config, minimumConfidence: f.config.minimumConfidence / 2 } });
+  assert.match(out.hookSpecificOutput.additionalContext, /POLICY_CHANGED_DURING_PENDING_CALL/);
+  assert.equal(judge.count, calls);
+  // The identical input still answers as before.
+  assert.deepEqual(await handleHook(structuredClone(second), 'claude', deps), {});
+  assert.deepEqual(await handleHook(structuredClone(repeat), 'claude', deps), {});
+  assert.equal(judge.count, calls);
+});
+
+test('after a re-issued call really fails, an identical retry is linked, attributed and Main is told how to get retry routing', async t => {
+  const f = await fixture(t);
+  f.config.kernel.points['supervisor.outcome'].mode = 'active';
+  const judge = client({ failure: 'implementation', outcome: 'retry' });
+  const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
+  const { pre, routed, second } = await refusedThenReissued(f, deps);
+  const store = storeOf(f);
+  const route = (await store.getTask(pre.tool_use_id)).route;
+  await handleHook({ ...second, hook_event_name: 'PostToolUseFailure', error: 'worker crashed: tests failing' }, 'claude', deps);
+  assert.equal((await store.failureFor(route.taskSignature)).count, 1);
+  const calls = judge.count;
+
+  // Main retries with the input of its own most recent Agent call: the rewritten one.
+  const retry = again(f.project, 'toolu_retry_1', updatedOf(routed));
+  const told = await handleHook(retry, 'claude', deps);
+  assert.equal(updatedOf(told), undefined);
+  assert.equal(told.hookSpecificOutput.permissionDecision, undefined);
+  const text = told.hookSpecificOutput.additionalContext;
+  assert.match(text, /^Jev: this delegation repeats an input this extension already routed \(profile jev4_implement_/);
+  assert.match(text, /\(implementation, 1 recorded attempt\)/);
+  assert.match(text, /NOT routed again, so no retry escalation was applied\. To get retry routing, issue the delegation with the original task text/);
+  assert.ok(!text.includes('TASK_MARKER'));
+  assert.equal(judge.count, calls, 'no judge request for the repeat');
+  const linked = await store.getTask(retry.tool_use_id);
+  assert.equal(linked.repeatOf, pre.tool_use_id);
+  assert.deepEqual(linked.route, route);
+  assert.deepEqual((await eventsOf(f, 'delegation_repeated')).map(x => [x.taskId, x.repeatOf, x.priorFailure, x.priorAttempts]), [[retry.tool_use_id, pre.tool_use_id, 'implementation', 1]]);
+  assert.equal((await eventsOf(f, 'routing_skipped')).length, 0);
+  assert.deepEqual(await handleHook(structuredClone(retry), 'claude', deps), told, 'a replay tells Main the same');
+
+  // The retry launches and hands back: the supervisor checks its report against the route.
+  await handleHook(launchedPost(retry), 'claude', deps);
+  await handleHook(started(f.project, AGENT, updatedOf(routed).subagent_type), 'claude', deps);
+  assert.deepEqual(await store.taskForAgent(AGENT), { taskId: retry.tool_use_id, status: 'spawn_acknowledged' });
+  await handleHook(handback(f.project), 'claude', deps);
+  assert.equal(judge.of('supervisor'), 1);
+  const supervised = (await eventsOf(f, 'supervisor'))[0];
+  assert.deepEqual([supervised.status, supervised.taskId], ['judged', retry.tool_use_id]);
+
+  // A further identical call that fails is attributed to the route and counted.
+  const retry2 = again(f.project, 'toolu_retry_2', updatedOf(routed));
+  assert.match((await handleHook(retry2, 'claude', deps)).hookSpecificOutput.additionalContext, /NOT routed again/);
+  await handleHook({ ...retry2, hook_event_name: 'PostToolUseFailure', error: 'worker crashed again' }, 'claude', deps);
+  const failures = await eventsOf(f, 'failure');
+  assert.deepEqual(failures.map(x => [x.taskId, x.taskSignature, x.profileId]),
+    [[second.tool_use_id, route.taskSignature, route.profile], [retry2.tool_use_id, route.taskSignature, route.profile]]);
+  assert.equal((await store.failureFor(route.taskSignature)).count, 2);
+
+  // The ORIGINAL task text gets retry routing: more effort or a higher tier than the first decision.
+  const count0 = judge.count;
+  const escalated = await handleHook(first(f.project, 'toolu_original_again'), 'claude', deps);
+  assert.ok(judge.count > count0);
+  assert.equal((await store.getTask('toolu_original_again')).route.recoveryAction, 'compare_more_effort_and_higher_tier');
+  assert.notEqual(updatedOf(escalated).subagent_type, updatedOf(routed).subagent_type);
+
+  // A repeat is only linked under the policy its decision was made under. After a policy change the stored
+  // decision vouches for nothing: the call is routed on the task text, and then retry escalation does apply.
+  const changedPolicy = await handleHook(again(f.project, 'toolu_retry_3', updatedOf(routed)), 'claude', { ...deps, config: { ...f.config, minimumConfidence: f.config.minimumConfidence / 2 } });
+  const rerouted = await store.getTask('toolu_retry_3');
+  assert.deepEqual([rerouted.repeatOf, rerouted.stripped, rerouted.route.recoveryAction], [undefined, true, 'compare_more_effort_and_higher_tier']);
+  assert.equal(rerouted.route.taskSignature, route.taskSignature);
+  assert.equal(count(updatedOf(changedPolicy).prompt, '<jev-routing>'), 1);
+  assert.notEqual(updatedOf(changedPolicy).subagent_type, updatedOf(routed).subagent_type);
 });
 
 test('modes that never rewrite keep no rewrite index and treat a second call as a decision of its own', async t => {
@@ -502,9 +765,10 @@ test('Codex-shaped events: a rewritten spawn issued again under a new id is reco
   assert.deepEqual(await store.taskForAgent('agent-codex-1'), { taskId: 'call_reissued_1', status: 'spawn_acknowledged' });
   assert.equal((await eventsOf(f, 'failure', 'codex')).length, 0);
   assert.equal(judge.of('failure'), 0);
-  // After that launch the same input once more is not a re-issue, and is still not routed again.
+  // After that launch the same input once more is not a re-issue, and is still not routed again: a linked repeat.
   assert.deepEqual(await handleHook({ ...second, tool_use_id: 'call_reissued_2' }, 'codex', deps), {});
-  assert.equal(await store.getTask('call_reissued_2'), null);
+  assert.equal((await store.getTask('call_reissued_2')).repeatOf, 'call_refused_1');
+  assert.equal((await eventsOf(f, 'delegation_reissued', 'codex')).length, 1);
   assert.equal(judge.count, calls);
 });
 
@@ -514,13 +778,20 @@ test('a re-issue is never linked across sessions', async t => {
   const deps = { config: f.config, apiKey: 'fixture-key', client: judge, runtimeEnv: {} };
   const routed = await handleHook(first(f.project, 'toolu_refused_1'), 'claude', deps);
   const calls = judge.count;
-  // Another session has its own state: the call is preserved by the packet check, never linked across sessions.
-  assert.deepEqual(await handleHook(again(f.project, 'toolu_elsewhere', updatedOf(routed), 'session-other'), 'claude', deps), {});
-  assert.equal(await storeOf(f, 'claude', 'session-other').getTask('toolu_elsewhere'), null);
+  // Another session has its own state: nothing there vouches for the input, so it is routed in that session
+  // (on the task text, one packet) and never linked across sessions.
+  const elsewhere = await handleHook(again(f.project, 'toolu_elsewhere', updatedOf(routed), 'session-other'), 'claude', deps);
+  assert.equal(judge.count, 2 * calls);
+  assert.equal(count(updatedOf(elsewhere).prompt, '<jev-routing>'), 1);
+  assert.ok(updatedOf(elsewhere).prompt.startsWith(TASK + '\n\n<jev-routing>'));
+  const foreign = await storeOf(f, 'claude', 'session-other').getTask('toolu_elsewhere');
+  assert.deepEqual([foreign.reissueOf, foreign.repeatOf, foreign.stripped], [undefined, undefined, true]);
+  assert.notEqual(foreign.route.decisionId, (await storeOf(f).getTask('toolu_refused_1')).route.decisionId);
   assert.equal((await eventsOf(f, 'delegation_reissued', 'claude', 'session-other')).length, 0);
-  assert.equal(judge.count, calls);
+  assert.equal((await eventsOf(f, 'delegation_repeated', 'claude', 'session-other')).length, 0);
+  const calls2 = judge.count;
   // The decision is still open for its own session.
   assert.deepEqual(await handleHook(again(f.project, 'toolu_reissued_1', updatedOf(routed)), 'claude', deps), {});
   assert.equal((await storeOf(f).getTask('toolu_reissued_1')).reissueOf, 'toolu_refused_1');
-  assert.equal(judge.count, calls);
+  assert.equal(judge.count, calls2);
 });

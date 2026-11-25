@@ -31,14 +31,14 @@ function applyEvent(state,e){
       state.tasks[e.taskId]={...decided,...now,taskId:e.taskId,status:now.status||'route_requested',time:Math.max(now.time||0,e.time)};
       delete state.tasks[e.reissueOf];
     }
-    // A refusal that was followed by its re-issue is not a failed attempt of the task (no such failure was
-    // observed; this keeps retry escalation clean if a host ever reports the refusal as a tool failure).
-    for(const [signature,failure] of Object.entries(state.failures||{})){
-      if(!failure.attempts?.[e.reissueOf])continue;
-      delete failure.attempts[e.reissueOf];
-      if(!Object.keys(failure.attempts).length)delete state.failures[signature];
-    }
-    if(state.lastFailure?.taskId===e.reissueOf)state.lastFailure=null;
+    // Failure events are never removed here. A Post event the host reports for a call is kept as reported,
+    // whichever of the two calls it names and whenever it arrives (none was observed for a refused call).
+  }
+  if(e.type==='delegation_repeated'){
+    // A later call with an input this extension already produced: listed under its own id, next to the original.
+    const now=state.tasks[e.taskId]||{};
+    state.tasks[e.taskId]={role:e.role,tier:e.tier,model:e.model,effort:e.effort,decisionId:e.decisionId,...now,taskId:e.taskId,
+      status:now.status||'route_requested',time:Math.max(now.time||0,e.time)};
   }
   if(e.type==='spawn_observed')state.tasks[e.taskId]={...state.tasks[e.taskId],taskId:e.taskId,
     status:e.failed?'spawn_failed':'spawn_acknowledged',...(e.agentId?{agentId:e.agentId}:{}),time:e.time};
@@ -65,7 +65,7 @@ export class SessionStore{
     const event={type,time:Date.now(),...data};
     const name=id?hash([type,id]):`${String(event.time).padStart(16,'0')}-${randomUUID()}`;
     await writeJSON(path.join(this.dir,'events',name+'.json'),event);
-    if(['session_reset','user_prompt','unverified_prompt','route','delegation_reissued','spawn_observed','agent_started','agent_stopped','failure'].includes(type)){
+    if(['session_reset','user_prompt','unverified_prompt','route','delegation_reissued','delegation_repeated','spawn_observed','agent_started','agent_stopped','failure'].includes(type)){
       await withLock(this.projectionFile+'.lock',async()=>{
         let state=await readJSON(this.projectionFile,null);
         if(!state)state=(await this.events()).reduce(applyEvent,blank());
@@ -113,41 +113,46 @@ export class SessionStore{
   getTask(id){return readJSON(this.taskFile(id),null);}
   putTask(id,value){return writeJSON(this.taskFile(id),value);}
   rewriteFile(outputHash){return path.join(this.dir,'rewrites',hash(['rewrite',outputHash])+'.json');}
+  /** The rewrite index of one rewritten input. A missing or unreadable file is an empty index, never an error. */
+  async rewriteEntries(outputHash){
+    let index=null;
+    try{index=await readJSON(this.rewriteFile(outputHash),null);}catch{/* damaged: nothing is known about this input */}
+    return Array.isArray(index?.entries)?index.entries.filter(object):[];
+  }
   /** Remembers that the delegation taskId was answered with a rewritten input whose hash is outputHash. Hashes and ids only. */
   async noteRewrite(outputHash,taskId,now=Date.now()){
     const file=this.rewriteFile(outputHash);
     await withLock(file+'.lock',async()=>{
-      const index=await readJSON(file,null);
-      const entries=(Array.isArray(index?.entries)?index.entries:[]).filter(x=>object(x)&&x.taskId!==taskId&&now-x.time<=REISSUE_WINDOW_MS);
+      const entries=(await this.rewriteEntries(outputHash)).filter(x=>x.taskId!==taskId&&now-x.time<=REISSUE_WINDOW_MS);
       entries.push({taskId,time:now});
       await writeJSON(file,{schema:1,entries:entries.slice(-REISSUE_KEEP)});
     });
   }
-  /** True once the runtime acknowledged a launch of this call (a spawn_observed that did not fail). */
-  async launchObserved(taskId){
-    const seen=await this.getEvent('spawn_observed',taskId);
-    return object(seen)&&seen.failed===false;
-  }
+  /**
+   * True once any Post hook (PostToolUse or PostToolUseFailure) reported this call. A call the host refused
+   * before it ran had none (0 of 15 observed), so only a call without one can have been refused. A reported
+   * failure counts as reported: it may be a subagent that started and returned an error.
+   */
+  async postObserved(taskId){return object(await this.getEvent('spawn_observed',taskId));}
   /**
    * The earlier delegation of this session that taskId re-issues, or null.
    * A call is a re-issue when its input hash equals the hash of a rewritten input this extension returned
-   * for another tool_use_id at most REISSUE_WINDOW_MS ago, that call was not observed to launch, and no other
+   * for another tool_use_id at most REISSUE_WINDOW_MS ago, no Post hook has reported that call, and no other
    * call has been linked to it. Each rewrite is handed out once (the oldest open one first), so two
    * delegations with identical rewritten input get one re-issue each, and an identical input that arrives
    * after the link was made is not a re-issue. Asking again for the same taskId returns the same link.
    */
   async claimReissue(inputHash,taskId,now=Date.now()){
     const file=this.rewriteFile(inputHash);
-    if(await readJSON(file,null)===null)return null;
+    if(!(await this.rewriteEntries(inputHash)).length)return null;
     return withLock(file+'.lock',async()=>{
-      const index=await readJSON(file,null);
-      const entries=Array.isArray(index?.entries)?index.entries.filter(object):[];
+      const entries=await this.rewriteEntries(inputHash);
       const usable=async entry=>{
         if(typeof entry.taskId!=='string'||entry.taskId===taskId)return null;
         const ageMs=now-entry.time;
         if(!Number.isFinite(ageMs)||ageMs<0||ageMs>REISSUE_WINDOW_MS)return null;
         const task=await this.getTask(entry.taskId);
-        if(!object(task?.route)||task.reissueOf||task.outputHash!==inputHash||task.inputHash===inputHash)return null;
+        if(!object(task?.route)||task.reissueOf||task.repeatOf||task.outputHash!==inputHash||task.inputHash===inputHash)return null;
         return {taskId:entry.taskId,task,ageMs};
       };
       const mine=entries.find(x=>x.reissuedAs===taskId);
@@ -155,13 +160,29 @@ export class SessionStore{
       for(const entry of entries){
         if(entry.reissuedAs!==undefined)continue;
         const found=await usable(entry);
-        if(!found||await this.launchObserved(entry.taskId))continue;
+        if(!found||await this.postObserved(entry.taskId))continue;
         entry.reissuedAs=taskId;
         await writeJSON(file,{schema:1,entries});
         return found;
       }
       return null;
     });
+  }
+  /**
+   * The stored decision of this session whose returned input has this hash, whatever its age and whether or
+   * not a re-issue was linked to it; the most recent one wins. Read-only, takes no lock and never throws.
+   * It proves that this exact input (task text, profile, packet, skills block) is one this extension
+   * produced here; a call that carries it needs no second decision.
+   */
+  async rewriteOrigin(inputHash){
+    try{
+      for(const entry of (await this.rewriteEntries(inputHash)).reverse()){
+        if(typeof entry.taskId!=='string')continue;
+        const task=await this.getTask(entry.taskId);
+        if(object(task?.route)&&!task.reissueOf&&!task.repeatOf&&task.outputHash===inputHash)return {taskId:entry.taskId,task};
+      }
+    }catch{/* unreadable state vouches for nothing */}
+    return null;
   }
   async restoreContext(){
     const s=await this.snapshot();
