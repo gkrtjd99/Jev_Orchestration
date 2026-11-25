@@ -576,10 +576,10 @@ $D --action report --point delegation.skills --since 2026-11-01 --threshold 0.9
 토큰 합계는 세 곳에 있습니다. 보고서 최상위 `usage`(전체와 제공자별), `points[].usage`(지점별과 그 안의 제공자별), `groups[].operational.usage`(묶음별)입니다. 답 형태가 두 가지인 결정은 묶음 두 곳에 들어가므로 묶음별 합계를 더하면 안 됩니다. 전체나 지점 단위 합계는 기록 하나를 한 번만 셉니다. 넓은 skill 판정은 요청마다 기록이 하나씩이므로 요청 수만큼 더해집니다. usage가 있는 기록이 없으면 합계는 `0`이 아니라 `null`입니다. **합계는 실제 사용량의 하한입니다.** 기록 하나는 채택된 judge의 요청만 세므로, judge를 둘 이상 둔 체인에서 확신이 낮아 넘어간 요청(`trail`의 `KERNEL_LOW_CONFIDENCE`)과 실패한 요청의 토큰은 어디에도 더해지지 않습니다(예: `jev` 110토큰이 낮은 확신으로 넘어가고 `openai` 8토큰이 채택되면 합계는 8). 그런 요청의 수는 `points[].judges[]`의 `lowConfidence`·`failures`로 볼 수 있습니다. 기본 체인(judge 하나)에는 해당하지 않습니다. `--action show`도 보여 준 기록들의 `usage` 합계를 함께 출력합니다.
 
 - 라벨이 없거나 분모가 0인 지표는 `0`이 아니라 `null`입니다.
-- 묶음마다 `sufficient`가 있습니다. 라벨이 30건 미만이면 `false`이며, 그 수치는 참고용으로만 보세요.
+- 묶음마다 `sufficient`와 `sufficientReason`이 있습니다. 세는 단위는 질문 라벨이 아니라 **라벨이 붙은 결정**(`counts.labeledDecisions`)입니다. 넓은 skill 결정 하나에는 서로 의존하는 질문이 수십 개 붙으므로 라벨 수(`counts.labeled`)는 표본 크기가 아닙니다. 라벨이 붙은 결정이 30건 미만이면 `false`(`too_few_labeled_decisions`)이고, **약한 출처의 라벨이 섞여 있으면 몇 건이든 `false`**(`weak_labels`)입니다. 약한 라벨은 행동의 기록이라 많아져도 정답이 되지 않습니다. `false`인 수치는 참고용으로만 보세요.
 - 답 형태와 맞지 않는 라벨은 `invalidLabels`로 세고 지표에서 뺍니다.
 
-보고서는 라벨의 **출처(`source`)** 를 섞지 않고 보여 줍니다. 최상위 `labels`에 출처별 라벨 수와 강도(`bySource`), 약한 출처 목록(`weakSources`), 한쪽 결과만 쓰는 출처 목록(`oneSidedSources`), 손으로 붙인 출처 목록(`unclassifiedSources`)이 있습니다. 묶음마다 `labelSources`(출처별 라벨 수와 **그 출처의 라벨만으로 계산한 지표**)와 `metricsLabelStrength`(묶음의 `metrics`가 기댄 라벨의 강도: `weak`/`verified`/`unclassified`/`mixed`, 라벨이 없으면 `null`)가 있습니다. 묶음의 `metrics`는 출처와 무관하게 질문마다 가장 최근 라벨을 쓰므로, 출처가 둘 이상이면 `mixed`로 표시됩니다. 출처를 골라서 보려면 `--source a,b`(이 출처만)와 `--exclude-source a,b`(이 출처 제외)를 씁니다. 거른 라벨 수는 `labels.excludedByFilter`에 나옵니다. 출처의 뜻과 강도는 아래 [결과 수집기](#결과-수집기)에 있습니다.
+보고서는 라벨의 **출처(`source`)** 를 섞지 않고 보여 줍니다. 최상위 `labels`에 출처별 라벨 수와 강도(`bySource`), 약한 출처 목록(`weakSources`), 한쪽 결과만 쓰는 출처 목록(`oneSidedSources`), 손으로 붙인 출처 목록(`unclassifiedSources`), **판정 자체가 결과에 영향을 준 출처 목록**(`decisionInfluencedSources`), 철회된 라벨 수(`retracted`, `retractionMarkers`)가 있습니다. 묶음마다 `labelSources`(출처별 라벨 수와 **그 출처의 라벨만으로 계산한 지표**)와 `metricsLabelStrength`(묶음의 `metrics`가 기댄 라벨의 강도: `weak`/`verified`/`unclassified`/`mixed`, 라벨이 없으면 `null`)가 있습니다. 묶음의 `metrics`는 출처와 무관하게 질문마다 가장 최근 라벨을 쓰므로, 출처가 둘 이상이면 `mixed`로 표시됩니다. 출처를 골라서 보려면 `--source a,b`(이 출처만)와 `--exclude-source a,b`(이 출처 제외)를 씁니다. 거른 라벨 수는 `labels.excludedByFilter`에 나옵니다. 출처의 뜻과 강도는 아래 [결과 수집기](#결과-수집기)에 있습니다.
 
 권장 순서는 `shadow`로 켜서 log를 쌓고 → 라벨을 붙이고(손으로, 또는 결과 수집기로) → 보고서로 임계값을 확인한 뒤 → `active`로 올리는 것입니다.
 
@@ -616,7 +616,7 @@ $C --task-hash 과제글.txt                                       # 검증 파�
 | `refused-call` | 재발행 수정 **이전** 상태: 두 호출이 모두 라우팅됨. 실행된 호출의 입력 해시가 다른 호출의 `outputHash`와 같고 그 호출에 `spawn_observed`가 없음 | 첫 호출의 결정. host는 발행된 입력(첫 재작성)을 그대로 실행했고 두 번째 route는 적용되지 않았습니다. host 기록의 agent type이 두 번째 route의 프로필만 가리킬 때에만 두 번째를 씁니다 |
 | 없음(`own`) | 재작성이 그 호출에 바로 적용됨 | 그 호출의 결정 |
 
-잇지 못한 위임은 이유와 함께 셉니다(`no_transcripts`, `agent_call_not_in_transcript`, `refused_and_not_reissued`, `never_launched`, `spawn_failed`, `subagent_transcript_missing`, `subagent_transcript_unreadable`, `subagent_transcript_without_assistant_rows`, `subagent_meta_names_another_call`, `runtime_transcripts_unsupported`). 라우팅되지 않은 위임(`route_deferred`, `no_route_recorded`)도 실행됐으면 관찰 기록은 남기되 요청 프로필은 `null`입니다.
+잇지 못한 위임은 이유와 함께 셉니다(`no_transcripts`, `agent_call_not_in_transcript`, `refused_and_not_reissued`, `never_launched`, `spawn_failed`, `subagent_transcript_missing`, `subagent_transcript_unreadable`, `subagent_transcript_without_assistant_rows`, `subagent_meta_names_another_call`, `subagent_not_finished`, `subagent_end_unconfirmed`, `runtime_transcripts_unsupported`). **끝났다는 확인이 없는 서브에이전트 기록은 전체 실행으로 읽지 않습니다.** host의 `.meta.json`이 `finished: false`이면 `subagent_not_finished`, host가 끝을 기록하지 않았고(`finished` 없음) hook도 그 agent의 종료(`agent_stopped`)나 hand-back(`handback_observed`)을 보지 못했으면 `subagent_end_unconfirmed`입니다. 실행 중이거나 잘린 사본에서 "load하지 않음" 라벨과 토큰 합계를 만들면 그것은 관찰이 아니라 추측이기 때문입니다. 잇지 못한 위임의 결정은 `labels.unlabelled.delegation_not_joined`로 셉니다. 라우팅되지 않은 위임(`route_deferred`, `no_route_recorded`)도 실행됐으면 관찰 기록은 남기되 요청 프로필은 `null`입니다.
 
 ### 쓰는 것 1: 관찰 기록
 
@@ -628,8 +628,8 @@ $C --task-hash 과제글.txt                                       # 검증 파�
 | `host` | host가 기록한 `version`, `entrypoint`, `permissionMode` |
 | `calls` | 호출 수, 거부된 수, 연결 종류(`reissued`/`repeated`/`reroutedAfterRefusal`) |
 | `requested` | route가 요청한 프로필·모델·backend·effort·역할·tier·taskClass, 그리고 어느 결정에서 왔는지(`routeSource`) |
-| `effective` | **host가 기록한** agent type(`.meta.json`), 모델(서브에이전트 assistant 행의 `message.model`), effort(같은 행의 `effort`), 요청과의 일치(`profileMatch`, `effortMatch`, `modelMatch`) |
-| `skills` | skill 지점의 모드·상태·`need`, hook이 블록을 넣었다고 기록했는지(`injectedByHook`), **서브에이전트의 첫 prompt에 실제로 블록이 있었는지**(`blockInPrompt`)와 그 이름들, 서브에이전트가 load한 프로젝트 skill과 경로(`Skill`/`Read`/`Shell`)·첫 쓰기 이전 여부, 판정 불가 접근 여부 |
+| `effective` | **host가 기록한** agent type(`.meta.json`), 모델(서브에이전트 assistant 행의 `message.model`), effort(같은 행의 `effort`), 요청과의 일치(`profileMatch`, `effortMatch`, `modelMatch`). agent type은 **이 세션의 route가 가리킨 프로필 id일 때만 이름 그대로** 적고, 그 밖(내장·사용자·plugin agent)은 `other`로 적습니다. 사용자 환경의 agent 목록이 저장소에 남지 않게 하기 위해서입니다. `profileMatch`는 실제 값으로 계산합니다 |
+| `skills` | skill 지점의 모드·상태·`need`, hook이 블록을 넣었다고 기록했는지(`injectedByHook`), **서브에이전트의 첫 prompt에 실제로 블록이 있었는지**(`blockInPrompt`)와 그 이름들, 서브에이전트가 load한 프로젝트 skill과 경로(`Skill`/`Read`/`Shell`)·첫 쓰기 이전 여부, 판정 불가 접근 여부. 블록은 **hook이 붙이는 자리**(prompt 맨 끝, 라우팅 packet 뒤: `splitRoutingTail`)에 있을 때만 블록으로 봅니다. 과제 글 안에 적힌 `<jev-skills>`는 과제 글입니다. 블록의 이름은 그 세션이 아는 프로젝트 skill일 때만 적고, 나머지는 수만 셉니다(경고 `skills_block_name_not_a_known_project_skill`) |
 | `usage` | API turn 수(메시지 id 기준), tool 호출 수, 토큰 4종(입력·출력·cache read·cache creation, **메시지 id마다 한 번**), 서브에이전트 wall time, 첫 호출부터 서브에이전트 마지막 행까지의 `endToEndMs` |
 | `judge` | 라우팅 judge 단계 수, skill 요청 수, supervisor 판정 수, 라우팅 hook 시간 합, decision log의 `usage`에서 읽은 judge 토큰(`usage`가 없는 log면 `null`) |
 | `supervisor` | 마지막 판정(상태·outcome·확신·evidence·경로) 또는 `null` |
@@ -638,9 +638,17 @@ $C --task-hash 과제글.txt                                       # 검증 파�
 
 `modelMatch`는 세 값입니다. `exact`는 host가 기록한 모델 id가 registry의 `backend`(또는 `model`)와 **문자열이 같을 때**, `alias`는 registry가 별칭(`opus`)을 쓰고 host가 그것을 구체 id(`claude-opus-5-5`)로 풀었을 때, `mismatch`는 그 밖입니다. `alias`는 일치로 세지 않고 따로 셉니다.
 
-skill load 판정: `Skill` tool이 아는 skill 이름을 부른 경우, 그 skill의 `SKILL.md`를 `Read`한 경우, shell 명령의 한 단어가 그 `SKILL.md`를 가리키는 경우입니다. shell 명령은 언어로 해석하지 않고 단어 단위로 봅니다. skills 폴더나 `SKILL.md`를 언급하지만 아는 skill의 `SKILL.md`를 가리키지 않는 단어(폴더, 와일드카드, 모르는 이름), skills 폴더 안의 내용 검색(`Grep`), 모르는 폴더의 `SKILL.md` `Read`는 **판정 불가**입니다(load도 아니고 "load하지 않음"도 아님). `^`로 시작하는 단어는 필터 패턴(`grep -v '^./.claude/skills/'`)으로 보고 무시합니다. "아는 skill"은 그 세션의 `skills` 이벤트에 나온 이름입니다. skill 지점이 꺼져 있던 세션은 이름을 모르므로 `--project <프로젝트>`로 `.claude/skills`를 알려 줘야 load를 읽을 수 있습니다(읽기 전용). "첫 쓰기"는 `Write`/`Edit`/`MultiEdit`/`NotebookEdit` 호출만 봅니다. shell로 쓴 파일은 보지 않고, 쓰기 호출이 없으면 `null`입니다.
+**skill load 판정**(`src/collector-access.mjs`). tool 호출은 셋 중 하나로 분류됩니다.
 
-같은 세션에 두 번 돌려도 같은 기록을 또 쓰지 않습니다(내용 해시 `observationId`). 검증 결과를 나중에 주면 내용이 달라지므로 새 줄이 추가되고, 보고서는 위임마다 가장 최근 줄을 씁니다.
+- **load**: 아는 프로젝트 skill 하나를 읽는 호출이고 **그 호출의 tool 결과가 오류 없이 돌아온 경우**입니다. (1) `Skill` tool이 아는 skill 이름을 부름, (2) 프로젝트 안 `.claude/skills/<폴더>/SKILL.md`를 `Read`, (3) shell에서 읽는 명령(`cat`, `head`, `tail`, `less`, `more`, `nl`, `bat`)의 인자가 그 `SKILL.md`. 프로젝트 안인지는 host가 그 행에 기록한 `cwd`로 봅니다(읽기만 하고 저장하지 않음). `cat … | head -40`처럼 일부만 읽은 것도 load입니다.
+- **판정 불가**: load도 아니고 "load하지 않음"도 아닙니다. 그 기록에서는 라벨을 쓰지 않습니다. load 호출인데 결과가 오류이거나 없음, 읽는 명령이 아닌 shell 명령이 `SKILL.md`를 가리킴(`grep`, `wc`, `git status` 등), skills 폴더·와일드카드·모르는 폴더를 읽는 명령, 아는 skill 폴더 안의 다른 파일을 `Read`, 프로젝트 밖의 같은 이름 `SKILL.md`, `cd`로 다른 곳에 간 뒤의 상대 경로, 그리고 **skills 폴더에 닿는 재귀 내용 검색**입니다: 프로젝트 루트(`.`, 절대 경로 루트, 상위 폴더, 풀 수 없는 변수)에 대한 `grep -r/-R`, `git grep`, 숨김 폴더를 보게 한 `rg`(`--hidden`, `-uu`)나 `.claude`를 직접 준 `rg`, `-exec`가 있거나 `xargs`로 이어지는 `find`, 경로 없는 `Grep` tool. skill 글을 이름 없이 읽을 수 있기 때문입니다. 다만 skills 폴더를 **통째로** 뺐거나(`--exclude-dir=.claude`, `-g '!.claude/**'`, `-not -path './.claude/*'`, 바로 뒤의 `grep -v '^./.claude/skills/'`) 검색이 `SKILL.md`에 맞을 수 없으면(`--include=*.mjs`, `-name '*.mjs'`, `Grep`의 `glob`/`type`) 판정 불가가 아닙니다. 일부 skill만 빼는 필터(`grep -v '^./.claude/skills/periodic'`)는 통째로 뺀 것이 아닙니다.
+- **해당 없음**: 그 밖. 파일 내용을 내지 않는 명령(`ls`, `test`, `stat`, `echo`, `-exec` 없는 `find`, `Glob` tool)은 skills 폴더를 가리켜도 읽은 것이 아닙니다. 오류로 끝난 `Grep`은 아무것도 돌려주지 않았습니다.
+
+판정 불가의 이유는 요약의 `labels.indeterminateAccess`에 종류별로 나옵니다. shell 명령은 작은 토크나이저(따옴표, 역슬래시, here-document 본문 제거)로 단순 명령과 단어로 나눌 뿐 shell을 해석하지 않습니다. **잡지 못하는 것**: 변수·명령 치환·alias·함수·스크립트 파일 안에서 읽은 것, `sed`/`awk`/`python` 등으로 읽은 것(가리키면 판정 불가, 가리키지 않으면 못 봄), 복사·압축한 뒤 읽은 것, `--include`로 걸러진 재귀 검색이 skill 폴더 안의 다른 파일(`.mjs` 등)을 읽은 것, 프로젝트 skill이 아닌 경로(사용자 skill, plugin)로 같은 내용을 읽은 것, MCP나 다른 tool로 읽은 것. 그리고 **load는 서브에이전트가 한 번의 호출로 만들 수 있는 사실**입니다. 읽고 따랐는지는 보지 않습니다.
+
+"아는 skill"은 그 세션의 `skills` 이벤트에 나온 이름입니다. skill 지점이 꺼져 있던 세션은 이름을 모르므로 `--project <프로젝트>`로 `.claude/skills`를 알려 줘야 load를 읽을 수 있습니다(읽기 전용). "첫 쓰기"는 `Write`/`Edit`/`MultiEdit`/`NotebookEdit` 호출만 봅니다. shell로 쓴 파일은 보지 않고, 쓰기 호출이 없으면 `null`입니다.
+
+같은 세션에 두 번 돌려도 같은 기록을 또 쓰지 않습니다. 위임마다 **현재 유효한 줄**이 하나 있고(`latestObservations`), 새 내용이 그것과 같으면(`observationId`) 쓰지 않습니다. 검증 결과를 나중에 주거나 고치면 새 줄이 추가되고 그 줄이 유효해집니다. **검증 결과가 없는 줄은 검증 결과가 있는 줄을 대신하지 못합니다.** 검증 파일 없이 다시 돌리면 아무것도 쓰지 않고(`observations.keptVerified`), 예전 저장소에 그런 줄이 이미 있어도 보고서는 검증된 줄을 씁니다. 검증된 기록을 새로 고치려면 검증 파일과 함께 돌리세요.
 
 ### 쓰는 것 2: 라벨과 그 강도
 
@@ -648,13 +656,21 @@ skill load 판정: `Skill` tool이 아는 skill 이름을 부른 경우, 그 ski
 
 | 출처 | 지점·질문 | 결과 | 강도 | 뜻과 한계 |
 |---|---|---|---|---|
-| `observed-load` | `delegation.skills`의 `skill_<i>` | 서브에이전트가 그 skill을 load했는가 | **약함** | 서브에이전트가 **한 일**입니다. 필요 없는 skill을 load할 수 있고 필요한 skill을 건너뛸 수 있습니다. 블록이 주입된 위임에서는 판정 자체가 load를 유도하므로 더 그렇습니다 |
-| `observed-load` | `delegation.skills`의 `need` | 프로젝트 skill을 하나라도 load했는가 | **약함** | 같음 |
-| `external-verification-with-load` | `skill_<i>`, `need` | `true`만 | **약함**, 한쪽 | 그 skill이 load됐고 **그리고** 사용자의 외부 규칙 검사(`conventionPassed`)가 통과. 통과가 그 skill 덕분이라는 뜻이 아니며(귀속 없음), load되지 않았거나 검사가 실패한 경우에는 라벨을 쓰지 않습니다 |
+| `observed-load` | `delegation.skills`의 `skill_<i>` | 서브에이전트가 그 skill을 load했는가 | **약함** | 서브에이전트의 prompt에 **블록이 없던** 위임(shadow 모드, 또는 아무것도 선택되지 않음)에서만. 서브에이전트가 **한 일**입니다. 필요 없는 skill을 load할 수 있고 필요한 skill을 건너뛸 수 있으며, 한 번의 호출로 만들 수 있습니다 |
+| `observed-load` | `delegation.skills`의 `need` | **그 요청이 물어본 skill** 중 하나라도 load했는가 | **약함** | 같음. 넓은 판정은 요청 여러 개이고 요청마다 `need`는 자기 구간의 skill만 묻습니다. 그래서 라벨도 그 구간의 이름만 봅니다. 다른 구간의 skill이 load됐다고 이 요청의 `need`가 참이 되지 않습니다 |
+| `observed-load-after-injection` | 위 두 질문 | 같음 | **약함**, **판정의 영향을 받음** | prompt에 **그 판정이 만든 블록이 있던** 위임. 블록이 "이 skill을 load하라"고 하므로 load는 일부 판정이 만든 결과입니다. 이 라벨로 임계값을 맞추면 judge가 이미 고르는 것을 보상하게 됩니다 |
+| `external-verification-with-load` | `skill_<i>`, `need` | `true`만 | **약함**, 한쪽 | 블록 없는 위임에서, 그 skill이 load됐고 **그리고** 사용자의 외부 규칙 검사(`conventionPassed`)가 통과. 통과가 그 skill 덕분이라는 뜻이 아니며(귀속 없음), load되지 않았거나 검사가 실패한 경우에는 라벨을 쓰지 않습니다 |
+| `external-verification-with-load-after-injection` | 같음 | `true`만 | **약함**, 한쪽, **판정의 영향을 받음** | 같은 조건, 블록이 있던 위임 |
 | `external-verification` | `supervisor.outcome`의 `outcome` | `complete`만 | **검증됨**, 한쪽 | 외부 검증이 통과한 과제. **실패한 검증은 라벨을 쓰지 않습니다.** 실패는 `retry`·`replan`·`escalate` 중 무엇인지 알려 주지 않기 때문입니다. 그래서 이 출처의 라벨은 전부 `complete`이고, 그 위의 정확도는 "`complete`에 대한 재현율"이지 정확도가 아닙니다 |
 | 그 밖(손으로 붙인 라벨) | 임의 | 임의 | **미분류** | 이 코드가 보증하지 않습니다 |
 
-라벨을 쓰지 않는 경우는 이유별로 셉니다(`labels.unlabelled`): 질문→skill 대응을 증명할 수 없음(`skills_question_mapping_unproven`), 그 결정이 실행된 호출에 적용되지 않음(`skills_decision_not_applied_to_launched_call`), 반복 호출과 결정을 공유(`skills_decision_shared_with_repeated_call`), skill 접근이 판정 불가(`skills_access_indeterminate`), 외부 검증 없음·실패(`supervisor_no_external_verification`, `supervisor_verification_failed_no_outcome_class`), 같은 과제의 이전 시도(`supervisor_earlier_attempt_of_task`), 이어진 agent의 이전 hand-back(`supervisor_earlier_handback`), log에 결정이 없음(`supervisor_decision_not_in_log`). 같은 (결정, 질문, 출처, 결과) 라벨이 이미 있으면 다시 쓰지 않습니다.
+**임계값을 볼 때 쓸 수 있는 라벨은 `observed-load`뿐입니다**(그것도 약한 라벨입니다). `-after-injection` 출처는 판정이 서브에이전트에게 할 일을 알려 준 뒤의 행동이라, 보고서에서 `--exclude-source observed-load-after-injection,external-verification-with-load-after-injection`으로 빼거나 `--source observed-load`로 따로 봐야 합니다. 블록 없는 라벨을 모으는 방법은 skill 지점을 `shadow`로 두는 것입니다. 블록이 있었는지 알 수 없는 기록(첫 prompt를 찾지 못함)에서는 라벨을 쓰지 않습니다(`skills_block_presence_unknown`).
+
+라벨을 쓰지 않는 경우는 이유별로 셉니다(`labels.unlabelled`): 위임을 대화 기록에 잇지 못함(`delegation_not_joined`), 질문→skill 대응을 증명할 수 없음(`skills_question_mapping_unproven`), 그 결정이 실행된 호출에 적용되지 않음(`skills_decision_not_applied_to_launched_call`), 반복 호출과 결정을 공유(`skills_decision_shared_with_repeated_call`), skill 접근이 판정 불가(`skills_access_indeterminate`), 블록 유무를 모름(`skills_block_presence_unknown`), 외부 검증 없음·실패(`supervisor_no_external_verification`, `supervisor_verification_failed_no_outcome_class`), 같은 과제의 이전 시도(`supervisor_earlier_attempt_of_task`), 이어진 agent의 이전 hand-back(`supervisor_earlier_handback`), log에 결정이 없음(`supervisor_decision_not_in_log`).
+
+**같은 라벨을 두 번 쓰지 않고, 근거가 사라진 라벨은 철회합니다.** (결정, 질문, 출처)마다 현재 유효한 라벨이 하나 있습니다(가장 최근 것). 새로 계산한 결과가 그것과 같으면 쓰지 않습니다(`labels.alreadyPresent`). log는 추가 전용이라 지울 수 없으므로, 수집기가 썼던 라벨을 이번 실행이 더는 도출하지 못하면 **철회 표시**를 씁니다: 같은 결정·질문에 출처가 `<출처>:retracted`인 라벨 한 줄입니다(`labels.retracted`). calibration은 표시보다 먼저 쓰인 그 출처의 라벨을 버리고(`applyRetractions`), 표시 뒤에 다시 쓰인 라벨은 유효합니다. 철회되는 경우: 검증 결과가 통과에서 실패로 고쳐짐(`external-verification`, `…-with-load…`), 기록이 이제 판정 불가로 읽힘, 블록 유무가 달라짐. 검증 파일 없이 돌린 실행은 검증에 기댄 라벨을 철회하지 **않습니다**(없다는 것은 반박이 아닙니다). 대화 기록에 잇지 못한 위임의 라벨도 건드리지 않습니다. 손으로 `decisions.mjs --action label --source <출처>:retracted`를 붙여도 같은 효과입니다.
+
+**라벨이 붙는 결정은 무작위 표본이 아닙니다(선택 편향).** 라벨을 받을 수 있는 것은 (1) 라우팅됐고 (2) 실행됐고 (3) 끝난 것이 확인된, 읽을 수 있는 서브에이전트 기록에 이어졌고 (4) skill 접근이 판정 가능하고 (5) 블록 유무를 알고 (6) 질문 대응이 증명된, **실행된 호출에 적용된 결정**뿐입니다. judge가 실패한 요청, 미뤄진 라우팅, 거부된 뒤 다시 발행되지 않은 호출, 판정 불가 기록, 적용되지 않은 두 번째 판단은 아무것도 내지 않습니다. 재귀 검색을 많이 하는 과제일수록 판정 불가가 되기 쉬우므로 빠지는 쪽이 과제 종류와 무관하지도 않습니다. 따라서 모든 지표는 **그 부분집합에 대한 조건부 값**이고 "모든 결정"의 calibration이 아닙니다. 보고서의 `counts.decisions`(그 지점의 전체 결정)와 `counts.labeledDecisions`(라벨이 붙은 결정)를 함께 보세요.
 
 **질문 id → skill 이름 대응.** 넓은 판정은 요청 여러 개로 나뉘고 요청마다 `skill_0`부터 번호가 다시 시작합니다. 규칙은 `selectSkills`에 있습니다: 판정 대상은 BM25 순위의 앞 `candidates`개이고, `requests`개의 연속 구간(크기 `ceil(candidates / requests)`)으로 나뉘며, 요청 r의 `skill_i`는 순위 `r × 크기 + i`의 skill입니다. `decisionIds`에는 **답한 요청만** 요청 순서대로 들어갑니다.
 
@@ -682,7 +698,9 @@ skill 지점이 꺼진 기본 설정에서는 `skills` 이벤트가 없으므로
 | `artifactSha256` | 검증기 보고서의 SHA-256 |
 | `costUsd` | 선택. 그 과제의 실제 비용. 없으면 평가 행의 `costUsd`는 `null` |
 
-**`taskHash`의 정의**: Main이 그 위임을 **처음 발행한** `Agent` 호출의 `prompt` 문자열(어떤 hook 재작성보다 앞선 원래 과제 글)의 UTF-8 바이트에 대한 SHA-256(소문자 hex)입니다. 다듬기나 정규화는 없습니다. 그 문자열이 이 확장이 붙이는 꼬리(빈 줄, `<jev-routing>` packet, 고정 문장, 선택적 `<jev-skills>` 블록: `splitRoutingTail`)로 끝나면 꼬리 앞부분이 과제 글입니다. `collect.mjs --task-hash <파일>`이 파일 바이트 그대로의 해시를 내고(줄 끝 개행이 있으면 해시가 달라짐), `src/collector.mjs`의 `taskHash(text)`가 같은 함수입니다. 수집 요약의 `delegationIndex`에 위임마다 `taskHash`가 나오므로, `--dry-run`으로 먼저 돌려 값을 얻을 수 있습니다. 같은 과제 글을 한 세션에서 두 번 위임했으면 한 항목이 두 위임에 걸리고, 라벨은 마지막 위임에만 씁니다(검증은 작업의 최종 상태를 본 것이므로). 한 위임에 서로 다른 결과 두 개가 걸리면 `CONFLICTING_VERIFICATION`으로 멈춥니다.
+**`taskHash`의 정의**: Main이 그 위임을 **처음 발행한** `Agent` 호출의 `prompt` 문자열(어떤 hook 재작성보다 앞선 원래 과제 글)의 UTF-8 바이트에 대한 SHA-256(소문자 hex)입니다. 다듬기나 정규화는 없습니다. 그 문자열이 이 확장이 붙이는 꼬리(빈 줄, `<jev-routing>` packet, 고정 문장, 선택적 `<jev-skills>` 블록: `splitRoutingTail`)로 끝나면 꼬리 앞부분이 과제 글입니다. `collect.mjs --task-hash <파일>`이 파일 바이트 그대로의 해시를 내고(줄 끝 개행이 있으면 해시가 달라짐), `src/collector.mjs`의 `taskHash(text)`가 같은 함수입니다. 수집 요약의 `delegationIndex`에 위임마다 `taskHash`가 나오므로, `--dry-run`으로 먼저 돌려 값을 얻을 수 있습니다. 같은 과제 글을 한 세션에서 두 번 위임했으면 `taskHash` 항목은 그 과제의 것이지만, **관찰 기록과 라벨에는 마지막으로 실행된 위임에만** 붙습니다(검증은 작업의 최종 상태를 본 것이므로). 앞선 시도의 관찰 기록은 `verification: null`이고 요약의 `delegationIndex`에 `supersededAttempt: true`로 나옵니다. 평가 행은 과제 단위라 두 시도를 모두 `attempts`로 셉니다. `toolUseId`로 준 항목은 그 위임을 직접 가리킵니다. 한 위임에 서로 다른 결과 두 개가 걸리면 `CONFLICTING_VERIFICATION`으로 멈춥니다.
+
+**`taskHash`는 키 없는 해시입니다.** 과제 글 자체는 파일에 들어가지 않지만, 과제 글을 **추측할 수 있는 사람은 해시를 계산해 맞는지 확인할 수 있습니다.** 짧거나 정형화된 위임("테스트 돌려 줘")은 추측이 쉽습니다. `taskHash`는 관찰 기록, 요약의 `delegationIndex`, 검증 파일, 평가 행 후보의 `taskId`, 평가 저장소에 들어가므로, **실제 프로젝트에서는 이 파일들을 밖에 공유하지 마세요.** 세션 scope와 `delegationId`는 엔트로피가 높은 id의 해시라 해당하지 않습니다.
 
 ### 쓰는 것 3: 평가 행 후보
 
@@ -703,6 +721,8 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 | `duration_not_measured` | 기록에 timestamp가 없어 시간을 잴 수 없음 |
 | `supervisor_judge_time_unknown` | 판정된 hand-back의 decision log 기록이 없음 |
 | `attempt_not_joined_to_transcripts` | 그 과제의 시도 중 대화 기록에 잇지 못한 것이 있음(전체 집계 불가) |
+| `route_not_applied`, `route_mode_unknown` | 그 위임의 route가 **적용되지 않았음**. 전역 모드가 `active`가 아니면(`shadow` 등) route는 기록만 되고 호출은 Main이 발행한 그대로 실행됩니다. 그런 실행을 route의 프로필 실적으로 적지 않습니다. route 이벤트에 모드가 없으면 `route_mode_unknown` |
+| `agent_type_differs_from_profile`, `agent_type_unknown` | host가 기록한 agent type이 route의 프로필이 아니거나 기록이 없음. 모델과 effort가 우연히 같아도 그 프로필의 agent 정의가 실행된 것이 아닙니다 |
 | `delegation_not_routed`, `route_fields_missing`, `task_ran_under_several_profiles`, `task_hash_unknown` | 프로필이 없거나, 필드가 빠졌거나, 같은 과제가 여러 프로필로 실행됐거나, 원래 과제 글을 알 수 없음 |
 | `importer_refuses:<코드>` | `--config`가 있을 때 가져오기 검증을 미리 돌려 본 결과(예: registry가 바뀌어 `STALE_EVIDENCE_PROFILE`) |
 
@@ -712,13 +732,13 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 
 ### 요약과 관찰 보고서
 
-수집 명령은 JSON 요약을 출력합니다: 본 위임·이은 위임·못 이은 이유, 지점·출처별로 쓴 라벨 수와 쓰지 않은 이유, 질문 대응 결과(`skillQuestionMapping`), 관찰 기록 수, 평가 행 수와 보류 이유, 검증 항목의 일치 수, 종류별 경고 수, 본 host 형태(`host.versions` 등), 위임 색인(`delegationIndex`: 해시만).
+수집 명령은 JSON 요약을 출력합니다: 본 위임·이은 위임·못 이은 이유, 지점·출처별로 쓴 라벨 수(`labels.written`)·철회한 수(`labels.retracted`)·쓰지 않은 이유(`labels.unlabelled`)·판정 불가 접근의 종류(`labels.indeterminateAccess`), 질문 대응 결과(`skillQuestionMapping`), 관찰 기록 수, 평가 행 수와 보류 이유, 검증 항목의 일치 수, 종류별 경고 수, 본 host 형태(`host.versions` 등), 위임 색인(`delegationIndex`: 해시만).
 
 `--report`는 관찰 기록(위임마다 최신 줄)을 요약합니다. **서술만 하고 아무것도 판정하지 않습니다.** 요청 대 실제 일치율(프로필, 모델 `exact`/`alias`/`mismatch`, effort), 프로필별 위임 수와 검증 통과율(검증이 없으면 `null`), 위임당 평균 토큰·turn·tool 호출·시간(값이 있는 기록 수 `measured`와 함께), judge 요청 수, judge 토큰 비중(decision log에 `usage`가 없으면 `null`), 라우팅 hook 시간이 end-to-end 시간에서 차지하는 비중, 그리고 "블록이 있었나 × skill을 load했나" 교차표(판정 불가는 `loadUnknown`)입니다.
 
 ### 실제 세션 자료에 돌린 결과 (2026-11-25)
 
-오프라인으로, hook 상태의 **사본**에 돌렸습니다(`qa/kernel/collector/run-pilot-evidence.sh`, 결과 `qa/kernel/results/collector-20261125/`). 검증 파일은 pilot의 scripted checker(`qa/kernel/pilot/checkers/check.mjs`, 변경 없음)를 두 프로젝트에 돌려 만들었습니다.
+오프라인으로, hook 상태의 **사본**에 돌렸습니다(`qa/kernel/collector/run-pilot-evidence.sh`, 결과 `qa/kernel/results/collector-20261125-r2/`). 검증 파일은 pilot의 scripted checker(`qa/kernel/pilot/checkers/check.mjs`, 변경 없음)를 두 프로젝트에 돌려 만들었습니다. 앞서 저장한 `qa/kernel/results/collector-20261125/`는 검토 이전 수집기(`outcome-collector-1`)의 결과이고 **이 절의 수치로 대체됩니다**. 그 폴더의 `need` 수치(FN 7)는 라벨 규칙의 오류였습니다(요청마다 자기 구간만 묻는 `need`에 "위임 전체에서 무엇이든 load"를 붙임).
 
 | | arm A (skill 지점 off) | arm B (skill 지점 active) | 재확인 세션 (상태만) |
 |---|---|---|---|
@@ -726,27 +746,45 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 | 라우팅됨 / 대화 기록에 이음 | 7 / 8 (1건은 `route_deferred`) | 8 / 8 | 3 / 0 (`no_transcripts`) |
 | 연결 종류 | 수정 이전 형태 7 | 수정 이전 형태 8 | `reissue` 3 |
 | 질문 대응(유도, log 대조) | 해당 없음 | 결정 32개 전부, 답 960개 일치 | 결정 6개 전부, 답 180개 일치 |
-| 쓴 라벨 | 0 | `observed-load` 496, `external-verification-with-load` 21 | 0 |
-| 라벨 없이 둔 결정 | 해당 없음 | 16 (실행된 호출에 적용되지 않은 두 번째 판단) | 해당 없음 |
+| skill 접근 판정 불가인 위임 | 4 (루트 재귀 `grep` 3, skill 폴더를 준 `grep` 1) | 2 (루트 재귀 `grep`) | 해당 없음 |
+| 쓴 라벨 | 0 | `observed-load` 124, `observed-load-after-injection` 248, `external-verification-with-load` 3, `external-verification-with-load-after-injection` 9 | 0 |
+| 라벨이 붙은 결정 / 그 지점의 결정 | 해당 없음 | 12 / 32 (블록 없음 4, 블록 있음 8) | 0 / 6 |
+| 라벨 없이 둔 결정 | 해당 없음 | 20: 실행된 호출에 적용되지 않은 두 번째 판단 16, 판정 불가 4 | 9 (`delegation_not_joined`: skill 결정 6, 보고 판정 3) |
 | 관찰 기록 | 8 | 8 | 0 |
 | 검증 항목 일치 | 8/8 (통과 8) | 8/8 (통과 8) | 없음 |
 | 평가 행 | 0 (보류 8) | 0 (보류 8) | 0 |
 | 경고 | 0 | 0 | 0 |
 
-- **평가 행이 0인 이유.** 두 세션의 config는 평가 context가 기본값(`native-default-unvalidated`)이었습니다(16건). context를 준 dry-run에서도 0행입니다: 라우팅된 15건 모두 host가 기록한 모델(`claude-opus-5-5`, `claude-sonnet-5-5`)이 registry의 `backend`(`opus`, `sonnet`)와 문자열이 달랐고(`effective_model_differs_from_profile_backend`), 나머지 1건은 라우팅되지 않았습니다. 가져오기 검증이 문자열 일치를 요구하므로 수집기는 별칭을 풀어 적지 않습니다. 평가 행을 얻으려면 registry의 `backend`를 host가 기록하는 구체 id로 적어야 합니다.
+- **평가 행이 0인 이유.** 두 세션의 config는 평가 context가 기본값(`native-default-unvalidated`)이었습니다(16건). context를 준 dry-run에서도 0행입니다: 라우팅된 15건 모두 host가 기록한 모델(`claude-opus-5-5`, `claude-sonnet-5-5`)이 registry의 `backend`(`opus`, `sonnet`)와 문자열이 달랐고(`effective_model_differs_from_profile_backend`), 나머지 1건은 라우팅되지 않았습니다. 가져오기 검증이 문자열 일치를 요구하므로 수집기는 별칭을 풀어 적지 않습니다. 평가 행을 얻으려면 registry의 `backend`를 host가 기록하는 구체 id로 적어야 합니다. route 모드는 15건 모두 `active`, agent type은 15건 모두 프로필과 일치했으므로 새 보류 이유(`route_not_applied`, `agent_type_differs_from_profile`)는 여기서 0건입니다.
 - **요청 대 실제.** 프로필 15/15, effort 15/15 일치. 모델은 `exact` 0, `alias` 15, `mismatch` 0.
-- **calibration(arm B, `delegation.skills`, 출처 `observed-load`만).** 실제 세션에서 나온 첫 calibration 수치입니다. **약한 라벨이고, 합성 pilot의 위임 8건(세션 1개, 실행 1회)에서 나왔습니다.** 질문 496개(결정 16개): Brier 0.0171, ECE 0.0302, 기저율 0.0423, 임계값 0.5에서 TP 12 / FP 0 / TN 475 / FN 9. 질문 종류로 나누면 `need` 16개(판정 요청마다 하나, 위임 8건): Brier 0.3386, ECE 0.4394, 기저율 0.75, TP 5 / FP 0 / TN 4 / FN 7. `skill_<i>` 480개: Brier 0.0064, ECE 0.0290, 기저율 0.0188, TP 7 / FP 0 / TN 471 / FN 2. `need`의 FN 7은 judge의 `need`가 0.5 미만인데 서브에이전트가 skill을 load한 경우입니다. 이것이 judge의 오류인지 서브에이전트가 필요 없는 skill을 읽은 것인지는 이 라벨로 가를 수 없습니다. 480개 중 471개가 "load하지 않음"이라 Brier와 ECE는 대부분 그 쉬운 음성에서 나옵니다.
-- **관찰 보고서.** 검증 통과율은 두 arm 모두 8/8, 규칙 검사 6/6. 위임당 평균 토큰 합 A 423,554 / B 532,570(대부분 cache read), 평균 wall time A 50.5초 / B 62.5초. judge 요청은 A 28건(위임당 3.5), B 64건(위임당 8): 수정 이전 형태라 호출 두 개가 각각 판단됐습니다. judge 토큰 비중은 `null`(두 decision log에 `usage` 필드가 없음). 라우팅 hook 시간 비중은 A 2.0%(7건), B 1.9%(8건). 교차표: A는 블록 없음에서 load 5 / 없음 2 / 판정 불가 1, B는 블록 있음 5건 모두 load(블록의 load skill을 5/5 load), 블록 없음 3건 중 load 1 / 없음 2.
-- 위임 16건의 토큰 합·wall time·API turn·tool 호출·load한 skill·모델·effort는 pilot 분석기(`qa/kernel/pilot/analyze.mjs`)의 결과와 16/16 일치합니다(서로 다른 코드).
-- 같은 상태에 두 번째로 돌리면 라벨 0개, 관찰 0개를 씁니다(이미 있음 517 / 8).
+- **calibration(arm B, `delegation.skills`).** 실제 세션에서 나온 첫 수치입니다. **전부 약한 라벨이고, 합성 pilot 세션 1개(실행 1회)에서 나왔으며, 보고서의 `sufficient`는 모든 묶음에서 `false`(`weak_labels`)입니다.** 라벨은 그 지점 결정 32개 중 12개에만 붙었습니다(조건부 값, 위 선택 편향 참고).
+
+  | 출처 | 질문 | 결정 n (위임) | 라벨 n | Brier | ECE | 기저율 | 임계값 0.5에서 TP / FP / TN / FN |
+  |---|---|---|---|---|---|---|---|
+  | `observed-load` (블록 없음) | 전체 | 4 (2) | 124 | 0.0117 | 0.0249 | 0.0242 | 1 / 0 / 121 / 2 |
+  | | `need` | 4 (2) | 4 | 0.1189 | 0.2200 | 0.25 | 0 / 0 / 3 / 1 |
+  | | `skill_<i>` | 4 (2) | 120 | 0.0081 | 0.0184 | 0.0167 | 1 / 0 / 118 / 1 |
+  | `observed-load-after-injection` (블록 있음, 판정의 영향) | 전체 | 8 (4) | 248 | 0.0060 | 0.0419 | 0.0363 | 9 / 0 / 239 / 0 |
+  | | `need` | 8 (4) | 8 | 0.0653 | 0.2300 | 0.5 | 4 / 0 / 4 / 0 |
+  | | `skill_<i>` | 8 (4) | 240 | 0.0040 | 0.0356 | 0.0208 | 5 / 0 / 235 / 0 |
+
+  임계값에 참고할 수 있는 것은 첫 묶음뿐이고 그것은 **결정 4개(위임 2건)** 입니다. 무엇도 결론 내릴 수 없는 크기입니다. 블록 있는 묶음의 TP 9 / FN 0은 "블록이 load하라고 한 skill을 서브에이전트가 load했다"는 뜻이지 judge가 맞았다는 뜻이 아닙니다. 두 묶음 모두 라벨의 97% 이상이 "load하지 않음"이라 Brier와 ECE는 대부분 그 쉬운 음성에서 나옵니다.
+- **관찰 보고서.** 검증 통과율은 두 arm 모두 8/8, 규칙 검사 6/6. 위임당 평균 토큰 합 A 423,554 / B 532,570(대부분 cache read), 평균 wall time A 50.5초 / B 62.5초. judge 요청은 A 28건(위임당 3.5), B 64건(위임당 8): 수정 이전 형태라 호출 두 개가 각각 판단됐습니다. judge 토큰 비중은 `null`(두 decision log에 `usage` 필드가 없음). 라우팅 hook 시간 비중은 A 2.0%(7건), B 1.9%(8건). 교차표: A는 블록 없음에서 load 4 / 없음 0 / 판정 불가 4, B는 블록 있음에서 load 4(블록의 load skill을 4/4 load), 블록 없음에서 load 1 / 없음 1, 판정 불가 2(블록 있음 1, 없음 1).
+- 위임 16건의 토큰 합·wall time·API turn·tool 호출·load한 skill·블록 유무는 검토 이전 실행과 16/16 같고(바뀐 것은 판정 불가 표시와 agent type 표기), 그 값들은 pilot 분석기(`qa/kernel/pilot/analyze.mjs`, 서로 다른 코드)의 결과와 16/16 일치했습니다. load로 센 15건(A 6, B 9)은 모두 오류 없는 tool 결과가 있었습니다.
+- 같은 상태에 두 번째로 돌리면 라벨 0개, 관찰 0개를 씁니다(이미 있음 384 / 8), 철회 0.
+- 사본으로 따로 확인한 것(저장하지 않음): 검증 파일 없이 다시 돌리면 관찰 0개를 쓰고 8건을 유지(`keptVerified` 8, 보고서 통과율 8/8 그대로). 검증을 전부 실패로 고쳐 돌리면 `…-with-load…` 라벨 12개를 철회하고 보고서의 출처별 수에서 빠짐. 서브에이전트 기록 하나를 20행에서 자르고 `finished: false`로 두면 그 위임은 `subagent_not_finished`로 빠지고 라벨·관찰이 없음(나머지 7건은 그대로).
 
 ### 한계
 
-- **대화 기록 형식은 계약이 아닙니다.** 실제로 본 형태는 Claude Code 데스크톱 `2.1.330`(`entrypoint: claude-desktop`, 권한 모드 `auto`)의 세션 2개뿐입니다. 다른 버전·CLI·다른 권한 모드의 기록은 본 적이 없습니다. 모르는 형태는 `null`과 경고 수로 나오고 추측하지 않습니다.
+- **대화 기록 형식은 계약이 아닙니다.** 실제로 본 형태는 Claude Code 데스크톱 `2.1.330`(`entrypoint: claude-desktop`, 권한 모드 `auto`)의 세션 2개뿐입니다. 다른 버전·CLI·다른 권한 모드의 기록은 본 적이 없습니다. 모르는 형태는 `null`과 경고 수로 나오고 추측하지 않습니다. 끝났다는 확인(`.meta.json`의 `finished`)과 tool 결과의 오류 표시(`is_error`)도 이 버전에서 본 형태입니다.
 - **Codex는 지원하지 않습니다.** Codex 대화 기록을 본 적이 없어 파서를 만들지 않았습니다. codex 세션의 위임은 `runtime_transcripts_unsupported`로 셉니다.
-- **약한 라벨.** `observed-load`는 서브에이전트의 행동입니다. 블록이 주입된 위임에서는 판정이 행동을 유도합니다. 이 라벨만으로 임계값을 정하면 "서브에이전트가 무엇을 하는가"에 맞추는 것이지 "무엇이 필요했는가"에 맞추는 것이 아닙니다.
-- **skill load 판정은 휴리스틱입니다.** shell 명령은 단어 단위로만 보고, shell로 쓴 파일은 "첫 쓰기"에 들어가지 않습니다.
-- **재발행 수정 이후 형태(`reissue`)의 end-to-end 수집은 실제 자료로 해 보지 못했습니다.** 재확인 세션은 대화 기록을 보관하지 않아 상태만 요약했습니다(테스트는 합성 기록으로 함). 그 세션의 supervisor 판정 3건도 외부 검증이 없어 라벨이 없습니다.
+- **약한 라벨, 그리고 판정이 만든 라벨.** `observed-load`는 서브에이전트의 행동이고 서브에이전트가 값싸게 만들 수 있습니다. 블록이 주입된 위임의 라벨(`-after-injection`)은 판정이 행동을 유도한 결과입니다. 약한 라벨만으로 임계값을 정하면 "서브에이전트가 무엇을 하는가"에 맞추는 것이지 "무엇이 필요했는가"에 맞추는 것이 아닙니다. **"그 skill이 필요했는가"의 검증된 라벨을 만드는 방법은 이 수집기에 없습니다.**
+- **선택 편향.** 라벨은 잇고, 끝난 것을 확인하고, 판정 가능하고, 적용된 결정에만 붙습니다([위](#쓰는-것-2-라벨과-그-강도)). 지표는 그 부분집합의 값입니다.
+- **skill load 판정은 휴리스틱입니다.** 잡지 못하는 접근은 [위 목록](#쓰는-것-1-관찰-기록)에 있습니다. 판정 불가 쪽으로 기울게 만들었으므로 루트 재귀 검색을 하는 위임은 라벨을 잃습니다(실제 자료에서 16건 중 6건).
+- **잘린 사본은 host 기록이 그렇게 말할 때만 압니다.** `.meta.json`이 `finished: true`인데 `.jsonl`만 잘린 사본은 구별하지 못합니다. 답이 없는 tool 호출이 있으면 경고(`subagent_tool_call_without_result`)를 셀 뿐입니다.
+- **`taskHash`는 추측한 과제 글을 확인하는 데 쓸 수 있습니다**(키 없는 해시). 실제 프로젝트의 관찰 기록·요약·검증 파일·평가 행을 공유하지 마세요.
+- **철회는 수집기가 다시 돌았을 때만 일어납니다.** 검증 결과를 고친 뒤 수집기를 그 세션에 다시 돌리지 않으면 옛 라벨이 남습니다. 대화 기록을 더는 구할 수 없으면 손으로 철회 표시를 붙여야 합니다.
+- **재발행 수정 이후 형태(`reissue`)의 end-to-end 수집은 실제 자료로 해 보지 못했습니다.** 재확인 세션은 대화 기록을 보관하지 않아 상태만 요약했습니다(테스트는 합성 기록으로 함). 그 세션의 supervisor 판정 3건도 외부 검증이 없어 라벨이 없습니다. `shadow` 모드 세션도 실제 자료가 없습니다(테스트만).
 - `supervisor.outcome`은 실제 자료에서 라벨이 한 건도 없습니다. `external-verification` 라벨은 통과한 과제만 생기므로, 실패 사례가 쌓이기 전에는 supervisor의 오판을 잴 수 없습니다.
 - judge 토큰은 decision log에 `usage`가 있을 때만 셉니다. 분류·프로필 판단의 id는 이 변경 이후의 `route` 이벤트에만 있습니다.
 
@@ -996,7 +1034,7 @@ cd orchestration && npm run compare:default      # 또는 node scripts/compare-d
 | 실제 Claude Code 세션에서 skill이 주입된 서브에이전트 실행 | 배선은 확인. 전역 `active` 모드의 실제 세션 3개(pilot 2, 재확인 1), 권한 모드 `auto`에서만. pilot arm B는 skill 과제 6건 중 5건, 재확인은 skill 과제 2건 중 2건에 블록을 주입해 실행. 주입이 결과를 개선하는지는 미측정(위 항목). 재확인 세션의 작업 결과는 채점하지 않음 |
 | skill 선택 정확도 | 합성 데이터 두 세트(개발 160건, held-out 180건)에서 각 1회 측정. 모델이 만든 라벨, 사람 검토 없음. 실제 skill 폴더 미측정 |
 | `adaptive`/`full` 후보 검색에서의 judge 정확도·지연·토큰 | 개발 세트에서 실제 Jev로 1회(`dev-retrieval-decision-1`), held-out 세트에서 `lexical`과 `full`만 1회(`holdout-1-score-1`) 측정([결정 기록](#결정-기록)). `adaptive`의 held-out 수치, 72개보다 큰 카탈로그, 실제 skill 폴더, OpenAI judge는 미측정 |
-| 실제 트래픽에서의 calibration (Brier, ECE) | 거의 미측정. 실제 세션의 라벨은 [결과 수집기](#결과-수집기)가 pilot arm B에서 만든 **약한 라벨**(`observed-load`, 위임 8건·질문 496개·세션 1개)뿐이고, 검증된 라벨은 없음. 합성 데이터의 값은 `qa/kernel/REPORT.ko.md` |
+| 실제 트래픽에서의 calibration (Brier, ECE) | 거의 미측정. 실제 세션의 라벨은 [결과 수집기](#결과-수집기)가 pilot arm B에서 만든 **약한 라벨**뿐이고(세션 1개. 블록 없는 `observed-load`는 결정 4개·위임 2건·질문 124개, 판정의 영향을 받은 `observed-load-after-injection`은 결정 8개·위임 4건·질문 248개, 모두 `sufficient: false`), 검증된 라벨은 없음. 합성 데이터의 값은 `qa/kernel/REPORT.ko.md` |
 | supervisor 조언의 유용성 | 미측정. 합성 120건의 outcome 일치도만 있음 |
 | supervisor hand-back 경로의 실제 세션 동작 | 일부 확인. 실제 세션 3에서 `SubagentHandback` 판정(274ms)은 됐고 prompt 결합은 harness 알림 줄 때문에 **실패**했습니다([결합 규칙](#보고와-prompt의-결합-규칙)). 결합 규칙을 고친 뒤 세션 4(`31e1c26`)에서 `handback_prompt` 기록과 Main으로의 조언 전달을 확인했습니다. 다만 세션 4에는 알림 줄이 없었으므로, 알림 줄이 있는 형태는 수정 뒤 fixture로만 확인했습니다. 전달 확인은 세션 4에서 1건(전역 `advisory`, QA용 임계값 0.3), 재확인 세션에서 3건 중 3건(전역 `active`, 기본 임계값 0.65)입니다. 재확인 세션에 알림 줄이 있었는지는 알 수 없습니다. 대기·유예 한도와 10초 창은 측정값이 아닌 초기값 |
 | 실제 API 비용 | 미계산. 토큰 수만 기록. 실제 세션의 judge 토큰은 1회만 측정: 위임 3건 합 입력 42,403 / 출력 5,202, 위임 1건당 약 14,134.3 / 1,734(skill 60개 카탈로그, `qa/kernel/results/real-session-reissue-20261125/summary.json`) |
