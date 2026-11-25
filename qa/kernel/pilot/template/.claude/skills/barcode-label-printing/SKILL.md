@@ -1,0 +1,14 @@
+---
+name: barcode-label-printing
+description: "택배 송장 라벨과 바코드를 인쇄 규격에 맞춰 만들 때 사용."
+---
+
+# Barcode Label Printing
+
+택배 송장 라벨과 바코드를 인쇄 규격에 맞춰 만들 때 사용.
+
+## Steps
+
+1. 라벨 용지 규격을 먼저 확인한다.
+2. 바코드 주변의 여백을 지킨다.
+3. 실제 스캐너로 인쇄물을 읽어 본다.

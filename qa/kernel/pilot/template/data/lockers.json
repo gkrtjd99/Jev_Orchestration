@@ -1,0 +1,21 @@
+[
+  {
+    "id": "L-A1",
+    "site": "Tower A lobby",
+    "compartments": [
+      { "no": 1, "parcelId": "P-1001" },
+      { "no": 2, "parcelId": null },
+      { "no": 3, "parcelId": "P-1003" }
+    ],
+    "doorOpenedAt": null
+  },
+  {
+    "id": "L-B2",
+    "site": "Tower B mail room",
+    "compartments": [
+      { "no": 1, "parcelId": null },
+      { "no": 2, "parcelId": "P-1002" }
+    ],
+    "doorOpenedAt": "2026-11-02T08:15:00.000Z"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "name": "parceldesk",
+  "version": "0.8.3",
+  "private": true,
+  "type": "module",
+  "description": "Parcel locker desk: tracks parcels held in building lockers and tells customers when to collect them.",
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/main.mjs"
+  }
+}

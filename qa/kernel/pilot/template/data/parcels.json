@@ -1,0 +1,54 @@
+[
+  {
+    "id": "P-1001",
+    "lockerId": "L-A1",
+    "compartment": 1,
+    "recipient": "Kim Jiwoo",
+    "phone": "010-2345-6789",
+    "sender": "Bookshelf Co.",
+    "status": "stored",
+    "arrivedAt": "2026-11-01T02:30:00.000Z",
+    "collectedAt": null,
+    "pickupCode": "482913",
+    "codeExpiresAt": "2026-11-04T02:30:00.000Z"
+  },
+  {
+    "id": "P-1002",
+    "lockerId": "L-B2",
+    "compartment": 2,
+    "recipient": "Lee Minho",
+    "phone": "010-9876-5432",
+    "sender": "Green Grocer",
+    "status": "stored",
+    "arrivedAt": "2026-10-20T09:00:00.000Z",
+    "collectedAt": null,
+    "pickupCode": "175520",
+    "codeExpiresAt": "2026-10-23T09:00:00.000Z"
+  },
+  {
+    "id": "P-1003",
+    "lockerId": "L-A1",
+    "compartment": 3,
+    "recipient": "Park Sora",
+    "phone": "010-5555-0101",
+    "sender": "Camera Outlet",
+    "status": "stored",
+    "arrivedAt": "2026-11-02T05:45:00.000Z",
+    "collectedAt": null,
+    "pickupCode": "660042",
+    "codeExpiresAt": "2026-11-05T05:45:00.000Z"
+  },
+  {
+    "id": "P-0990",
+    "lockerId": "L-B2",
+    "compartment": 1,
+    "recipient": "Choi Yuna",
+    "phone": "010-1111-2222",
+    "sender": "Tea House",
+    "status": "collected",
+    "arrivedAt": "2026-09-10T03:00:00.000Z",
+    "collectedAt": "2026-09-11T10:20:00.000Z",
+    "pickupCode": "903377",
+    "codeExpiresAt": "2026-09-13T03:00:00.000Z"
+  }
+]
