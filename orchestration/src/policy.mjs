@@ -4,6 +4,7 @@ import {QUESTION_VERSION} from './questions.mjs';
 import { registryFingerprint } from './catalog.mjs';
 import { taskFeatures, eligibleProfiles } from './optimizer.mjs';
 import { finalizeRoute } from './router.mjs';
+import { mergeKernel } from './kernel/kernel.mjs';
 export function chooseRoute(result,d,docs,cfg,runtime){
   const f=taskFeatures(result,d,cfg);const {candidates}=eligibleProfiles(cfg.registry,runtime,f,cfg);
   assert(candidates.length,'NO_ELIGIBLE_PROFILE');
@@ -16,4 +17,6 @@ export function routeContext(route,cfg){
   assert(text.length<=cfg.maxContextChars,'ROUTING_CONTEXT_TOO_LARGE');return text;
 }
 export const policyFingerprint=cfg=>hash({registry:registryFingerprint(cfg.registry),optimization:cfg.optimization,
-  minimumConfidence:cfg.minimumConfidence,nativeProfiles:cfg.nativeProfiles,customAgents:cfg.customAgents,mode:cfg.mode,application:applicationFingerprint(cfg),questions:QUESTION_VERSION});
+  minimumConfidence:cfg.minimumConfidence,nativeProfiles:cfg.nativeProfiles,customAgents:cfg.customAgents,mode:cfg.mode,application:applicationFingerprint(cfg),questions:QUESTION_VERSION,
+  // A missing kernel equals the defaults; any kernel change invalidates a pending call.
+  kernel:mergeKernel(cfg.kernel)});

@@ -224,7 +224,7 @@ test('all judges failing logs provider none and rethrows the last error', async 
   assert.equal(log.records.length, 1);
   const r = log.records[0];
   assert.equal(r.provider, 'none');
-  assert.equal(r.model, '');
+  assert.equal(r.model, 'none');
   assert.deepEqual(r.answers, {});
   assert.equal(r.confidence, null);
   assert.equal(r.cached, false);

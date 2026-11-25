@@ -73,7 +73,7 @@ node orchestration/scripts/install.mjs \
 ~/.config/jev-hooks/config.json        # 프로젝트 allowlist, registry, 검증 조건
 ~/.config/jev-hooks/.env               # 비밀키, 동작 모드: owner-only
 ~/.config/jev-hooks/installation.json  # 소유 파일·hash
-~/.local/share/jev-hooks/3.1.0/        # 작고 단일한 JS hook runtime
+~/.local/share/jev-hooks/3.2.0/        # 작고 단일한 JS hook runtime
 ~/.local/state/jev-hooks/             # 캐시·메타데이터·명시적 평가 자료
 ~/.claude/settings.json + agents/    # 선택한 호스트만
 ~/.codex/hooks.json + agents/        # 선택한 호스트만

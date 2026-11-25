@@ -1,18 +1,37 @@
-// Inspection helper only: offline skill routing with the lexical resolver. No network, no worker start.
+// Inspection helper only; it never starts a worker.
+// Default (--judge local): offline lexical resolver, no network.
+// --judge config --config <abs path>: the configured 'delegation.skills' judge chain and decision log,
+// which may call a network judge only when that config has consented to it.
 import path from 'node:path';
 import { assert, options } from '../src/util.mjs';
 import {
-  DEFAULT_SKILLS_CONFIG, loadSkillCatalog, localSkillResolver, selectSkills, whyNot,
+  DEFAULT_SKILLS_CONFIG, SKILLS_POINT, loadSkillCatalog, localSkillResolver, selectSkills, whyNot,
 } from '../src/kernel/skills.mjs';
+import { loadConfig } from '../src/config.mjs';
+import { createKernel } from '../src/kernel/kernel.mjs';
+import { DecisionLog, decisionLogDir } from '../src/kernel/log.mjs';
 
 const JUDGE = 'local-lexical-uncalibrated';
 const NOTE = 'Probabilities are a lexical BM25 heuristic, not calibrated judgments.';
 
 try {
   const args = options(process.argv.slice(2));
-  for (const key of Object.keys(args)) assert(['project', 'task', 'dirs', 'why-not', 'list'].includes(key), 'UNKNOWN_OPTION');
+  for (const key of Object.keys(args)) assert(['project', 'task', 'dirs', 'why-not', 'list', 'judge', 'config'].includes(key), 'UNKNOWN_OPTION');
+  const judgeMode = args.judge ?? 'local';
+  assert(judgeMode === 'local' || judgeMode === 'config', 'INVALID_JUDGE');
+  assert(judgeMode === 'config' ? typeof args.config === 'string' && path.isAbsolute(args.config) : args.config === undefined, 'CONFIG_NOT_ABSOLUTE');
+  // The configured chain is built once; a bad config fails here before any catalog work.
+  let configured = null;
+  if (judgeMode === 'config') {
+    const { config, apiKey, runtimeEnv } = await loadConfig(args.config);
+    const kernel = createKernel(config, {
+      apiKey, runtimeEnv, log: new DecisionLog(decisionLogDir(config)),
+      localResolvers: { [SKILLS_POINT]: localSkillResolver() },
+    });
+    configured = { kernel, point: kernel.point(SKILLS_POINT), settings: kernel.kernel.skills };
+  }
   assert(typeof args.project === 'string' && path.isAbsolute(args.project), 'PROJECT_NOT_ABSOLUTE');
-  const dirs = typeof args.dirs === 'string' ? args.dirs.split(path.delimiter).filter(Boolean) : [];
+  const dirs = typeof args.dirs === 'string' ? args.dirs.split(path.delimiter).filter(Boolean) : configured ? [...configured.settings.dirs] : [];
   assert(args.dirs === undefined || dirs.length, 'INVALID_DIRS');
   assert(dirs.every(d => path.isAbsolute(d)), 'DIR_NOT_ABSOLUTE');
   const catalog = await loadSkillCatalog({ project: args.project, dirs });
@@ -27,12 +46,22 @@ try {
   } else {
     assert(typeof args.task === 'string' && args.task.trim(), 'MISSING_TASK');
     assert(args['why-not'] === undefined || typeof args['why-not'] === 'string', 'MISSING_SKILL_NAME');
-    const resolver = localSkillResolver();
-    const judge = {
-      evaluate: async (state, questions) => ({ response: { model: 'local-rules', answers: resolver(state, questions) }, cached: false, latencyMs: 0 }),
-    };
-    const result = await selectSkills({ task: args.task, catalog, judge, scope: 'cli', config: { ...DEFAULT_SKILLS_CONFIG } });
-    out = args['why-not'] ? { judge: JUDGE, note: NOTE, whyNot: whyNot(result, args['why-not']) } : { judge: JUDGE, note: NOTE, ...result };
+    let result, head;
+    if (configured) {
+      const { kernel, point, settings } = configured;
+      // A point that is off yields status 'unavailable' with code KERNEL_POINT_OFF: nothing is judged.
+      result = await selectSkills({ task: args.task, catalog, judge: kernel.forPoint(SKILLS_POINT), scope: 'cli', config: settings });
+      head = { judge: 'config', point: SKILLS_POINT, mode: point.mode, judges: [...point.judges] };
+      if (point.judges.includes('local')) head.note = 'Answers from the local judge are a lexical BM25 heuristic, not calibrated judgments.';
+    } else {
+      const resolver = localSkillResolver();
+      const judge = {
+        evaluate: async (state, questions) => ({ response: { model: 'local-rules', answers: resolver(state, questions) }, cached: false, latencyMs: 0 }),
+      };
+      result = await selectSkills({ task: args.task, catalog, judge, scope: 'cli', config: { ...DEFAULT_SKILLS_CONFIG } });
+      head = { judge: JUDGE, note: NOTE };
+    }
+    out = args['why-not'] ? { ...head, whyNot: whyNot(result, args['why-not']) } : { ...head, ...result };
   }
   console.log(JSON.stringify(out, null, 2));
 } catch (e) {

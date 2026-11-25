@@ -1,3 +1,13 @@
+# 3.2.0 — decision kernel, skill routing, advisory supervisor, 2026-11-25
+
+기존 native hook의 모든 Jev 판단(위임 분류·프로필 선택·실패 분류·읽기 조언)을 provider-agnostic **decision kernel**(`src/kernel/`)의 지점(`delegation.classify`, `delegation.profile`, `failure.classify`, `read.advice`)으로 옮겼습니다. 기본 설정(`judges:['jev']`, `active`)에서는 hook 출력이 이전과 byte 단위로 같고 judge 호출 횟수도 같습니다. 지점별 `off|shadow|active` 모드와 `jev|openai|local` judge 체인, 낮은 확신 시 다음 judge로의 escalation, 원문 없는(해시·숫자·선택지 이름만) decision log(`stateDir/decisions-log`, 0600/0700)와 calibration 보고(`scripts/decisions.mjs`)를 추가했습니다.
+
+새 지점 두 개는 기본 **off**입니다. `delegation.skills`는 위임 경계에서 프로젝트 `.claude/skills`와 `JEV_SKILL_DIRS`의 skill 카탈로그를 BM25로 좁힌 뒤 judge 확률로 load/consider를 정하고, `active`일 때만 routing packet 뒤에 이름·경로·확률만 담은 `<jev-skills>` 블록을 붙입니다(설명·본문은 주입하지 않음, `maxContextChars`를 넘으면 블록만 생략, 동일 tool id 재호출은 저장된 텍스트로 동일하게 재현). custom agent·명시적 native 설정·중첩 위임·resume 등 기존 보존 guard가 skill 작업보다 먼저 적용되며, skill judge 실패·지연은 라우팅을 실패시키거나 route deadline 이상 지연시키지 않습니다. `supervisor.outcome`은 이 확장이 라우팅한 동기 위임의 보고 텍스트만(비밀 유사 문자열이면 전송 생략) 판정해 `complete|retry|replan|escalate`와 근거 수준을 **조언으로만** 표시하며, 확신이 `kernel.supervisor.confidence` 미만이면 기존 일반 문구를 유지합니다. 자동 재시도·respawn·차단·권한 변경은 없습니다.
+
+설정: `config.kernel`(없거나 일부만 있는 기존 설치 config는 기본값으로 병합), env `JEV_SKILLS_MODE`, `JEV_SUPERVISOR_MODE`, `JEV_SKILLS_JUDGES`, `JEV_SUPERVISOR_JUDGES`, `JEV_DECISION_JUDGES`, `JEV_SKILL_DIRS`, `JEV_OPENAI_DECISIONS_APPROVED`, `JEV_OPENAI_DECISIONS_MODEL`, `JEV_DECISION_LOG`(잘못된 값은 `INVALID_<NAME>`). `OPENAI_API_KEY`는 private `.env`에서 runtime env로만 전달되고 config에는 저장하지 않습니다. `policyFingerprint`에 kernel 설정이 포함되어 설정 변경 시 대기 중인 호출이 무효화됩니다. 설치기는 `src/kernel/`을 포함해 복사하고, `npm run check`는 하위 디렉터리까지 구문 검사하며, `scripts/skills.mjs --judge config --config <path>`는 설정된 judge 체인과 decision log를 사용합니다.
+
+검증 범위: 2026-11-25 격리 실행(`scripts/test-all.sh`)에서 Node **498/498**, 구문 **61개 모듈**, 독립 검증기 self-test와 offline suite가 통과했습니다. 모두 mock judge·loopback 서버·주입된 fetch를 사용한 로컬 계약 검증입니다. OpenAI Decisions wire 계약과 기본 모델 이름은 실제 API로 확인하지 않았고, 실제 Jev/OpenAI 판단 품질, skill 선택의 정확도, supervisor 조언의 유용성과 calibration은 **NOT_RUN/미입증**입니다. `local` judge는 calibration되지 않은 어휘 휴리스틱입니다.
+
 # 미릴리스 — 훅 없는 ultracode 계획 보조, 2026-09-26
 
 repository-local `CLAUDE.md`·약 3KiB의 `jev-ultracode` skill과 `bin/jev-plan.mjs`를 추가했습니다. 원래 Workflow 계획 초안의 목표·수용 기준·1~8개 task를 Jev에 한 번의 batch로 자문하고, Astra가 typed 권고의 채택과 실제 Workflow 옵션을 결정합니다. 기존 installer, hooks, controller 및 사용자 HOME 설정은 변경하지 않습니다.

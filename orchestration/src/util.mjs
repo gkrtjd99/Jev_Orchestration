@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-export const VERSION = '3.1.0';
+export const VERSION = '3.2.0';
 export function assert(ok, code) { if (!ok) { const e = new Error(code); e.code = code; throw e; } }
 export function object(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
 export function stable(x) {

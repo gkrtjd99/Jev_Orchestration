@@ -10,7 +10,10 @@ import { routeContext, policyFingerprint } from './policy.mjs';
 import { routeTask } from './router.mjs';
 import { assertInstalledProfile } from './profiles.mjs';
 import { profileCatalog } from './catalog.mjs';
-import { JevClient } from './jev.mjs';
+import { createKernel } from './kernel/kernel.mjs';
+import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
+import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
+import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, reportText } from './kernel/supervisor.mjs';
 import { planContext } from './plan-context.mjs';
 import { handleControllerHook,controllerManagedTool } from './controller-hooks.mjs';
 import { hash, object, redact, withLock } from './util.mjs';
@@ -21,6 +24,27 @@ function warning(event,code){
     return contextOutput(event,`Jev hooks: ${code}. No worker was started by this extension. The native runtime retains control.`);
   return {};
 }
+const SKILL_EVENT_TRACE=32;
+/** Skill selection for one delegation. Never rejects and never outlives the route deadline. */
+async function routeSkills(kernel,cfg,project,task,scope){
+  const settings=kernel.kernel.skills;
+  let timer;
+  const deadline=new Promise(resolve=>{timer=setTimeout(()=>resolve({status:'unavailable',code:'SKILLS_DEADLINE'}),cfg.optimization.routeDeadlineMs);});
+  const work=(async()=>{
+    const catalog=await loadSkillCatalog({project,dirs:settings.dirs});
+    return selectSkills({task,catalog,judge:kernel.forPoint(SKILLS_POINT),scope,config:settings,
+      limits:{timeoutMs:Math.min(cfg.timeoutMs,cfg.optimization.routeDeadlineMs)}});
+  })().catch(error=>({status:'unavailable',code:errorCode(error)}));
+  try{return await Promise.race([work,deadline]);}finally{clearTimeout(timer);}
+}
+// Names, stages and probabilities only: skill descriptions and the task text stay out of session state.
+function skillsEvent(taskId,mode,result,injected){
+  const slim=list=>(Array.isArray(list)?list:[]).map(s=>({name:s.name,probability:s.probability}));
+  return {taskId,mode,status:result.status,code:result.code||null,need:result.need??null,candidates:result.candidates??0,
+    decisionId:result.decisionId??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
+    load:slim(result.load),suggest:slim(result.suggest),
+    trace:(result.trace||[]).filter(t=>t.stage!=='retrieval').slice(0,SKILL_EVENT_TRACE).map(t=>({name:t.name,stage:t.stage,probability:t.probability}))};
+}
 function failedResponse(e){return e.event==='PostToolUseFailure'||e.tool_response?.is_error===true||e.tool_response?.success===false;}
 export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,runtimeEnv=process.env}={}){
   const began=performance.now();const e=eventInput(raw,runtime);
@@ -28,8 +52,34 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
   const project=await projectFor(cfg,e.cwd);if(!project)return {};
   const store=new SessionStore(cfg,project,runtime,e.session_id);
   const visible=['active','advisory'].includes(cfg.mode);const active=cfg.mode==='active';
-  const jev=client||new JevClient(cfg,apiKey);
+  // One kernel per hook call, built on first use so events that never judge pay nothing.
+  let built=null;
+  const kernel=()=>built??=createKernel(cfg,{apiKey,client,runtimeEnv,log:new DecisionLog(decisionLogDir(cfg)),
+    localResolvers:{[SKILLS_POINT]:localSkillResolver()}});
   const scope=hash({project,session:e.session_id,runtime});
+  // Advisory report check for a delegation this extension routed. Returns hook output or null; never retries, respawns or blocks.
+  const supervise=async response=>{
+    const mode=kernel().point(SUPERVISOR_POINT).mode;
+    if(mode==='off')return null;
+    // A background launch acknowledgement is not a worker report.
+    if(response.isAsync===true||response.status==='async_launched'||e.input?.run_in_background===true)return null;
+    const prior=e.tool_use_id?await store.getTask(e.tool_use_id):null;
+    if(!prior?.route)return null; // custom, nested and otherwise preserved delegations were never sent to a judge
+    const text=reportText(e.tool_response).trim();
+    if(!text)return null;
+    const note=async data=>{try{await store.record('supervisor',{taskId:e.tool_use_id,mode,...data},e.tool_use_id);}catch{/* advisory bookkeeping only */}};
+    if(secretLike(text,apiKey)||secretLike(text,runtimeEnv?.OPENAI_API_KEY||'')){await note({status:'skipped',reason:'secret_guard'});return null;}
+    try{
+      const decision=await kernel().decide(SUPERVISOR_POINT,{state:{report:redact(text,kernel().kernel.supervisor.maxReportChars)},
+        questions:supervisorQuestions(),scope,limits:{timeoutMs:cfg.timeoutMs},subject:prior.route.taskSignature||null});
+      const a=supervisorAdvice(decision.response.answers,kernel().kernel.supervisor);
+      await note({status:'judged',outcome:a.outcome,confidence:a.confidence,evidence:a.evidence,advisory:a.advisory,decisionId:decision.decisionId});
+      return decision.apply&&visible&&a.advisory?contextOutput(e.event,a.text):null;
+    }catch(error){
+      await note({status:'unavailable',code:errorCode(error)});
+      return null;
+    }
+  };
   try{
     if(cfg.mode==='controller')return runtime==='claude'?await handleControllerHook(e,cfg,store,{project,apiKey,client,runtimeEnv}):{};
     if(e.event==='SessionStart'){
@@ -98,7 +148,11 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         goalEligible:snap.goalEligible,plan:plan?.revision||null,turn:e.turn_id||null});
       const canRewrite=active&&(runtime!=='codex'||(cfg.safety.codexRewriteApproved&&
         (e.tool_name!=='collaborationspawn_agent'||cfg.safety.codexCollaborationRewriteApproved)));
-      const advice=route=>contextOutput(e.event,'Jev advisory: consider native profile '+route.profile+' ('+route.model+', '+route.effort+'). The pending tool call is UNCHANGED; do not create a duplicate worker. '+routeContext(route,cfg));
+      // The skills block is optional context: it is dropped, never truncated, when the budget is exceeded.
+      const fits=(base,skills)=>typeof skills==='string'&&skills.length>0&&base.length+2+skills.length<=cfg.maxContextChars;
+      const withSkills=(base,skills)=>fits(base,skills)?base+'\n\n'+skills:base;
+      const adviceText=route=>'Jev advisory: consider native profile '+route.profile+' ('+route.model+', '+route.effort+'). The pending tool call is UNCHANGED; do not create a duplicate worker. '+routeContext(route,cfg);
+      const advice=(route,skills='')=>contextOutput(e.event,withSkills(adviceText(route),skills));
       return await withLock(store.taskFile(e.tool_use_id)+'.lock',async()=>{
         const previous=await store.getTask(e.tool_use_id);
         if(previous){
@@ -109,9 +163,9 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
             if(canRewrite){
               const p=profileCatalog(cfg.registry,runtime).find(x=>x.profileId===previous.route.profile);
               await assertInstalledProfile(cfg,p,project,e.cwd);
-              return rewrite(e,d,previous.route,routeContext(previous.route,cfg),cfg,inputHash===previous.outputHash);
+              return rewrite(e,d,previous.route,withSkills(routeContext(previous.route,cfg),previous.skillsText),cfg,inputHash===previous.outputHash);
             }
-            return visible?advice(previous.route):{};
+            return visible?advice(previous.route,previous.skillsText):{};
           }
           return visible?warning(e.event,'TOOL_ID_REUSED_WITH_DIFFERENT_INPUT'):{};
         }
@@ -122,8 +176,18 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         const state={retry,task:redact(d.text,cfg.maxTaskChars),native_role:d.kind,documents:docs,revision,
           promptRevision:routeGoal,...(plan?{plan:plan.context,planRevision:plan.revision}:{}),
           ...(parentGoal?{parentGoal}:{})};
-        const decision=await routeTask({state,docs,delegation:d,config:cfg,runtime,project,client:jev,scope});
+        const judges=kernel();
+        const skillsMode=judges.point(SKILLS_POINT).mode;
+        // Every preservation guard above has already returned; an oversized task is never classified, so it is not skill-routed either.
+        const skillsWork=skillsMode!=='off'&&d.text.length<=cfg.maxTaskChars?routeSkills(judges,cfg,project,d.text,scope):null;
+        const [decision,skills]=await Promise.all([routeTask({state,docs,delegation:d,config:cfg,runtime,project,client:judges,scope}),skillsWork]);
+        const skillsText=skills&&skillsMode==='active'&&skills.status==='selected'?skillContext(skills):'';
+        const recordSkills=async injected=>{
+          if(!skills)return;
+          try{await store.record('skills',skillsEvent(e.tool_use_id,skillsMode,skills,injected),e.tool_use_id);}catch{/* skill bookkeeping never fails a route */}
+        };
         if(decision.deferred){
+          await recordSkills(false);
           const message=`Jev did not select a model/effort (${decision.reason}). Main should gather missing evidence or inspect the model registry. No replacement execution was started. The original native call is unchanged.`;
           await store.putTask(e.tool_use_id,{inputHash,policy,stamp,deferred:true,message});
           await store.record('route_deferred',{taskId:e.tool_use_id,reason:decision.reason},e.tool_use_id);
@@ -137,21 +201,28 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
           plan:currentPlan?.revision||null,turn:e.turn_id||null});
         if(currentStamp!==stamp){await store.record('routing_skipped',{reason:'workspace_or_goal_changed_in_flight'});return visible?warning(e.event,'WORKSPACE_OR_GOAL_CHANGED'):{};}
         const route=decision.route;
-        let output=visible?advice(route):{};
+        let output=visible?advice(route,skillsText):{};
+        let injected=visible&&fits(adviceText(route),skillsText);
         if(canRewrite){
           if(!cfg.nativeProfiles)throw Object.assign(new Error('NATIVE_PROFILES_REQUIRED_FOR_EFFORT'),{code:'NATIVE_PROFILES_REQUIRED_FOR_EFFORT'});
           route.application=await assertInstalledProfile(cfg,decision.profile,project,e.cwd);
-          output=rewrite(e,d,route,routeContext(route,cfg),cfg);
+          const context=routeContext(route,cfg);
+          injected=fits(context,skillsText);
+          output=rewrite(e,d,route,withSkills(context,skillsText),cfg);
         }
-        await store.putTask(e.tool_use_id,{inputHash,outputHash:hash(output.hookSpecificOutput?.updatedInput||e.input),policy,stamp,route});
+        // The exact skills text is stored so an idempotent replay reproduces the identical rewrite.
+        await store.putTask(e.tool_use_id,{inputHash,outputHash:hash(output.hookSpecificOutput?.updatedInput||e.input),policy,stamp,route,...(skillsText?{skillsText}:{})});
+        await recordSkills(injected);
         await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
         return output;
       },Math.min(cfg.optimization.routeDeadlineMs+400,5800));
     }
     if(e.event==='PreToolUse'&&isRead(e)&&cfg.readAdvice&&cfg.safety.allowEgress){
       const document=await readDocumentMetadata(project,e.input);if(!document)return {};
+      if(kernel().point('read.advice').mode==='off')return {};
       const s=await store.snapshot();
-      const decision=await jev.evaluate({document,task:s.goal},readQuestions(),scope);
+      const decision=await kernel().forPoint('read.advice').evaluate({document,task:s.goal},readQuestions(),scope);
+      if(decision.apply===false)return {}; // shadow: logged by the kernel, never shown
       await store.record('read_advice',{document:document.path,kind:decision.response.answers.kind.choice,reading:decision.response.answers.reading.choice,cached:decision.cached});
       // Never block reads or silently replace a requested file with a summary.
       return visible?contextOutput(e.event,`Document hint: ${decision.response.answers.kind.choice}; reading=${decision.response.answers.reading.choice}. Metadata-only classification. Read the requested source; this is not permission or a replacement for exact requirements.`):{};
@@ -165,13 +236,20 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       const response=object(e.tool_response)?e.tool_response:{};
       const agentId=response.agent_id||response.agentId||null;
       await store.record('spawn_observed',{taskId:e.tool_use_id||'unknown',failed,agentId,taskName:typeof response.task_name==='string'?response.task_name:null},e.tool_use_id||null);
-      if(failed&&cfg.classifyFailures&&cfg.safety.allowEgress){
+      if(failed&&cfg.classifyFailures&&cfg.safety.allowEgress&&kernel().point('failure.classify').mode!=='off'){
         const evidence=redact(e.error||JSON.stringify(e.tool_response||{}),1600);
-        const decision=await jev.evaluate({failure:evidence},failureQuestions(),scope);
-        const category=decision.response.answers.failure.choice;
-        const prior=e.tool_use_id?await store.getTask(e.tool_use_id):null;
-        await store.record('failure',{category,taskId:e.tool_use_id||null,taskSignature:prior?.route?.taskSignature||null,profileId:prior?.route?.profile||null},e.tool_use_id||null);
-        return visible?contextOutput(e.event,`Jev failure category: ${category}. Native Main must decide the next step using the actual error. No automatic retry, respawn, or permission escalation was performed.`):{};
+        const decision=await kernel().forPoint('failure.classify').evaluate({failure:evidence},failureQuestions(),scope);
+        // A shadow point is logged by the kernel only; it must not feed retry routing or Main.
+        if(decision.apply!==false){
+          const category=decision.response.answers.failure.choice;
+          const prior=e.tool_use_id?await store.getTask(e.tool_use_id):null;
+          await store.record('failure',{category,taskId:e.tool_use_id||null,taskSignature:prior?.route?.taskSignature||null,profileId:prior?.route?.profile||null},e.tool_use_id||null);
+          return visible?contextOutput(e.event,`Jev failure category: ${category}. Native Main must decide the next step using the actual error. No automatic retry, respawn, or permission escalation was performed.`):{};
+        }
+      }
+      if(!failed&&cfg.safety.allowEgress){
+        const advisory=await supervise(response);
+        if(advisory)return advisory;
       }
       return visible?contextOutput(e.event,'Native delegation result observed. A spawn acknowledgement is not task completion, and a worker report is not proof of test success. Reconcile native status and verify evidence before integration.'):{};
     }

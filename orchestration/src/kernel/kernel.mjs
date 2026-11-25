@@ -149,7 +149,16 @@ export class DecisionKernel {
 
   async record(entry) {
     if (this.kernel.log !== true || !this.log) return;
-    try { await this.log.append(entry); } catch { /* the log is advisory; a decision never depends on it */ }
+    // The log contract allows only provider/ok/code/confidence/latencyMs per trail step.
+    const trail = entry.trail.map(step => {
+      const out = { provider: step.provider, ok: step.ok };
+      if (step.code !== undefined) out.code = step.code;
+      else if (step.escalated) out.code = 'KERNEL_LOW_CONFIDENCE';
+      if (step.confidence !== undefined) out.confidence = step.confidence;
+      out.latencyMs = step.latencyMs;
+      return out;
+    });
+    try { await this.log.append({ ...entry, trail }); } catch { /* the log is advisory; a decision never depends on it */ }
   }
 
   async decide(pointId, { state, questions, scope, limits = {}, subject = null } = {}) {
@@ -208,7 +217,7 @@ export class DecisionKernel {
       const latencyMs = performance.now() - start;
       const decisionId = id(provider);
       const cached = result.cached === true;
-      const model = typeof result.response.model === 'string' ? result.response.model : '';
+      const model = typeof result.response.model === 'string' && result.response.model ? result.response.model : 'unknown';
       await this.record({
         ...base, decisionId, provider, model, cached, latencyMs, confidence,
         answers: compactAnswers(result.response.answers), trail,
@@ -220,7 +229,7 @@ export class DecisionKernel {
     }
 
     await this.record({
-      ...base, decisionId: id('none'), provider: 'none', model: '', cached: false,
+      ...base, decisionId: id('none'), provider: 'none', model: 'none', cached: false,
       latencyMs: performance.now() - start, confidence: null, answers: {}, trail,
     });
     throw lastError ?? fail('KERNEL_JUDGE_UNAVAILABLE');

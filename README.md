@@ -2,7 +2,7 @@
 
 **ultracode용 새 경로는 훅 없이 작동합니다.** [얇은 지침](.claude/skills/jev-ultracode/SKILL.md)이 계획 작성 전에 제한된 Jev 자문을 요청하고, Astra가 판단을 검토해 원래 `Workflow`의 작업 분할·조사 범위·모델/effort에 반영합니다. 별도 controller·worker 실행 엔진·도구 가로채기로 전환하지 않습니다. 미동의·미지원·실패이면 기본 ultracode를 보존합니다. 정적 지침만 사용한 `GUIDANCE_ONLY`는 실제 Jev 판단을 쓴 상태가 아닙니다. **기본 ultracode 대비 품질·효율 우위는 아직 측정하지 않았습니다.** [사용 계약·입력·비교 방법](docs/ULTRACODE.ko.md)을 보세요.
 
-기존 **Claude Code / Codex Main**을 유지하는 native hook 확장(3.1.0)도 보존합니다. 기본 `shadow`와 기존 `active`/`advisory` 모드는 Main이 **이미 요청한** 위임에 Jev 분류와 모델×effort 프로필 선택을 적용합니다. 새 **`controller` 모드(Claude 전용, 명시적 opt-in)**는 반대로 Astra 계획→Main의 native worker 배정→Main의 근거 확인을 중심에 두고, Jev를 선택적·비구속적 누락 검사자로 제한합니다. 독립 검증기 **1.1.0**은 별도 폴더에 있습니다.
+기존 **Claude Code / Codex Main**을 유지하는 native hook 확장(3.2.0)도 보존합니다. 기본 `shadow`와 기존 `active`/`advisory` 모드는 Main이 **이미 요청한** 위임에 Jev 분류와 모델×effort 프로필 선택을 적용합니다. 새 **`controller` 모드(Claude 전용, 명시적 opt-in)**는 반대로 Astra 계획→Main의 native worker 배정→Main의 근거 확인을 중심에 두고, Jev를 선택적·비구속적 누락 검사자로 제한합니다. 독립 검증기 **1.1.0**은 별도 폴더에 있습니다.
 
 새 대화형 CLI, 독립 worker 실행 엔진, MCP 서버, 재귀 `claude -p`/`codex exec` 실행은 없습니다. ultracode 경로의 작은 `jev-plan.mjs`는 자문 JSON만 반환하고 원래 Workflow가 실행을 맡습니다. 기존 hook 경로에서는 Main이 **native Agent/Task**에 직접 위임합니다. Reporivet과 AgentOTelStack의 코드를 복제하거나 설치하지 않습니다.
 

@@ -18,7 +18,12 @@ export function finalizeRoute(profile,features,docs,result,config,extra={}) {
 export async function routeTask({state,docs,delegation,config,runtime,project,client,scope,evidence:providedEvidence}) {
   const began=performance.now();
   if(delegation.text.length>config.maxTaskChars)return {deferred:true,reason:'task_exceeds_safe_classification_budget',stageCount:0};
-  const classify=await client.evaluate(state,routeQuestions(docs),scope);
+  // A decision kernel exposes per-point judges; a plain client answers every point itself.
+  const classifier=client.forPoint?.('delegation.classify')??client;
+  const selectorJudge=client.forPoint?.('delegation.profile')??client;
+  const classify=await classifier.evaluate(state,routeQuestions(docs),scope);
+  // A shadow point is logged only: its answer must not steer a native call.
+  if(classify.apply===false)return {deferred:true,reason:'classification_point_shadow_only',stageCount:1};
   const features=taskFeatures(classify.response,delegation,config);
   // Missing information is not cured by spending more on a model.
   if(features.information==='missing'&&!features.uncertain)return {deferred:true,reason:'gather_missing_context',features,stageCount:1};
@@ -41,7 +46,7 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
       const candidates=options.pool.map(p=>({id:p.profileId,model:p.model,backend:p.backend,effort:p.effort,
         role:p.role,slot:p.slot,deliberationIntents:p.intents,capabilitySource:p.capabilitySource,
         availability:p.availability,rubric:candidateRubric(p,features),policyDistance:p.policyDistance,statistics:statistics[p.profileId]||null}));
-      const choice=await client.evaluate({task:redact(delegation.text,config.maxTaskChars),features,
+      const choice=await selectorJudge.evaluate({task:redact(delegation.text,config.maxTaskChars),features,
         ...(state.plan?{plan:state.plan,planRevision:state.planRevision}:{}),
         ...(state.parentGoal?{parentGoal:state.parentGoal}:{}),
         objective:config.optimization.objective,recoveryAction:recovery.action,candidates,baseline:options.baseline.profileId,
@@ -52,7 +57,8 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
       const probs=Object.values(a.probabilities).sort((a,b)=>b-a);
       const margin=probs[0]-(probs[1]||0);
       selector={choice:a.choice,confidence:a.confidence,margin,cached:choice.cached};
-      if(a.choice==='defer')return {deferred:true,reason:'selector_abstained',features,stageCount};
+      if(choice.apply===false)reason='selector_shadow_only_incumbent';
+      else if(a.choice==='defer')return {deferred:true,reason:'selector_abstained',features,stageCount};
       else if(a.confidence<config.optimization.selectionConfidence||margin<config.optimization.selectionMargin)reason='selector_uncertain_incumbent';
       else {
         const candidate=options.pool.find(p=>p.profileId===a.choice);
