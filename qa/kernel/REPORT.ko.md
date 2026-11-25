@@ -1,5 +1,22 @@
 # Decision kernel 평가 보고서 (2026-11-25, 최종 정리판)
 
+## 이 보고서 뒤의 실행 (2026-11-25 추가)
+
+아래 본문은 첫 전체 실행(`results/20261125-full/`, `results/20261125-e2e/`) 시점의 기록이며 고치지 않았습니다. 그 뒤의 결과는 이 보고서에 없습니다. 현재 상태는 `qa/kernel/SUMMARY.ko.md`와 `docs/KERNEL.ko.md`의 "검증 상태"·"결정 기록"을 보세요.
+
+| 실행 | 무엇 | 근거 |
+|---|---|---|
+| `dev-retrieval-decision-1` | 개발 세트에서 후보 검색 방식 `lexical`/`adaptive`/`full` 비교. 실제 Jev 719건. 사전 등록 규칙(`DECISION_RULE.md`)으로 기본값을 `full`로 변경(commit `1e05985`) | `results/dev-retrieval-decision-1/metrics.json`, `summary.txt` |
+| `holdout-1-score-1` | held-out 세트 1(skill 72개, 작업 180건)을 한 번 채점. 실제 Jev 540건, 집계 수치만 저장 | `results/holdout-1-score-1/metrics.json`, `summary.txt`, `holdout-1/HOLDOUT_LEDGER.jsonl` |
+| 실제 데스크톱 세션 4회 | 프로젝트 수준 hook, 전역 `advisory` 모드. supervisor의 hand-back 경로와 Main으로의 조언 전달 확인 | `results/real-session-20261125/summary.json` |
+
+본문 가운데 지금은 맞지 않는 서술:
+
+- 본문의 skill 라우팅 수치는 후보 검색 `lexical` 기준입니다. 현재 기본값은 `full`입니다. `full`의 load F1은 개발 세트 0.970, held-out 세트 0.922입니다(각 `summary.txt`).
+- "실제 Claude Code 세션은 BLOCKED"는 그 시점의 상태입니다. 그 뒤 실제 세션 4회를 돌렸습니다. 전역 `active` 모드와 Codex는 여전히 실제 세션에서 확인하지 않았습니다.
+- `local`·`chain` 수치는 `local`이 어휘 신호 0에서 기권하도록 바뀌기 전의 값이고, 그 뒤 실제 judge로 다시 돌리지 않았습니다.
+- 실제 작업의 품질·시간·비용 효과는 여전히 미측정입니다.
+
 ## 먼저 읽을 것
 
 이 보고서의 첫 판(commit `e8333f9`)은 "실제 API 평가는 실행되지 않았고 `results/20261125-full/`은 존재하지 않는다"고 적었습니다. **그 서술은 더 이상 사실이 아니어서 고쳤습니다.**
