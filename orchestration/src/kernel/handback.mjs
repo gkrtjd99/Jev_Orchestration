@@ -149,30 +149,70 @@ function validLines(lines) {
  *     that line with one more backslash after each '<' it holds. The rule is one-directional: a prompt line
  *     with fewer backslashes than the report line never matches a stored line hash.
  *   - The record is looked up by the agent id of the prompt's header and its line hashes are keyed by that
- *     agent id and the hand-back id, so no report text makes the prompt of another agent, or another
- *     hand-back's record, match.
+ *     agent id and the hand-back id, so no report text makes the prompt of another agent match, and no
+ *     line hash of one hand-back can be compared with another's.
+ *   - The two tolerances do let ONE prompt match the records of two DIFFERENT reports of the same agent:
+ *     reports 'A' and '[harness: x]\nA' (the prompt of the second is also "notice + first"), or 'see <x>'
+ *     and 'see <\x>'. This function answers for one record only, so it reports HOW the prompt matched
+ *     (handbackPromptMatch) and the caller chooses between records with handbackPromptRecords(): a record
+ *     matched without any tolerance wins, and tolerated matches of different forms bind nothing.
  * What this tolerance does give up: a prompt that is the report plus one indented '[harness:' line of
  * arbitrary content on top is accepted as that hand-back's prompt (once, inside the time window, like any
  * hand-back prompt). Such a prompt is neither stored nor made the goal; see docs/KERNEL.ko.md.
+ *
+ * Returns null (no match) or { kind, form }:
+ *   kind  'exact'        every body line is a report line as it is, no notice;
+ *         'neutralized'  no notice, at least one hashed line matched only after undoing '<\';
+ *         'notice'       one notice on top (with or without undone lines).
+ *   form  '<notices>:<report line numbers that needed the undo>'. Two records matched by the same prompt
+ *         in the same form hold the same report lines (as far as line hashes reach).
  */
-export function handbackPromptMatches(prompt, record) {
+export function handbackPromptMatch(prompt, record) {
   if (!handbackPromptWellFormed(prompt) || !object(record) || !validAgentId(record.agentId) || !HEX.test(String(record.handbackId))
-    || !HEX.test(String(record.reportHash)) || !validLines(record.lines) || handbackPromptAgent(prompt) !== record.agentId) return false;
+    || !HEX.test(String(record.reportHash)) || !validLines(record.lines) || handbackPromptAgent(prompt) !== record.agentId) return null;
   const body = prompt.trimEnd().split(/\r?\n/).slice(2, -1).filter(line => line.trim());
   const { total, head, tail } = record.lines;
   const notices = body.length - total;
-  if (notices < 0 || notices > HANDBACK_NOTICE_MAX_LINES || (notices && !total)) return false;
+  if (notices < 0 || notices > HANDBACK_NOTICE_MAX_LINES || (notices && !total)) return null;
   const h = line => lineHash(record.agentId, record.handbackId, line);
   const stored = new Set([...head, ...tail]);
   for (const raw of body.slice(0, notices)) {
-    if (!NOTICE.test(raw) || raw.length > HANDBACK_NOTICE_MAX_CHARS) return false;
+    if (!NOTICE.test(raw) || raw.length > HANDBACK_NOTICE_MAX_CHARS) return null;
     const line = raw.trim();
-    if (stored.has(h(line)) || stored.has(h(unneutralized(line)))) return false;
+    if (stored.has(h(line)) || stored.has(h(unneutralized(line)))) return null;
   }
   const lines = body.slice(notices).map(line => line.trim());
-  const same = (line, want) => h(line) === want || (line.includes('<\\') && h(unneutralized(line)) === want);
-  return head.every((want, i) => same(lines[i], want)) && tail.every((want, j) => same(lines[total - tail.length + j], want))
-    && hash(['handback-report', lines.map(folded)]) === record.reportHash;
+  const undone = [];
+  const same = (at, want) => {
+    const line = lines[at];
+    if (h(line) === want) return true;
+    if (!line.includes('<\\') || h(unneutralized(line)) !== want) return false;
+    undone.push(at);
+    return true;
+  };
+  if (!head.every((want, i) => same(i, want)) || !tail.every((want, j) => same(total - tail.length + j, want))
+    || hash(['handback-report', lines.map(folded)]) !== record.reportHash) return null;
+  return { kind: notices ? 'notice' : undone.length ? 'neutralized' : 'exact', form: `${notices}:${undone.join(',')}` };
+}
+
+/** True when a hand-back prompt carries the report of this record (handbackPromptMatch(), any kind). */
+export function handbackPromptMatches(prompt, record) {
+  return handbackPromptMatch(prompt, record) !== null;
+}
+
+/**
+ * The records one prompt may be bound to, out of the records it matched ([{ record, match }], any order).
+ *   - If the prompt matches some record exactly, only the exactly matched records count. They hold the same
+ *     report line for line, so which of them is used first is a matter of age, not of content.
+ *   - Otherwise every match went through a tolerance. They count only when all of them have the same form
+ *     (the same report again); tolerated matches of different forms are different reports that one prompt
+ *     cannot tell apart, and none of them is bound (handled as a prompt without a record).
+ */
+export function handbackPromptRecords(candidates) {
+  const exact = candidates.filter(c => c.match?.kind === 'exact');
+  if (exact.length) return exact;
+  const tolerated = candidates.filter(c => c.match);
+  return tolerated.every(c => c.match.form === tolerated[0].match.form) ? tolerated : [];
 }
 
 function validRecord(record, agentId) {
@@ -197,6 +237,18 @@ export class HandbackLedger {
     let record;
     try { record = await readJSON(this.file(agentId, id), null); } catch { return null; }
     return validRecord(record, agentId) && record.handbackId === id ? record : null;
+  }
+
+  /**
+   * True when a file for this hand-back holds a terminal status, in ANY record format. A record written by
+   * an earlier format is not readable as a record (get() is null), but its hand-back was finished and must
+   * not be judged again by a replayed event.
+   */
+  async settled(agentId, id) {
+    if (!validAgentId(agentId) || !HEX.test(String(id))) return false;
+    let record;
+    try { record = await readJSON(this.file(agentId, id), null); } catch { return false; }
+    return object(record) && record.agentId === agentId && record.handbackId === id && STATUSES.includes(record.status) && record.status !== 'in_flight';
   }
 
   /** The valid hand-back records of this agent, newest first. */

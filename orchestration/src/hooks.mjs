@@ -14,7 +14,7 @@ import { createKernel } from './kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
 import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
 import { SUPERVISOR_POINT, supervisorQuestions, supervisorAdvice, supervisorSentence, reportText } from './kernel/supervisor.mjs';
-import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptWellFormed, handbackPromptMatches, handbackReportBinding, validAgentId,
+import { HandbackLedger, handbackId, handbackPromptAgent, handbackPromptWellFormed, handbackPromptMatch, handbackPromptRecords, handbackReportBinding, validAgentId,
   HANDBACK_WAIT_MS, HANDBACK_HOOK_BUDGET_MS, HANDBACK_GRACE_MS, HANDBACK_POLL_MS, HANDBACK_STALE_MS, HANDBACK_PROMPT_WINDOW_MS,
   HANDBACK_DELIVERY_MAX_AGE_MS, HANDBACK_MAX_JUDGED_PER_TASK } from './kernel/handback.mjs';
 import { planContext } from './plan-context.mjs';
@@ -105,6 +105,8 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       // a hand-back whose hook process died after the marker and before a terminal record (no record, or still
       // in_flight, longer than the hook watchdog allows): the first replay after that takes it over, once.
       if(!await ledger.claim(id,'claim')){
+        // "Finished" is read from the file in any record format: a hand-back judged under an earlier format is final too.
+        if(await ledger.settled(agentId,id))return;
         const left=await ledger.get(agentId,id);
         if(left&&left.status!=='in_flight')return;
         const since=left?left.seenAt:Number(await ledger.claimed(id,'claim'));
@@ -152,7 +154,7 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
   // A Main prompt that is the harness's hand-back block for agent X, while supervisor.outcome is active.
   // Returns the hand-back record this prompt belongs to, or null; null means "handle this prompt exactly as before".
   // The agent id is taken from the header; the body is only hashed, line by line, and compared with the hashes
-  // of the report the runtime's SubagentHandback event carried (handbackPromptMatches: the report's lines in
+  // of the report the runtime's SubagentHandback event carried (handbackPromptMatch: the report's lines in
   // order, optionally behind one indented '[harness:' notice). A record belongs to this prompt when it is the same agent,
   // the same report, the same session epoch (not from before a /clear) and it has not vouched for a
   // different prompt. Another hand-back of the same agent (an earlier one, or one already used) is not this
@@ -165,7 +167,7 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       if(!handbackPromptWellFormed(e.prompt))return null; // not exactly one agent-message element: no record can belong to it
       const matched=new Map(); // a record's binding never changes, so each hand-back is compared with this prompt once
       const carries=record=>{
-        if(!matched.has(record.handbackId))matched.set(record.handbackId,handbackPromptMatches(e.prompt,record));
+        if(!matched.has(record.handbackId))matched.set(record.handbackId,handbackPromptMatch(e.prompt,record));
         return matched.get(record.handbackId);
       };
       const promptHash=hash(e.prompt);
@@ -173,14 +175,18 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       const limit=began+HANDBACK_HOOK_BUDGET_MS;
       const epoch=(await store.snapshot()).epoch||0;
       const find=async()=>{
-        const mine=[];
+        const all=[];
         for(const record of await ledger.records(agentId)){
-          if(record.seenAt<epoch||!carries(record))continue;
+          const match=record.seenAt<epoch?null:carries(record);
+          if(!match)continue;
           const vouched=await ledger.claimed(record.handbackId,'prompt');
-          if(vouched!==null&&vouched!==promptHash)continue;
-          mine.push({record,fresh:vouched===null&&await ledger.claimed(record.handbackId,'delivered')===null});
+          all.push({record,match,vouched,fresh:vouched===null&&await ledger.claimed(record.handbackId,'delivered')===null});
         }
-        // Identical reports of a continued agent: the oldest hand-back that is still unused goes first.
+        // One prompt can match two different reports of this agent through the notice / '<\' tolerances
+        // ('A' and '[harness: x]\nA'). The choice is made over EVERY record the prompt matches, used or not:
+        // an exact match wins, and tolerated matches of different forms bind nothing.
+        const mine=handbackPromptRecords(all).filter(x=>x.vouched===null||x.vouched===promptHash);
+        // What is left holds the same report: the oldest hand-back that is still unused goes first.
         return (mine.filter(x=>x.fresh).at(-1)??mine[0])?.record??null;
       };
       let record=await find();
