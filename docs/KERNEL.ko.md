@@ -594,6 +594,7 @@ $C --config /절대/config.json --transcripts /절대/세션-기록-폴더 [--ve
 $C --state-dir /절대/state --transcripts /절대/세션-기록-폴더      # config 없이 state 디렉터리를 직접 지정
 $C --state-dir /절대/state                                      # 대화 기록 없이 hook 상태만 요약
 $C --state-dir /절대/state --report                             # 관찰 기록 보고서
+$C --config /절대/config.json --report                          # 위와 같고, 평가 저장소의 행 수(일치 종류별)도 함께
 $C --task-hash 과제글.txt                                       # 검증 파일에 쓸 taskHash 계산
 ```
 
@@ -603,7 +604,7 @@ $C --task-hash 과제글.txt                                       # 검증 파�
 
 라우팅된 위임 하나를 세 군데에서 이어 붙입니다.
 
-1. **hook 상태**(`sessions/<scope>/events`, `decisions/`): `route`, `skills`, `supervisor`, `delegation_reissued`, `delegation_repeated`, `spawn_observed`. `tool_use_id`가 키입니다.
+1. **hook 상태**(`sessions/<scope>/events`, `decisions/`): `route`, `skills`, `supervisor`, `delegation_reissued`, `delegation_repeated`, `spawn_observed`. `tool_use_id`가 키입니다. `spawn_observed`에는 host가 실행 접수 결과에 적어 준 모델 id(`resolvedModel`)가 함께 남습니다(이 변경 이후의 hook부터, 모델 id 형식일 때만). 수집기가 서브에이전트 기록과 대조하는 데만 쓰고, hook 출력에는 영향이 없습니다.
 2. **Main 기록**: 같은 `tool_use_id`의 `Agent` 호출과 그 결과(거부 여부, 실행 접수의 `agentId`). 기록에 적힌 입력의 해시가 hook이 본 입력 해시와 다르면 경고(`transcript_input_differs_from_hook_input`)를 셉니다.
 3. **서브에이전트 기록**: `agent-<agentId>.jsonl`과 `.meta.json`.
 
@@ -636,7 +637,16 @@ $C --task-hash 과제글.txt                                       # 검증 파�
 | `verification` | 사용자가 준 외부 검증 결과 또는 `null` |
 | `decisions` | 관련된 decision log id와 역할(`governing`/`not-applied`) |
 
-`modelMatch`는 세 값입니다. `exact`는 host가 기록한 모델 id가 registry의 `backend`(또는 `model`)와 **문자열이 같을 때**, `alias`는 registry가 별칭(`opus`)을 쓰고 host가 그것을 구체 id(`claude-opus-5-5`)로 풀었을 때, `mismatch`는 그 밖입니다. `alias`는 일치로 세지 않고 따로 셉니다.
+`modelMatch`는 네 값입니다.
+
+| 값 | 뜻 | 평가 행 |
+|---|---|---|
+| `exact` | host가 기록한 모델 id가 route의 `backend`와 **문자열이 같음** | 만듦 |
+| `declared` | 문자열은 다르지만, 그 프로필의 registry 항목에 사용자가 **선언해 둔 id**(`resolvesTo`) 중 하나와 문자열이 같음 | 만듦 |
+| `alias-undeclared` | registry가 별칭(`opus`)을 쓰고 host가 그것을 구체 id(`claude-opus-5-5`)로 풀었는데, 그 id가 선언돼 있지 않음 | 만들지 않음 |
+| `mismatch` | 그 밖 | 만들지 않음 |
+
+`alias-undeclared`와 `mismatch`를 가르는 기준은 "별칭이 기록된 id의 한 토막(`-`, `.`, `:`, `/`, `@`로 나눈 조각)인가"입니다. 이 기준은 **표시와 안내에만** 쓰입니다. 어떤 경우에도 행을 받아들이는 근거가 되지 않습니다. 받아들이는 근거는 `backend` 문자열 일치와 선언된 id 문자열 일치, 둘뿐입니다. 이전 수집기가 쓴 기록의 `alias`는 지금의 `alias-undeclared`와 같은 뜻이고 그대로 읽습니다.
 
 **skill load 판정**(`src/collector-access.mjs`). tool 호출은 셋 중 하나로 분류됩니다.
 
@@ -715,8 +725,13 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 | 이유 | 뜻 |
 |---|---|
 | `evaluation_context_not_configured` | 평가 context가 없거나 `native-default-unvalidated`. `--evaluation-context`나 config의 `optimization.evaluationContext`가 필요 |
+| `session_ran_under_default_evaluation_context` | 지금은 context 이름을 줬지만 **그 세션은 기본 context(`native-default-unvalidated`)로 실행됐음**(route에 기록된 값). 나중에 이름을 붙여도 행이 되지 않습니다 |
+| `session_ran_under_another_evaluation_context`, `route_evaluation_context_unknown` | 세션이 다른 이름의 context로 실행됐거나, route에 context 기록이 없음 |
 | `effective_setting_not_recorded_by_host` | host 기록에 모델이나 effort가 없음 |
-| `effective_model_differs_from_profile_backend` | host가 기록한 모델 id가 프로필의 `backend`와 문자열이 다름. 별칭(`opus`)을 쓰는 registry가 여기에 걸립니다. 수집기는 별칭을 구체 id로 바꿔 적지 않습니다 |
+| `effective_model_alias_undeclared` | `modelMatch`가 `alias-undeclared`. host가 별칭을 구체 id로 풀었고 그 id가 registry에 선언돼 있지 않음. 요약의 `modelMatch.undeclared`가 어느 항목에 어떤 id를 선언해야 하는지 알려 주지만, **수집기는 선언을 대신 넣지 않습니다** |
+| `effective_model_mismatch` | `modelMatch`가 `mismatch`(또는 비교 불가) |
+| `resolved_model_disagrees_with_transcript` | host가 실행 접수 때 알려 준 모델 id(hook이 남긴 `spawn_observed.resolvedModel`, 또는 Main 기록의 같은 값)가 서브에이전트 기록의 모델과 다름 |
+| `task_ran_on_several_models` | 같은 과제의 시도들이 서로 다른 모델 id로 실행됨(행 하나에 모델 하나만 적을 수 있음) |
 | `effective_effort_differs_from_profile` | effort가 다름 |
 | `duration_not_measured` | 기록에 timestamp가 없어 시간을 잴 수 없음 |
 | `supervisor_judge_time_unknown` | 판정된 hand-back의 decision log 기록이 없음 |
@@ -724,17 +739,66 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 | `route_not_applied`, `route_mode_unknown` | 그 위임의 route가 **적용되지 않았음**. 전역 모드가 `active`가 아니면(`shadow` 등) route는 기록만 되고 호출은 Main이 발행한 그대로 실행됩니다. 그런 실행을 route의 프로필 실적으로 적지 않습니다. route 이벤트에 모드가 없으면 `route_mode_unknown` |
 | `agent_type_differs_from_profile`, `agent_type_unknown` | host가 기록한 agent type이 route의 프로필이 아니거나 기록이 없음. 모델과 effort가 우연히 같아도 그 프로필의 agent 정의가 실행된 것이 아닙니다 |
 | `delegation_not_routed`, `route_fields_missing`, `task_ran_under_several_profiles`, `task_hash_unknown` | 프로필이 없거나, 필드가 빠졌거나, 같은 과제가 여러 프로필로 실행됐거나, 원래 과제 글을 알 수 없음 |
-| `importer_refuses:<코드>` | `--config`가 있을 때 가져오기 검증을 미리 돌려 본 결과(예: registry가 바뀌어 `STALE_EVIDENCE_PROFILE`) |
+| `importer_refuses:<코드>` | `--config`가 있을 때 가져오기 검증을 미리 돌려 본 결과. `STALE_EVIDENCE_PROFILE`은 지금 registry가 정의하는 프로필의 fingerprint가 세션 때의 것과 다르다는 뜻입니다(모델·effort·`resolvesTo` 선언 등 registry 항목이 바뀜). 이 이유는 다른 이유가 있어도 함께 셉니다 |
 
 행의 각 필드: `taskId`는 `taskHash`(과제 글이 같으면 같은 단위), `taskClass`·`projectHash`·`profileId`·`profileFingerprint`는 route에서, `effective`는 host 기록에서(`source: native-transcript`), `verification`은 검증 파일에서(`source: independent-validator`), `createdAt`은 서브에이전트 마지막 행의 시각입니다. `accounting: all-attempts-including-failures-and-router`는 다음을 뜻합니다. `attempts`는 그 과제의 **모든 `Agent` 호출 수**(거부된 호출 포함)이고, `durationMs`는 Main이 첫 호출을 발행한 시각부터 서브에이전트의 마지막 행까지(라우팅 hook, 거부, 재발행 왕복이 모두 안에 들어감)를 그 과제의 위임들에 대해 더하고, 서브에이전트가 끝난 뒤의 보고 판정 시간(decision log의 `latencyMs`)을 더한 값입니다. 이 중 하나라도 잴 수 없으면 행을 만들지 않습니다. 포함하지 **않는** 것: hand-back 뒤 Main이 보고를 읽는 turn, Post hook의 파일 입출력.
 
 **평가 행이 라우터에 닿는 길**(기존 관문, 코드 그대로): (1) `feedback.mjs --accept-evidence`로 명시적으로 가져와야 합니다. 형식·출처·프로필 fingerprint·effective 일치·context 일치를 검사하고, 같은 (context, 프로젝트, 과제, 프로필) 단위가 다른 내용으로 이미 있으면 거부합니다. (2) 라우팅 때 `optimization.evaluationContext`가 `native-default-unvalidated`(기본)이면 평가 자료를 **읽지도 않습니다**. (3) 읽은 행 중 context·`projectHash`·`taskClass`·프로필 fingerprint가 현재 위임과 같고 `evidenceTtlDays`(기본 30일) 이내인 것만 프로필별로 요약합니다. (4) 실측 기준(`observed_quality_gated`)이 되려면 기준 프로필과 후보 프로필이 **같은 과제 집합**(`cohortHash`)에서 각각 `minimumSamples`(기본 30, 최소 5)건 이상이고, 성공률의 Wilson 하한이 `qualityFloor`(기본 0.85) 이상이며, 기준 대비 `nonInferiorityTolerance`(0.02) 안이고, **평균 비용과 평균 시간이 모두 있어야** 합니다. `costUsd`가 `null`인 행이 하나라도 있으면 평균 비용이 `null`이라 실측 기준이 되지 않습니다. (5) 그 관문에 못 미쳐도 요약 통계는 프로필 선택 judge의 입력(`statistics`)과 route의 `evidence`에 들어갑니다. 즉 가져온 순간부터 judge가 볼 수 있는 정보가 됩니다. 수집기가 만든 행은 `costUsd`가 검증 파일에 없으면 `null`이므로, 비용을 주지 않는 한 (4)는 통과하지 못합니다.
 
+### registry의 `resolvesTo`: host가 풀어 준 모델 id 선언
+
+Claude의 native 서브에이전트 프로필은 모델을 별칭(`opus`, `sonnet`)으로 받을 수 있고, registry도 그 별칭을 `model`/`backend`에 적을 수 있습니다. 그런데 host는 대화 기록에 **자기가 풀어 낸 구체 id**(`claude-opus-5-5` 같은 값)를 적습니다. 가져오기 검증은 "실제로 돈 모델 = 프로필의 `backend`"를 문자열로 비교하므로, 별칭 registry에서는 어떤 행도 통과할 수 없었습니다.
+
+`resolvesTo`는 이 간극을 **사용자의 선언**으로 메웁니다. registry의 모델 항목에 "이 항목은 host에서 이 id들로 기록된다"를 적어 둡니다.
+
+```json
+{ "id": "claude-standard", "runtime": "claude", "model": "opus", "backend": "opus", "resolvesTo": ["<host가 기록한 id>"], "...": "..." }
+```
+
+- **선언만 인정합니다.** 접두어 비교, "별칭이 들어 있으면 인정", 대화 기록에서 id를 자동으로 배우기는 어디에도 없습니다. 목록에 적힌 문자열과 **완전히 같은** id만 받습니다.
+- **형식.** 1~8개의 서로 다른 문자열. 각 id는 영문·숫자로 시작하고 영문·숫자와 `.`, `_`, `:`, `@`, `-`만 쓰며 80자 이하입니다(`*`, `?`, `[`, `/`, 공백 불가 → `INVALID_RESOLVES_TO`, 중복은 `DUPLICATE_RESOLVED_MODEL_ID`). 선언하지 않으려면 필드를 **빼야** 합니다. `null`이나 빈 배열은 거부됩니다.
+- **같은 id를 두 항목에 적을 때.** 같은 runtime에서 `backend`가 **다른** 두 항목이 같은 id를 선언하면 거부합니다(`RESOLVED_MODEL_ID_DECLARED_FOR_ANOTHER_BACKEND`). 한 모델이 두 모델이라는 뜻이 되고, 한 모델의 실행이 다른 모델 프로필의 실적으로 들어갈 수 있기 때문입니다. `backend`가 같은 두 항목(같은 모델을 두 slot에 쓰는 경우. pilot의 registry가 `standard`와 `strategic` 모두 `opus`였습니다)은 같은 id를 선언할 수 있습니다. 항목 자신의 `backend`와 같은 id는 쓸모는 없지만 허용합니다.
+- **없으면 이전과 똑같습니다.** 필드가 없는 항목은 `backend` 문자열 일치만 받습니다. 프로필 fingerprint, 프로필 이름(설치되는 agent 파일 이름), hook 출력이 바뀌지 않습니다(테스트가 이전 commit의 값과 대조합니다).
+- **선언은 프로필 fingerprint의 일부입니다.** fingerprint는 registry 모델 항목 전체의 해시이므로 `resolvesTo`를 추가·변경·삭제하면 그 항목의 프로필 fingerprint가 바뀝니다(목록의 순서는 영향 없음). 그 결과: (1) 이전 선언 아래에서 가져온 평가 행은 **더 이상 세지 않습니다**(라우터의 요약이 fingerprint가 다른 행을 건너뜁니다). (2) 선언하기 **전에** 돌린 세션의 route는 옛 fingerprint를 갖고 있어 행이 되지 않습니다(`STALE_EVIDENCE_PROFILE`). (3) registry를 고친 뒤에는 다시 설치해야 합니다(설치된 프로필의 fingerprint 기록이 달라져, 재설치 전에는 그 프로필로의 재작성이 `PROFILE_NOT_INSTALLED_OR_STALE`로 적용되지 않습니다). 프로필 **파일 이름과 내용은 그대로**입니다.
+- **요청하는 모델은 바뀌지 않습니다.** `resolvesTo`는 평가 행을 받아들일 때만 쓰입니다. host에 보내는 값은 여전히 `model`입니다.
+- env로 그 slot의 모델을 바꾸면(`JEV_<RUNTIME>_<SLOT>_MODEL`/`_BACKEND`가 registry와 다름) 그 항목의 선언은 버립니다. 다른 모델에 대한 선언이었기 때문입니다.
+
+저장되는 평가 행에는 어떻게 일치했는지가 남습니다(`effective.modelMatch`: `exact` 또는 `declared`). 수집기의 후보 행에도 같은 값이 들어 있고, 가져오기는 그 값이 지금 registry로 계산한 것과 다르면 거부합니다(`EFFECTIVE_MODEL_MATCH_MISSTATED`). 이 필드가 생기기 전에 저장된 행은 보고서에서 `unrecorded`로 셉니다(당시에는 `exact`만 가능했습니다).
+
+**선언이 맞는지는 아무도 대신 확인해 주지 않습니다.** 별칭이 가리키는 모델은 host 쪽에서 바뀔 수 있습니다. 바뀌면 host는 새 id를 기록하고, 그 실행은 다시 `alias-undeclared`로 보류됩니다. 그때 새 id를 **추가**하면 fingerprint가 바뀌어 옛 행은 세지 않게 됩니다. 다른 모델의 실적을 같은 프로필에 섞지 않기 위한 동작입니다.
+
+### 평가 행이 만들어지려면
+
+평가 저장소 0행에서 "라우팅에 영향을 주는 자료"까지, 사용자가 하는 일을 순서대로 적습니다. 하나라도 빠지면 행이 만들어지지 않거나 쓰이지 않습니다.
+
+1. **평가 context에 이름을 붙입니다.** env의 `JEV_EVALUATION_CONTEXT`(또는 config의 `optimization.evaluationContext`)를 기본값 `native-default-unvalidated`가 아닌 이름으로 정합니다(예: `desktop-2.1.330-auto-v1`). 이름은 "이 조건에서 얻은 자료끼리만 비교한다"는 약속입니다. host 버전이나 권한 모드처럼 결과를 바꾸는 조건이 달라지면 이름도 바꾸세요. **이 설정은 세션을 돌리기 전에 해야 합니다.** route에 그때의 context가 기록되고, 수집기는 기록된 context와 같은 이름으로만 행을 만듭니다.
+2. **host가 기록하는 모델 id를 확인하고 선언합니다.** registry의 `backend`가 host가 기록하는 id와 같으면(구체 id를 적은 registry) 할 일이 없습니다. 별칭을 쓰면: 세션을 한 번 돌린 뒤 수집기를 `--dry-run`으로 돌려 요약의 `modelMatch.undeclared`를 봅니다. 항목마다 `registryEntry`(registry 항목 id), `backend`(별칭), `observedModel`(host가 기록한 id), 위임 수가 나옵니다. **그 id가 그 항목이 뜻하는 모델이 맞는지 직접 확인한 뒤** registry 파일의 그 항목에 `resolvesTo`로 적습니다. 수집기는 적어 주지 않습니다. `node orchestration/scripts/doctor.mjs`의 `evidence`가 활성 항목마다 선언된 id와 가져오기 가능 여부(`blocked:evaluation_context_not_configured` / `possible:exact_backend_only` / `possible:exact_backend_or_declared_id`)를 보여 줍니다.
+3. **다시 설치합니다**(`install.mjs --registry …`, [SETUP](SETUP.ko.md)). 선언이 fingerprint를 바꿨기 때문입니다.
+4. **`active` 모드로 세션을 돌립니다.** `shadow`나 `advisory`에서는 route가 기록만 되고 적용되지 않으므로 그 실행은 프로필의 실적이 아닙니다(`route_not_applied`). 1~3 **이후에** 돌린 세션만 자료가 됩니다.
+5. **외부 검증 결과를 준비합니다.** 과제마다 통과/실패를, 서브에이전트의 보고가 아닌 **별도의 검사**로 판정해 [검증 파일](#검증-파일)로 만듭니다. 수집기는 통과 여부를 만들어 내지 않습니다. 비용을 최적화 기준에 넣으려면 `costUsd`도 줘야 합니다.
+6. **수집기를 돌립니다.** `collect.mjs --config … --transcripts … --verification …`. 요약의 `evaluations.produced`, `producedByModelMatch`(`exact`/`declared`), `withheld`(보류 이유)를 확인합니다.
+7. **후보 파일을 검토합니다.** `<stateDir>/collector/evaluations-….candidate.jsonl`. 과제 수, 통과 여부, `effective.model`과 `modelMatch`, 시간, 시도 수가 아는 사실과 맞는지 봅니다.
+8. **명시적으로 가져옵니다.** `feedback.mjs --file <후보 파일> --accept-evidence --config …`. `--accept-evidence` 없이는 거부됩니다. 저장소에 무엇이 들어 있는지는 `feedback.mjs --report --config …`(프로필별·일치 종류별 행 수, 현재/낡음)로 봅니다.
+
+가져온 뒤에 적용되는 기준(기본값은 `src/config.mjs`의 `optimization`):
+
+| 설정 | 기본값 | 뜻 |
+|---|---|---|
+| `minimumSamples` | 30 (허용 5~10000) | 기준 프로필과 후보 프로필이 **같은 과제 집합**에서 각각 이만큼의 행을 가져야 실측 기준이 됨 |
+| `qualityFloor` | 0.85 | 성공률의 Wilson 95% 하한이 이 값 이상이어야 함. 30건이 전부 통과해도 하한은 약 0.886입니다 |
+| `nonInferiorityTolerance` | 0.02 | 후보의 하한이 기준 프로필의 하한보다 이 값 넘게 낮으면 제외 |
+| `objectiveSlack` | 0.08 | 측정된 비용·시간 목적값이 가장 좋은 프로필에서 이 범위 안인 것만 후보 pool에 남김 |
+| `evidenceTtlDays` | 30 | 이보다 오래된 행은 세지 않음 |
+
+이 기준에 못 미치는 동안에는 선택이 바뀌지 않습니다(`policy_prior_not_measured`). 요약 통계는 프로필 선택 judge의 참고 입력으로만 들어갑니다(위 "평가 행이 라우터에 닿는 길"의 (5)). 평균 비용이 없으면(`costUsd`가 `null`인 행이 하나라도 있으면) 행이 아무리 많아도 실측 기준이 되지 않습니다.
+
+**기록된 pilot 세션 두 개는 어떤 설정으로도 가져올 수 없습니다.** 기본 context(`native-default-unvalidated`)로 실행됐기 때문입니다. 지금 config를 그대로 쓰면 `evaluation_context_not_configured`, 나중에 context 이름을 붙여도 route에 기록된 context가 기본값이라 `session_ran_under_default_evaluation_context`입니다. 여기에 더해, 그 세션들은 `resolvesTo` 선언 이전에 돌았으므로 선언을 추가한 registry로는 프로필 fingerprint도 맞지 않습니다(`STALE_EVIDENCE_PROFILE`). 자료를 얻으려면 위 1~4를 한 뒤 **새 세션**을 돌려야 합니다.
+
 ### 요약과 관찰 보고서
 
-수집 명령은 JSON 요약을 출력합니다: 본 위임·이은 위임·못 이은 이유, 지점·출처별로 쓴 라벨 수(`labels.written`)·철회한 수(`labels.retracted`)·쓰지 않은 이유(`labels.unlabelled`)·판정 불가 접근의 종류(`labels.indeterminateAccess`), 질문 대응 결과(`skillQuestionMapping`), 관찰 기록 수, 평가 행 수와 보류 이유, 검증 항목의 일치 수, 종류별 경고 수, 본 host 형태(`host.versions` 등), 위임 색인(`delegationIndex`: 해시만).
+수집 명령은 JSON 요약을 출력합니다: 본 위임·이은 위임·못 이은 이유, 지점·출처별로 쓴 라벨 수(`labels.written`)·철회한 수(`labels.retracted`)·쓰지 않은 이유(`labels.unlabelled`)·판정 불가 접근의 종류(`labels.indeterminateAccess`), 질문 대응 결과(`skillQuestionMapping`), 관찰 기록 수, 평가 행 수(`evaluations.produced`, 일치 종류별 `producedByModelMatch`)와 보류 이유, 모델 일치 요약(`modelMatch`: 라우팅되고 이어진 위임의 종류별 수, 선언이 필요한 항목 목록 `undeclared`, host가 알려 준 모델 id와 서브에이전트 기록의 대조 결과 `resolvedModelCheck`), 검증 항목의 일치 수, 종류별 경고 수, 본 host 형태(`host.versions` 등), 위임 색인(`delegationIndex`: 해시만).
 
-`--report`는 관찰 기록(위임마다 최신 줄)을 요약합니다. **서술만 하고 아무것도 판정하지 않습니다.** 요청 대 실제 일치율(프로필, 모델 `exact`/`alias`/`mismatch`, effort), 프로필별 위임 수와 검증 통과율(검증이 없으면 `null`), 위임당 평균 토큰·turn·tool 호출·시간(값이 있는 기록 수 `measured`와 함께), judge 요청 수, judge 토큰 비중(decision log에 `usage`가 없으면 `null`), 라우팅 hook 시간이 end-to-end 시간에서 차지하는 비중, 그리고 "블록이 있었나 × skill을 load했나" 교차표(판정 불가는 `loadUnknown`)입니다.
+`--report`는 관찰 기록(위임마다 최신 줄)을 요약합니다. **서술만 하고 아무것도 판정하지 않습니다.** 요청 대 실제 일치율(프로필, 모델 `exact`/`declared`/`aliasUndeclared`/`mismatch`와 받아들여지는 비율 `acceptedRate`, effort), 프로필별 위임 수와 검증 통과율(검증이 없으면 `null`), 위임당 평균 토큰·turn·tool 호출·시간(값이 있는 기록 수 `measured`와 함께), judge 요청 수, judge 토큰 비중(decision log에 `usage`가 없으면 `null`), 라우팅 hook 시간이 end-to-end 시간에서 차지하는 비중, 그리고 "블록이 있었나 × skill을 load했나" 교차표(판정 불가는 `loadUnknown`)입니다. `--config`로 부르면 평가 저장소의 행 수도 함께 나옵니다(`evidenceStore`: 전체, 현재/낡음, 일치 종류별 `exact`/`declared`/`unrecorded`, 프로필별).
 
 ### 실제 세션 자료에 돌린 결과 (2026-11-25)
 
@@ -755,7 +819,7 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 | 평가 행 | 0 (보류 8) | 0 (보류 8) | 0 |
 | 경고 | 0 | 0 | 0 |
 
-- **평가 행이 0인 이유.** 두 세션의 config는 평가 context가 기본값(`native-default-unvalidated`)이었습니다(16건). context를 준 dry-run에서도 0행입니다: 라우팅된 15건 모두 host가 기록한 모델(`claude-opus-5-5`, `claude-sonnet-5-5`)이 registry의 `backend`(`opus`, `sonnet`)와 문자열이 달랐고(`effective_model_differs_from_profile_backend`), 나머지 1건은 라우팅되지 않았습니다. 가져오기 검증이 문자열 일치를 요구하므로 수집기는 별칭을 풀어 적지 않습니다. 평가 행을 얻으려면 registry의 `backend`를 host가 기록하는 구체 id로 적어야 합니다. route 모드는 15건 모두 `active`, agent type은 15건 모두 프로필과 일치했으므로 새 보류 이유(`route_not_applied`, `agent_type_differs_from_profile`)는 여기서 0건입니다.
+- **평가 행이 0인 이유.** 두 세션의 config는 평가 context가 기본값(`native-default-unvalidated`)이었습니다(16건). context를 준 dry-run에서도 0행입니다: 라우팅된 15건 모두 host가 기록한 모델(`claude-opus-5-5`, `claude-sonnet-5-5`)이 registry의 `backend`(`opus`, `sonnet`)와 문자열이 달랐고(`effective_model_differs_from_profile_backend`), 나머지 1건은 라우팅되지 않았습니다. 가져오기 검증이 문자열 일치를 요구하므로 수집기는 별칭을 풀어 적지 않습니다. 평가 행을 얻으려면 registry의 `backend`를 host가 기록하는 구체 id로 적거나, 그 id를 `resolvesTo`로 선언해야 합니다([위](#registry의-resolvesto-host가-풀어-준-모델-id-선언)). 이 결과는 `outcome-collector-2`의 것이고, 같은 자료를 선언 기능이 들어간 수집기로 다시 돌린 결과는 [아래](#선언된-모델-id로-다시-돌린-결과-2026-11-25)에 있습니다. 그때의 보류 이유 이름 `effective_model_differs_from_profile_backend`는 지금 `effective_model_alias_undeclared`와 `effective_model_mismatch`로 나뉘었습니다. route 모드는 15건 모두 `active`, agent type은 15건 모두 프로필과 일치했으므로 새 보류 이유(`route_not_applied`, `agent_type_differs_from_profile`)는 여기서 0건입니다.
 - **요청 대 실제.** 프로필 15/15, effort 15/15 일치. 모델은 `exact` 0, `alias` 15, `mismatch` 0.
 - **calibration(arm B, `delegation.skills`).** 실제 세션에서 나온 첫 수치입니다. **전부 약한 라벨이고, 합성 pilot 세션 1개(실행 1회)에서 나왔으며, 보고서의 `sufficient`는 모든 묶음에서 `false`(`weak_labels`)입니다.** 라벨은 그 지점 결정 32개 중 12개에만 붙었습니다(조건부 값, 위 선택 편향 참고).
 
@@ -774,8 +838,25 @@ node orchestration/scripts/feedback.mjs --file <후보 파일> --accept-evidence
 - 같은 상태에 두 번째로 돌리면 라벨 0개, 관찰 0개를 씁니다(이미 있음 384 / 8), 철회 0.
 - 사본으로 따로 확인한 것(저장하지 않음): 검증 파일 없이 다시 돌리면 관찰 0개를 쓰고 8건을 유지(`keptVerified` 8, 보고서 통과율 8/8 그대로). 검증을 전부 실패로 고쳐 돌리면 `…-with-load…` 라벨 12개를 철회하고 보고서의 출처별 수에서 빠짐. 서브에이전트 기록 하나를 20행에서 자르고 `finished: false`로 두면 그 위임은 `subagent_not_finished`로 빠지고 라벨·관찰이 없음(나머지 7건은 그대로).
 
+### 선언된 모델 id로 다시 돌린 결과 (2026-11-25)
+
+같은 pilot 자료의 **사본**에 `outcome-collector-3`을 오프라인으로 돌렸습니다(`qa/kernel/collector/run-alias-demo.sh`, 결과 `qa/kernel/results/collector-alias-20261125/`). 세 경우입니다. **(나)와 (다)는 동작을 보이기 위한 dry-run이고 가져올 수 있는 자료가 아닙니다.**
+
+| 경우 | arm A (위임 8, 라우팅 7) | arm B (위임 8, 라우팅 8) |
+|---|---|---|
+| (가) 기록된 config 그대로(사본을 가리키도록 `stateDir`만 바꿈), 실제 실행 | 0행. `evaluation_context_not_configured` 8, `effective_model_alias_undeclared` 7, `delegation_not_routed` 1 | 0행. `evaluation_context_not_configured` 8, `effective_model_alias_undeclared` 8 |
+| (나) context 이름을 주고 선언 없이, dry-run | 0행. `session_ran_under_default_evaluation_context` 7, `effective_model_alias_undeclared` 7, `delegation_not_routed` 1 | 0행. `session_ran_under_default_evaluation_context` 8, `effective_model_alias_undeclared` 8 |
+| (다) context 이름 + (나)가 알려 준 id를 선언한 임시 config, dry-run | 0행. `session_ran_under_default_evaluation_context` 7, `importer_refuses:STALE_EVIDENCE_PROFILE` 7, `delegation_not_routed` 1 | 0행. `session_ran_under_default_evaluation_context` 8, `importer_refuses:STALE_EVIDENCE_PROFILE` 8 |
+| 모델 일치, (가)·(나) | `alias-undeclared` 7 | `alias-undeclared` 8 |
+| 모델 일치, (다) | `declared` 7 | `declared` 8 |
+
+- (나)의 요약이 알려 준 것(`modelMatch.undeclared`): 항목 `claude-light`(별칭 `sonnet`)에 `claude-sonnet-5-5`(A 1건, B 1건), 항목 `claude-standard`(별칭 `opus`)에 `claude-opus-5-5`(A 6건, B 7건). 수집기는 어느 registry에도 쓰지 않았습니다(자료의 config 두 개의 SHA-256과 상태 파일 수가 실행 전후 같음, 자료 config의 `resolvesTo` 0건).
+- (다)에서 모델 이유는 사라지고(15건 모두 `declared`) 두 이유가 남습니다. 세션이 기본 context로 실행됐고(15건), 선언이 프로필 fingerprint를 바꿨습니다(15건). **두 이유 모두 설정을 고쳐서 없앨 수 없습니다.** 선언된 id로 행이 실제로 만들어지고 가져와지는 경로는 합성 세션 테스트로만 확인했습니다(`test/collector.test.mjs`의 end to end).
+- **host가 알려 준 모델 id 대조.** Main 기록의 실행 접수 결과에 있는 `resolvedModel`은 서브에이전트 기록의 모델과 16건 중 16건 같았습니다(`hostResult.agreed` A 8, B 8). hook 상태 쪽 값은 16건 모두 없습니다(`hookEvent.absent`): 이 세션들의 hook은 그 값을 남기기 전 버전입니다. 저장소 밖에 남아 있는 실제 세션의 hook 입력(`PostToolUse`의 `Agent` 이벤트) 3건에는 `tool_response.resolvedModel`이 3건 모두 있었습니다. **hook이 남긴 값과 대화 기록의 대조는 실제 세션으로는 아직 해 보지 못했습니다**(테스트만).
+
 ### 한계
 
+- **`resolvesTo`는 사용자의 말입니다.** 선언된 id가 그 항목이 뜻하는 모델이 맞는지 이 확장은 확인하지 않습니다. `alias-undeclared`와 `mismatch`의 구분도 이름의 토막 비교일 뿐이라, 수집기의 안내(`undeclared`)는 "확인해 볼 것"이지 "넣어도 되는 것"이 아닙니다.
 - **대화 기록 형식은 계약이 아닙니다.** 실제로 본 형태는 Claude Code 데스크톱 `2.1.330`(`entrypoint: claude-desktop`, 권한 모드 `auto`)의 세션 2개뿐입니다. 다른 버전·CLI·다른 권한 모드의 기록은 본 적이 없습니다. 모르는 형태는 `null`과 경고 수로 나오고 추측하지 않습니다. 끝났다는 확인(`.meta.json`의 `finished`)과 tool 결과의 오류 표시(`is_error`)도 이 버전에서 본 형태입니다.
 - **Codex는 지원하지 않습니다.** Codex 대화 기록을 본 적이 없어 파서를 만들지 않았습니다. codex 세션의 위임은 `runtime_transcripts_unsupported`로 셉니다.
 - **약한 라벨, 그리고 판정이 만든 라벨.** `observed-load`는 서브에이전트의 행동이고 서브에이전트가 값싸게 만들 수 있습니다. 블록이 주입된 위임의 라벨(`-after-injection`)은 판정이 행동을 유도한 결과입니다. 약한 라벨만으로 임계값을 정하면 "서브에이전트가 무엇을 하는가"에 맞추는 것이지 "무엇이 필요했는가"에 맞추는 것이 아닙니다. **"그 skill이 필요했는가"의 검증된 라벨을 만드는 방법은 이 수집기에 없습니다.**
