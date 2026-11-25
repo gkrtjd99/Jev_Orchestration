@@ -305,7 +305,7 @@ test('selectSkills does not call the judge for an empty catalog or empty task', 
   const judge = mockJudge({});
   const empty = await selectSkills({ task: 'do something', catalog: { skills: [], fingerprint: 'e' }, judge, scope: 's', config: CONFIG });
   assert.deepEqual(empty, {
-    status: 'none', need: null, load: [], suggest: [], trace: [], candidates: 0, catalogFingerprint: 'e', decisionId: null, decisionIds: [], cached: false,
+    status: 'none', need: null, load: [], suggest: [], trace: [], candidates: 0, catalogFingerprint: 'e', decisionId: null, decisionIds: [], asked: [], cached: false,
     retrieval: { mode: 'lexical', wide: false, lexicalSignal: 0, requests: 0, failed: 0, judged: 0, dropped: 0 },
   });
   const catalog = catalogOf([['a', 'x'], ['b', 'y']]);

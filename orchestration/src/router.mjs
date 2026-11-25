@@ -42,7 +42,7 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
   const statistics=summarizeEvidence(observed.rows,eligibility.candidates,{
     context:config.optimization.evaluationContext,projectHash:hash(project),classKey:taskClass(features),ttlDays:config.optimization.evidenceTtlDays});
   const options=optimizeCandidates(eligibility.candidates,statistics,config.optimization);
-  let selected=options.baseline,reason=options.basis,stageCount=1,selector=null;
+  let selected=options.baseline,reason=options.basis,stageCount=1,selector=null,profileDecisionId=null;
   const remaining=config.optimization.routeDeadlineMs-(performance.now()-began);
   const mechanicalFastPath=features.reasoning==='mechanical'&&features.complexity==='small'&&features.risk==='normal'&&!features.uncertain;
   if(mechanicalFastPath)reason='bounded_mechanical_policy_fast_path';
@@ -63,6 +63,7 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
       const probs=Object.values(a.probabilities).sort((a,b)=>b-a);
       const margin=probs[0]-(probs[1]||0);
       selector={choice:a.choice,confidence:a.confidence,margin,cached:choice.cached};
+      profileDecisionId=typeof choice.decisionId==='string'?choice.decisionId:null;
       if(choice.apply===false)reason='selector_shadow_only_incumbent';
       else if(a.choice==='defer')return {deferred:true,reason:'selector_abstained',features,stageCount};
       else if(a.confidence<config.optimization.selectionConfidence||margin<config.optimization.selectionMargin)reason='selector_uncertain_incumbent';
@@ -81,5 +82,8 @@ export async function routeTask({state,docs,delegation,config,runtime,project,cl
     classification:{role:features.role,complexity:features.complexity,reasoning:features.reasoning,information:features.information},
     candidateIds:options.pool.map(p=>p.profileId),projectHash:hash(project),evaluationContext:config.optimization.evaluationContext});
   route.decisionId=hash({scope,task:state.task,profile:route.profile,registry:route.registryFingerprint,evidence:observed.revision,version:ROUTER_VERSION});
-  return {route,profile:selected,deferred:false,cached:classify.cached,latencyMs:performance.now()-began,stageCount};
+  // Decision-log ids of the judgments behind this route (null: a plain client without a log, or no judgment made).
+  // They go into the session's route event only, so the outcome collector can count judge cost per delegation.
+  const judgeDecisionIds={classify:typeof classify.decisionId==='string'?classify.decisionId:null,profile:profileDecisionId};
+  return {route,profile:selected,deferred:false,cached:classify.cached,latencyMs:performance.now()-began,stageCount,judgeDecisionIds};
 }

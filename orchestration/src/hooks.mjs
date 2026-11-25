@@ -46,7 +46,9 @@ function skillsEvent(taskId,mode,result,injected){
   const slim=list=>(Array.isArray(list)?list:[]).map(s=>({name:s.name,probability:s.probability}));
   // partial: some of a wide decision's requests failed and the rest answered (failedCode says how).
   return {taskId,mode,status:result.status,code:result.code||null,...(result.partial===true?{partial:true,failedCode:result.failedCode||null}:{}),need:result.need??null,candidates:result.candidates??0,
-    decisionId:result.decisionId??null,decisionIds:Array.isArray(result.decisionIds)?result.decisionIds:[],retrieval:result.retrieval??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
+    decisionId:result.decisionId??null,decisionIds:Array.isArray(result.decisionIds)?result.decisionIds:[],
+    // Per logged decision, the ordered skill names its skill_<i> questions were about (names are validated identifiers).
+    asked:(Array.isArray(result.asked)?result.asked:[]).filter(a=>typeof a?.decisionId==='string'&&Array.isArray(a.names)).map(a=>({decisionId:a.decisionId,names:a.names.filter(n=>typeof n==='string')})),retrieval:result.retrieval??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
     load:slim(result.load),suggest:slim(result.suggest),
     trace:(result.trace||[]).filter(t=>t.stage!=='retrieval').slice(0,SKILL_EVENT_TRACE).map(t=>({name:t.name,stage:t.stage,probability:t.probability}))};
 }
@@ -468,7 +470,7 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
         // Lets a later call with this returned input be recognised under its new tool_use_id (claimReissue, rewriteOrigin).
         if(canRewrite&&(outputHash!==inputHash||asIssued)){try{await store.noteRewrite(outputHash,e.tool_use_id);}catch{/* without the index the next call with this input is routed again, on the text in front of its packet */}}
         await recordSkills(injected);
-        await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
+        await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,judgeDecisionIds:decision.judgeDecisionIds??null,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
         return output;
       },Math.min(cfg.optimization.routeDeadlineMs+400,5800));
     }

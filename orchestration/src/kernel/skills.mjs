@@ -360,7 +360,7 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
   };
   const base = {
     status: 'none', need: null, load: [], suggest: [], trace, candidates: 0,
-    catalogFingerprint: catalog.fingerprint ?? null, decisionId: null, decisionIds: [], cached: false, retrieval,
+    catalogFingerprint: catalog.fingerprint ?? null, decisionId: null, decisionIds: [], asked: [], cached: false, retrieval,
   };
   if (!hasTask || !ranked.length) return base;
 
@@ -407,6 +407,11 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
 
   base.need = Math.max(...ok.map(o => o.answers.need.noul));
   base.decisionIds = ok.map(o => o.decisionId).filter(id => id !== null);
+  // Which skill each question of each logged decision was about: `skill_<i>` of a decision is names[i].
+  // Validated names only. The outcome collector uses it to attach labels to the right question.
+  outcomes.forEach((outcome, r) => {
+    if (outcome.answers && outcome.decisionId !== null) base.asked.push({ decisionId: outcome.decisionId, names: chunks[r].map(i => ranked[i].skill.name) });
+  });
   base.decisionId = base.decisionIds[0] ?? null;
   base.cached = ok.every(o => o.cached);
 
