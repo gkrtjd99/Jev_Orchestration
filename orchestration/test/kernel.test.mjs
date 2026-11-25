@@ -567,6 +567,19 @@ test('the decision record carries the judge\'s token usage when it sent a reques
     { judges: { jev: { async evaluate() { throw Object.assign(new Error('JEV_TIMEOUT'), { code: 'JEV_TIMEOUT' }); } } }, log });
   await assert.rejects(kernel.decide('read.advice', input()));
   assert.equal(Object.hasOwn(log.records[0], 'usage'), false);
+
+  // Documented limit (docs/KERNEL.ko.md): one record holds the ACCEPTED request's usage only. A judge that
+  // answered below escalateBelow and was passed on spent tokens that are in no record; its step is in the trail.
+  const chained = memoryLog();
+  const answering = (confidence, usage) => ({ async evaluate() { return { response: { model: 'm', answers: answers({ confidence }), usage }, cached: false, latencyMs: 1 }; } });
+  const chain = new DecisionKernel(configWith({ 'read.advice': { judges: ['jev', 'openai'], escalateBelow: 0.9 } }),
+    { judges: { jev: answering(0.5, { input_tokens: 100, output_tokens: 10 }), openai: answering(0.95, { input_tokens: 7, output_tokens: 1 }) }, log: chained });
+  await chain.decide('read.advice', input());
+  assert.equal(chained.records.length, 1);
+  assert.equal(chained.records[0].provider, 'openai');
+  assert.deepEqual(chained.records[0].usage, { input_tokens: 7, output_tokens: 1 });
+  assert.deepEqual(chained.records[0].trail.map(x => [x.provider, x.ok, x.code]), [['jev', true, 'KERNEL_LOW_CONFIDENCE'], ['openai', true, undefined]]);
+  assert.equal(isDecisionRecord(chained.records[0]), true);
 });
 
 test('decision log record follows the shared contract and carries no raw text', async () => {

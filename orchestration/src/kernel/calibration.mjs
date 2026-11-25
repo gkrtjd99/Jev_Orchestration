@@ -113,6 +113,9 @@ function scoreMetrics(rows) {
  * Judge token totals over decision records. Only records with a `usage` field count (`reported`); a side is
  * null when no record gave a number for it, never 0. Records written before the field existed, failed
  * decisions and cache hits carry no usage, so `reported` can be smaller than the number of records.
+ * The totals are a lower bound: a record holds the usage of the accepted judge's request only. A request that
+ * answered below escalateBelow and was passed on, or that failed, spent tokens that are in no record (its step
+ * is in the trail, which carries no usage). With a single-judge chain nothing is left out.
  */
 export function usageTotals(decisions) {
   const out = { reported: 0, input_tokens: null, output_tokens: null };

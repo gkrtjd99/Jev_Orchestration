@@ -235,7 +235,8 @@ export class DecisionKernel {
       const cached = result.cached === true;
       const model = typeof result.response.model === 'string' && result.response.model ? result.response.model : 'unknown';
       // A cache hit sent no request: the stored response still names the tokens of the request that filled the
-      // cache, and writing them again would count them twice.
+      // cache, and writing them again would count them twice. Only this accepted request is recorded: the
+      // tokens of an earlier judge that escalated or failed are not (documented as excluded from the totals).
       const usage = cached ? null : reportedUsage(result.response);
       await this.record({
         ...base, decisionId, provider, model, cached, latencyMs, confidence,
