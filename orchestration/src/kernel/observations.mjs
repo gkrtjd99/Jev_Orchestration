@@ -45,9 +45,11 @@ const REQUESTED = {
 };
 const EFFECTIVE = {
   agentType: nullable(id), model: nullable(id), effort: nullable(id), source: nullable(oneOf('native-transcript')),
-  // modelMatch: exact | declared | alias-undeclared | mismatch (src/collector.mjs). 'alias' is what records
+  // modelMatch: exact | declared | declared-not-in-force | alias-undeclared | mismatch (src/collector.mjs).
+  // 'declared' is only written for a route recorded with the profile definition that holds the declaration;
+  // 'declared-not-in-force' is an id declared now but not when the session ran. 'alias' is what records
   // written before the registry could declare resolved ids call 'alias-undeclared'; it is still read.
-  profileMatch: nullable(bool), modelMatch: nullable(oneOf('exact', 'declared', 'alias-undeclared', 'alias', 'mismatch')), effortMatch: nullable(bool),
+  profileMatch: nullable(bool), modelMatch: nullable(oneOf('exact', 'declared', 'declared-not-in-force', 'alias-undeclared', 'alias', 'mismatch')), effortMatch: nullable(bool),
 };
 const LOADED = { name: x => typeof x === 'string' && SKILL_ID.test(x), via: oneOf('Skill', 'Read', 'Shell'), beforeFirstWrite: nullable(bool) };
 const SKILLS = {
@@ -246,7 +248,9 @@ export function observationReport(observations) {
       profile: compared('profileMatch', x => x === true),
       // exact + declared are the two kinds the evidence importer accepts. `alias` counts the undeclared alias
       // matches under both their names ('alias-undeclared', and 'alias' in records from before that name).
-      model: { compared: model.length, exact: byKind('exact'), declared: byKind('declared'), aliasUndeclared: byKind('alias-undeclared') + byKind('alias'),
+      // acceptedRate is a comparison of model ids under the declaration in force for each route, not a count of
+      // importable rows: a row also needs a verification result, a named context and everything else.
+      model: { compared: model.length, exact: byKind('exact'), declared: byKind('declared'), declaredNotInForce: byKind('declared-not-in-force'), aliasUndeclared: byKind('alias-undeclared') + byKind('alias'),
         alias: byKind('alias-undeclared') + byKind('alias'), mismatch: byKind('mismatch'),
         exactRate: ratio(byKind('exact'), model.length), acceptedRate: ratio(byKind('exact') + byKind('declared'), model.length),
         exactOrAliasRate: ratio(model.length - byKind('mismatch'), model.length) },

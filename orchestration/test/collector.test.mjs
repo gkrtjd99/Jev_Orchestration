@@ -11,7 +11,7 @@ import { fixture, answer, child } from './helpers.mjs';
 import { handleHook } from '../src/hooks.mjs';
 import { SessionStore } from '../src/state.mjs';
 import { hash } from '../src/util.mjs';
-import { profileCatalog } from '../src/catalog.mjs';
+import { profileCatalog, validateRegistry } from '../src/catalog.mjs';
 import { profileDefinitions } from '../src/profiles.mjs';
 import { taskClass, eligibleProfiles, optimizeCandidates, summarizeEvidence } from '../src/optimizer.mjs';
 import { importEvaluations, readEvidence } from '../src/feedback.mjs';
@@ -1032,17 +1032,19 @@ const observationsOf = async f => (await new ObservationLog(observationLogDir(f.
 const EMPTY_CHECK = { agreed: 0, disagreed: 0, absent: 0 };
 
 test('model match kinds: an undeclared alias is withheld and named, a declared id gives a row, anything else is a mismatch', async t => {
-  // 1. Alias, nothing declared: withheld, and the summary says exactly what would have to be declared - without declaring it.
+  // 1. Alias, nothing declared: withheld, and the summary names what was observed - entry, backend, recorded id -
+  //    without declaring it and without carrying a ready-made registry fragment.
   const a = await reissuedSession(t, { prepare: { registry: aliasRegistry() }, sub: { model: RESOLVED } });
   assert.deepEqual([a.route.model, a.route.backend], ['sonnet', 'sonnet']);
   const registryBefore = structuredClone(a.f.config.registry);
   const undeclared = await run(a.f, { verification: verificationFor(TASK), config: a.f.config });
   assert.deepEqual([undeclared.evaluations.produced, undeclared.evaluations.producedByModelMatch, undeclared.evaluations.withheld, undeclared.evaluations.files],
     [0, { exact: 0, declared: 0 }, { effective_model_alias_undeclared: 1 }, []]);
-  assert.deepEqual(undeclared.modelMatch.delegations, { exact: 0, declared: 0, 'alias-undeclared': 1, mismatch: 0, notCompared: 0 });
-  assert.deepEqual(undeclared.modelMatch.undeclared, [{ registryEntry: 'claude-light', backend: 'sonnet', observedModel: RESOLVED, delegations: 1,
-    wouldNeed: { registryEntry: 'claude-light', resolvesTo: [RESOLVED] } }]);
+  assert.deepEqual(undeclared.modelMatch.delegations, { exact: 0, declared: 0, 'declared-not-in-force': 0, 'alias-undeclared': 1, mismatch: 0, notCompared: 0 });
+  assert.deepEqual(undeclared.modelMatch.undeclared, [{ registryEntry: 'claude-light', backend: 'sonnet', observedModel: RESOLVED, declarable: true, delegations: 1 }]);
+  assert.ok(!JSON.stringify(undeclared).includes('resolvesTo":'), 'no registry fragment in the summary');
   assert.match(undeclared.modelMatch.note, /^NOT ADDED\./);
+  assert.match(undeclared.modelMatch.note, /not a declaration and not a patch/);
   assert.equal(undeclared.modelMatch.declarationsKnown, true);
   assert.deepEqual(a.f.config.registry, registryBefore, 'the collector never touches the registry');
   assert.ok(a.f.config.registry.models.every(m => !Object.hasOwn(m, 'resolvesTo')));
@@ -1054,7 +1056,7 @@ test('model match kinds: an undeclared alias is withheld and named, a declared i
   const declared = await run(d.f, { verification: verificationFor(TASK), config: d.f.config });
   assert.deepEqual([declared.evaluations.produced, declared.evaluations.producedByModelMatch, declared.evaluations.withheld], [1, { exact: 0, declared: 1 }, {}]);
   assert.deepEqual([declared.modelMatch.delegations, declared.modelMatch.undeclared, declared.modelMatch.note],
-    [{ exact: 0, declared: 1, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, [], null]);
+    [{ exact: 0, declared: 1, 'declared-not-in-force': 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, [], null]);
   assert.equal((await observationsOf(d.f))[0].effective.modelMatch, 'declared');
   const rows = (await fs.readFile(path.join(d.f.stateDir, 'collector', declared.evaluations.files[0]), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
   assert.deepEqual(rows.map(r => r.effective), [{ confirmed: true, model: RESOLVED, effort: d.route.effort, source: 'native-transcript', modelMatch: 'declared' }]);
@@ -1080,13 +1082,35 @@ test('model match kinds: an undeclared alias is withheld and named, a declared i
     if (expected === 'mismatch') assert.deepEqual([summary.evaluations.withheld, summary.modelMatch.undeclared, summary.modelMatch.note], [{ effective_model_mismatch: 1 }, [], null], model);
   }
 
-  // 4. Declared AFTER the session: the record says 'declared', but the route carries the fingerprint of the
-  //    profile as it was defined then, so the importer refuses the row. New sessions are needed.
+  // 4. Declared AFTER the session: the route carries the fingerprint of the profile as it was defined then, so
+  //    the declaration was not in force for it. The record does NOT say 'declared' (the importer refuses the
+  //    row), it is not listed as undeclared either, and the report's accepted rate does not count it.
   const late = structuredClone(a.f.config);
   late.registry.models.find(m => m.id === 'claude-light').resolvesTo = [RESOLVED];
   const lateSummary = await run(a.f, { verification: verificationFor(TASK), config: late, dryRun: true });
-  assert.deepEqual([lateSummary.evaluations.produced, lateSummary.evaluations.withheld, lateSummary.modelMatch.delegations.declared, lateSummary.modelMatch.undeclared],
-    [0, { 'importer_refuses:STALE_EVIDENCE_PROFILE': 1 }, 1, []]);
+  assert.deepEqual([lateSummary.evaluations.produced, lateSummary.evaluations.withheld, lateSummary.modelMatch.delegations, lateSummary.modelMatch.undeclared],
+    [0, { 'importer_refuses:STALE_EVIDENCE_PROFILE': 1, effective_model_declared_after_session: 1 },
+      { exact: 0, declared: 0, 'declared-not-in-force': 1, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, []]);
+  // Written for real, the observation carries that kind and the report keeps it out of acceptedRate.
+  const lateRun = await reissuedSession(t, { prepare: { registry: aliasRegistry() }, sub: { model: RESOLVED } });
+  const lateConfig = structuredClone(lateRun.f.config);
+  lateConfig.registry.models.find(m => m.id === 'claude-light').resolvesTo = [RESOLVED];
+  await run(lateRun.f, { verification: verificationFor(TASK), config: lateConfig });
+  const lateObservations = await observationsOf(lateRun.f);
+  assert.deepEqual(lateObservations.map(o => o.effective.modelMatch), ['declared-not-in-force']);
+  const lateModel = observationReport(lateObservations).requestedVsEffective.model;
+  assert.deepEqual([lateModel.compared, lateModel.declared, lateModel.declaredNotInForce, lateModel.acceptedRate], [1, 0, 1, 0]);
+  // An id declared in the definition the session ran with stays 'declared' (case 2), and an exact backend match
+  // stays 'exact' whatever the fingerprint: it is a comparison of two strings.
+
+  // 4b. A recorded id whose form a declaration does not accept is listed as not declarable.
+  for (const [model, declarable] of [['claude-sonnet-9-9[1m]', false], ['vendor/claude-sonnet-9-9', false], ['claude-sonnet-9-7', true]]) {
+    const odd = await reissuedSession(t, { prepare: { registry: aliasRegistry() }, sub: { model } });
+    const oddSummary = await run(odd.f, { verification: verificationFor(TASK), config: odd.f.config, dryRun: true });
+    assert.deepEqual(oddSummary.modelMatch.undeclared.map(u => [u.observedModel, u.declarable]), [[model, declarable]], model);
+    assert.equal(/declarable:false/.test(oddSummary.modelMatch.note), !declarable, model);
+    if (!declarable) assert.throws(() => validateRegistry({ ...odd.f.config.registry, models: odd.f.config.registry.models.map(m => (m.id === 'claude-light' ? { ...m, resolvesTo: [model] } : m)) }), code('INVALID_RESOLVES_TO'));
+  }
 
   // 5. Without a config no declaration is known: an alias match stays withheld and the entry cannot be named.
   const bare = await run(a.f, { verification: verificationFor(TASK), evaluationContext: 'ctx-fixture-1', dryRun: true });
@@ -1201,11 +1225,11 @@ test('the observation report counts every match kind, reads records from before 
   const summary = await run(f, { verification: verificationFor(TASK), config: f.config });
   const [record] = await observationsOf(f);
   const variant = (kind, n) => ({ ...record, delegationId: hash(['fixture-delegation', n]), effective: { ...record.effective, modelMatch: kind } });
-  const records = [record, variant('exact', 1), variant('exact', 2), variant('alias-undeclared', 3), variant('alias', 4), variant('mismatch', 5), variant(null, 6)];
+  const records = [record, variant('exact', 1), variant('exact', 2), variant('alias-undeclared', 3), variant('alias', 4), variant('mismatch', 5), variant(null, 6), variant('declared-not-in-force', 7)];
   assert.ok(records.every(isObservationRecord));
   for (const bad of ['declared-ish', 'alias_undeclared', '', true]) assert.equal(isObservationRecord(variant(bad, 9)), false, String(bad));
-  assert.deepEqual(observationReport(records).requestedVsEffective.model, { compared: 6, exact: 2, declared: 1, aliasUndeclared: 2, alias: 2, mismatch: 1,
-    exactRate: 2 / 6, acceptedRate: 3 / 6, exactOrAliasRate: 5 / 6 });
+  assert.deepEqual(observationReport(records).requestedVsEffective.model, { compared: 7, exact: 2, declared: 1, declaredNotInForce: 1, aliasUndeclared: 2, alias: 2, mismatch: 1,
+    exactRate: 2 / 7, acceptedRate: 3 / 7, exactOrAliasRate: 6 / 7 });
 
   const rows = (await fs.readFile(path.join(f.stateDir, 'collector', summary.evaluations.files[0]), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
   await importEvaluations(f.config, rows, { acceptEvidence: true });
@@ -1221,5 +1245,5 @@ test('the observation report counts every match kind, reads records from before 
   // The collect CLI with the config names the context from the config and produces the declared row again (already present: nothing new).
   r = await child(process.execPath, [COLLECT, '--config', file, '--transcripts', f.transcripts, '--dry-run']);
   assert.equal(r.code, 0, r.stderr);
-  assert.deepEqual(JSON.parse(r.stdout).modelMatch.delegations, { exact: 0, declared: 1, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 });
+  assert.deepEqual(JSON.parse(r.stdout).modelMatch.delegations, { exact: 0, declared: 1, 'declared-not-in-force': 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 });
 });

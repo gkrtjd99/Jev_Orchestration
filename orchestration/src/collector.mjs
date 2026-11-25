@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto';
 import { assert, object, hash, atomicWrite } from './util.mjs';
 import { splitRoutingTail } from './policy.mjs';
 import { validateEvaluation, effectiveModelMatch } from './feedback.mjs';
-import { profileCatalog } from './catalog.mjs';
+import { profileCatalog, RESOLVED_MODEL_ID } from './catalog.mjs';
 import { DecisionLog } from './kernel/log.mjs';
 import { ObservationLog, observationId, latestObservations, isObservationRecord, IDENTIFIER, SKILL_ID } from './kernel/observations.mjs';
 import { SKILLS_POINT } from './kernel/skills.mjs';
@@ -25,7 +25,7 @@ import { SUPERVISOR_POINT } from './kernel/supervisor.mjs';
 import { RETRACTION_SUFFIX } from './kernel/calibration.mjs';
 import { classifySkillAccess } from './collector-access.mjs';
 
-export const COLLECTOR_VERSION = 'outcome-collector-3';
+export const COLLECTOR_VERSION = 'outcome-collector-4';
 // Label sources. Each says what kind of evidence the label is (kernel/calibration.mjs LABEL_SOURCES).
 // The "-after-injection" sources are used when the subagent's prompt carried the skills block of the very
 // decision being labelled: the block tells the subagent what to load, so the label is partly caused by the
@@ -405,7 +405,11 @@ export function parseVerification(value) {
  *                     test only chooses between this label and 'mismatch' and decides what the summary suggests
  *                     the user look at; it never makes a row acceptable.
  *   mismatch          not accepted: anything else
- * `declared` is the list of the profile as the given registry defines it now (empty without a config).
+ * `declared` is the list the caller passes: the declaration that was IN FORCE for the route, i.e. the list of
+ * the profile as the given registry defines it now, and only when the route was recorded with that very profile
+ * definition (same fingerprint). joinSession passes an empty list otherwise and labels a route whose recorded id
+ * is declared now, but was not part of the definition the session ran with, 'declared-not-in-force' - not
+ * accepted (the importer refuses such a row as STALE_EVIDENCE_PROFILE).
  */
 export function modelMatch(effective, route, declared = []) {
   if (!effective || !route) return null;
@@ -446,7 +450,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     const same = (config?.registry?.models ?? []).filter(m => m.runtime === 'claude' && m.backend === route.backend && m.model === route.model);
     return same.length === 1 && ident(same[0].id) ? same[0].id : null;
   };
-  const matchCounts = { exact: 0, declared: 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 };
+  const matchCounts = { exact: 0, declared: 0, 'declared-not-in-force': 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 };
   const undeclared = new Map();
   const resolvedCheck = { hookEvent: { agreed: 0, disagreed: 0, absent: 0 }, hostResult: { agreed: 0, disagreed: 0, absent: 0 } };
   // Agents the hooks saw end (SubagentStop, or the hand-back tool call).
@@ -615,13 +619,20 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     const endToEndMs = g.startTime !== null && s.lastTime !== null && s.lastTime >= g.startTime ? s.lastTime - g.startTime : null;
     // The subagent's first prompt is the call as issued, or (a rewrite applied in place) the issued text plus the appended tail.
     if (s.firstPrompt !== null && main.calls.get(g.id).prompt !== null && !s.firstPrompt.startsWith(main.calls.get(g.id).prompt)) warnings.add('subagent_prompt_differs_from_issued_call');
-    const matchKind = modelMatch(effectiveModel, g.route, profileOf(g.route)?.resolvesTo ?? []);
+    // A declaration counts only for a route recorded with the profile definition that contains it. A session
+    // that ran before the id was declared (the route carries another fingerprint) is not 'declared'.
+    const routeProfile = profileOf(g.route);
+    const inForce = Boolean(routeProfile) && routeProfile.fingerprint === g.route.profileFingerprint;
+    let matchKind = modelMatch(effectiveModel, g.route, inForce ? routeProfile.resolvesTo ?? [] : []);
+    if (!inForce && matchKind !== 'exact' && modelMatch(effectiveModel, g.route, routeProfile?.resolvesTo ?? []) === 'declared') matchKind = 'declared-not-in-force';
     if (g.route) {
       bump(matchCounts, matchKind ?? 'notCompared');
       if (matchKind === 'alias-undeclared') {
         const entry = entryOf(g.route);
         const key = `${entry}\n${g.route.backend}\n${effectiveModel}`;
-        const item = undeclared.get(key) ?? { registryEntry: entry, backend: ident(g.route.backend), observedModel: effectiveModel, delegations: 0 };
+        // `declarable`: whether the id has the form a declaration accepts at all (catalog.mjs RESOLVED_MODEL_ID).
+        // A host id with other characters (brackets, a slash) is recorded and listed, but cannot be declared.
+        const item = undeclared.get(key) ?? { registryEntry: entry, backend: ident(g.route.backend), observedModel: effectiveModel, declarable: RESOLVED_MODEL_ID.test(effectiveModel), delegations: 0 };
         item.delegations++;
         undeclared.set(key, item);
       }
@@ -778,6 +789,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
       else if (g.route) {
         // Only an exact backend match or an id the user declared is accepted; an alias match is not.
         if (e.modelMatch === 'alias-undeclared') reasons.add('effective_model_alias_undeclared');
+        else if (e.modelMatch === 'declared-not-in-force') reasons.add('effective_model_declared_after_session');
         else if (e.modelMatch !== 'exact' && e.modelMatch !== 'declared') reasons.add('effective_model_mismatch');
         if (e.effort !== g.route.effort) reasons.add('effective_effort_differs_from_profile');
       }
@@ -959,9 +971,9 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     observations: { written: 0, alreadyPresent: 0, keptVerified: 0 },
     evaluations: { produced: 0, producedByModelMatch: { exact: 0, declared: 0 }, withheldTasks: 0, withheld: {}, context: null, files: [], imported: false },
     // Routed, joined delegations by how the recorded model id compares with the route (see modelMatch()).
-    // `undeclared` lists what a user would have to declare for the alias matches to be accepted. Nothing is
+    // `undeclared` lists what was observed for the alias matches (entry, backend, recorded id). Nothing is
     // added to any registry by the collector.
-    modelMatch: { delegations: { exact: 0, declared: 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, declarationsKnown: Boolean(config), undeclared: [],
+    modelMatch: { delegations: { exact: 0, declared: 0, 'declared-not-in-force': 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, declarationsKnown: Boolean(config), undeclared: [],
       resolvedModelCheck: { hookEvent: { agreed: 0, disagreed: 0, absent: 0 }, hostResult: { agreed: 0, disagreed: 0, absent: 0 } }, note: null },
     verification: { entries: verification.length, matched: 0, unmatched: 0 },
     supervisor: { judged: 0 },
@@ -1053,7 +1065,7 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     for (const item of joined.modelMatch.undeclared) {
       const prior = summary.modelMatch.undeclared.find(u => u.registryEntry === item.registryEntry && u.backend === item.backend && u.observedModel === item.observedModel);
       if (prior) prior.delegations += item.delegations;
-      else summary.modelMatch.undeclared.push({ ...item, wouldNeed: { registryEntry: item.registryEntry, resolvesTo: [item.observedModel] } });
+      else summary.modelMatch.undeclared.push({ ...item });
     }
     summary.evaluations.withheldTasks += joined.evaluationsWithheld.tasks;
     summary.evaluations.context = joined.evaluationContext;
@@ -1069,6 +1081,8 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     summary.modelMatch.note = 'NOT ADDED. For each item, the host recorded `observedModel` for a route whose registry entry names `backend`. '
       + 'To have such runs accepted as evidence, the user adds the id to `resolvesTo` of that registry entry after checking that it is the model the entry means, '
       + 'reinstalls, and runs new sessions: a declaration changes the profile fingerprint, so sessions recorded before it stay unimportable.'
+      + ' This list is what was observed, not a declaration and not a patch to apply: a host that re-points an alias to another model is listed here in the same way.'
+      + (summary.modelMatch.undeclared.some(u => !u.declarable) ? ' An item with declarable:false has an id whose form `resolvesTo` does not accept; such runs cannot be made importable by a declaration.' : '')
       + (config ? '' : ' No config was given, so declared ids are unknown to this run and registryEntry is null.');
   }
   summary.verification.unmatched = verification.length - Math.min(verification.length, summary.verification.matched);
