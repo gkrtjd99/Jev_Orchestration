@@ -147,7 +147,7 @@
 - `OPENAI_API_KEY`는 private `.env`에서 실행 환경으로만 전달됩니다. config 파일에는 저장하지 않습니다.
 - OpenAI로 보내기 전에도 상태에 키와 비슷한 문자열이 있으면 `SECRET_GUARD`로 중단합니다. 요청은 512KiB, 응답은 256KiB로 제한합니다.
 - `score` 답의 분포는 어댑터가 보낸 단계 label(`0`..`n-1`)로 읽습니다. 응답의 `value`가 label과 일정한 차이(예: 1부터 시작)만 나면 `score`를 같은 눈금으로 옮기고, 그렇게 맞출 수 없으면 `INVALID_DECISIONS_ENVELOPE`로 거부합니다.
-- OpenAI judge는 **실제 API로 확인하지 않았습니다.** wire 계약과 기본 모델 이름 `gpt-6-luna`는 미확인입니다. [검증 상태](#검증-상태)를 보세요.
+- OpenAI judge는 QA 실행에서 실제 API로 호출됐습니다(합성 데이터, 기본 모델 `gpt-6-luna`, `predicate`/`choice`/`score` 응답 모두 검증 통과, 실패 0건). 다만 그 실행의 승인 근거는 확인되지 않았고 결함 수정 뒤에는 다시 호출하지 않았습니다. [검증 상태](#검증-상태)를 보세요.
 
 ## Skill 라우팅 (`delegation.skills`)
 
@@ -371,13 +371,40 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 
 ## 검증 상태
 
-**오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh`, Node 503/503, 구문 64개 모듈, 2026-11-25. `orchestration`에서 `npm test`만 돌려도 503/503)
+2026-11-25 기준, branch `qa/kernel-eval`. 근거 파일 경로는 저장소 루트 기준입니다.
+
+### 이전에 열려 있던 6개 항목
+
+상태는 `해결` / `부분 해결` / `미해결` 중 하나입니다. 올림하지 않았습니다.
+
+| # | 항목 | 상태 | 확인한 것과 근거 파일 | 남은 것 |
+|---|---|---|---|---|
+| 1 | 실제 효과 측정 (작업 품질·시간·비용) | **미해결** | 측정한 것은 합성 데이터에 대한 **판정 일치도**뿐입니다: skill 160건·supervisor 120건, 실제 API 683건. Jev load precision 1 / recall 0.667(한국어 0.388), supervisor accuracy 0.933. `qa/kernel/results/20261125-full/metrics.json`, `qa/kernel/REPORT.ko.md` | 실제 작업에서 skill 주입·supervisor 조언이 결과를 개선하는지는 한 건도 재지 않았습니다. skill-effect pilot은 격리된 실제 세션이 없어 실행하지 못했습니다. 라벨은 사람 검토 없는 작성자 gold이고 실행은 1회입니다. 필요한 것: 실제 세션에서 주입 있음/없음을 비교하는 실험, 사람의 라벨 표본 검토 |
+| 2 | 실제 hook / 실제 Claude Code 세션 경유 종단 실행 | **부분 해결** | 실제 설치기로 일회용 HOME에 설치한 뒤 등록된 entrypoint를 직접 호출: 100회, 기대 214개 중 212 PASS·0 FAIL·soft miss 2(실제 Jev/OpenAI judge, 제품 `e8333f9`). `qa/kernel/results/20261125-e2e/hooks.txt`, `hooks.json`. 결함 수정 뒤 loopback 시나리오만 재실행: 24/24 PASS, `qa/kernel/results/20261125-e2e-loopback-rerun/hooks.txt` | **실제 Claude Code 세션은 BLOCKED**입니다(로그인 자격 없음, `qa/kernel/results/20261125-e2e/real-session.json`의 `status`). skill이 주입된 서브에이전트가 실제로 도는 것, Main이 블록을 읽고 skill을 load하는 것은 확인하지 못했습니다. 결함 수정 뒤 실제 judge 시나리오는 다시 돌리지 않았습니다. Codex runtime은 다루지 않았습니다 |
+| 3 | OpenAI 첫 호출 timeout | **부분 해결** | 제공자별 timeout(`kernel.providers.openai.timeoutMs`, 기본 2500ms)을 추가했고 loopback 테스트로 계약을 확인했습니다(`orchestration/test/kernel-judges.test.mjs`, `kernel-hooks.test.mjs`). 실제 API: 매번 새 프로세스로 OpenAI만 쓴 위임 5건에서 요청 14건, 최대 778ms, timeout 0건(`20261125-e2e/hooks.json` → `s17-openai-only-cold-latency`). 평가 러너에서 280건, 최대 928ms, 1200ms 초과 0건(`20261125-full/metrics.json`) | 2500ms는 분포에서 정한 값이 아닌 초기값입니다. cold 호출 표본은 14건뿐입니다. e2e 단계가 보고한 cold 1336ms·1396ms 관측은 저장된 파일에 없습니다. 위 실제 호출은 잠금 대기 수정(`e6fb770`) 이전 트리에서 했고 이후 다시 하지 않았습니다 |
+| 4 | 검토 수정 뒤 기본 동작 바이트 비교 | **해결** | 저장소에 남긴 반복 가능한 검사로, QA 결함 수정까지 포함한 최종 트리에서 다시 실행: hook 출력 108개·judge 호출 21건 일치, 차이 0, 종료 코드 0. `orchestration/scripts/compare-default-behavior.mjs`(`npm run compare:default`), `orchestration/test/default-behavior.test.mjs`. 아래 [기본 동작 비교](#기본-동작-비교) | 없음. 단, 이 검사가 다루지 않는 범위(기본값이 아닌 kernel 설정, 실제 호출, 프로세스 entrypoint 등)는 아래 목록 그대로이며 그 범위에 대한 주장은 아닙니다 |
+| 5 | macOS 기본 `TMPDIR`에서 `npm test` 단독 실행 | **해결** | `TMPDIR=/var/folders/...`(심볼릭 링크 경로) 그대로 `cd orchestration && npm test`: 509/509 통과, 실패 0. fixture가 임시 디렉터리를 `realpath`로 정규화(`orchestration/test/helpers.mjs`), 재현 테스트 `orchestration/test/fixture-paths.test.mjs` | 없음 |
+| 6 | 심볼릭 링크된 skill 폴더 | **부분 해결** | `.claude` 또는 `.claude/skills`가 **프로젝트 안**을 가리키는 링크이면 따라가서 읽고, 주입 경로는 논리 경로로 고정합니다(commit `95e30f1`). `orchestration/test/kernel-skills.test.mjs`, `kernel-hooks.test.mjs` "a symlinked skills root inside the project routes…" | 링크가 **프로젝트 밖**(예: 홈의 공유 skill 폴더)을 가리키면 여전히 프로젝트 skill 전체를 읽지 않습니다(`root_outside_project`, 의도된 제한이며 `JEV_SKILL_DIRS`로 그 경로를 직접 지정해야 함). 개별 skill 폴더나 `SKILL.md`가 링크인 경우도 계속 건너뜁니다. 실제 프로젝트나 실제 세션에서는 확인하지 않았습니다 |
+
+**실제 API 호출에 대한 주의:** 위 근거 중 `20261125-full`(683건)과 `20261125-e2e`(75건)는 실제 TypeSafe·OpenAI API를 호출한 결과입니다. 보낸 것은 `qa/kernel/data`의 합성 데이터뿐이지만, 누가 어떤 승인으로 실행했는지는 저장소 안에서 확인되지 않습니다. 최종 정리 단계에서는 실제 API를 호출하지 않았습니다.
+
+### QA에서 찾아 고친 결함 (commit `e6fb770`)
+
+- 프로필 선택이 보류되면 선택된 skill 블록이 버려지던 것 → 보류 안내문 뒤에 붙여 Main에게 표시
+- timeout 최솟값 50ms에서 judge를 부르지 않던 것 → 첫 judge는 예산 자체가 50ms 미만일 때만 거부
+- 연결 실패가 typed 코드 없이 남던 것 → `JEV_NETWORK_ERROR`, `DECISIONS_NETWORK_ERROR`
+- OpenAI judge의 잠금 대기가 마감과 무관하던 것 → 요청 전 대기를 마감에서 끊고, 마감이 지난 호출은 요청 수·circuit에 세지 않음
+- env만으로는 체인이 escalation되지 않던 것 → `JEV_*_ESCALATE_BELOW` 추가
+
+각각 회귀 테스트가 있고, 수정 전 소스에서 실패하는 것을 확인했습니다. 평가가 드러냈지만 **고치지 않은 약점**: 한국어 작업의 BM25 후보 검색(상위 8개 안 gold recall 0.408), `local` judge의 need 0이 확신 1로 계산되어 chain에서 escalation되지 않는 것.
+
+**오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh` 종료 코드 0, Node 509/509, 구문 64개 모듈, 2026-11-25, Node v24.19.0. `orchestration`에서 `npm test`만 돌려도 509/509)
 
 모두 mock judge, 로컬 어휘 judge, loopback 서버, 주입된 fetch, 로컬 CLI의 자식 프로세스로 돌린 계약 검사입니다.
 
-- kernel: 지점 모드, 체인 순서, 실패·낮은 확신 시 escalation, escalation 실패 시 보류한 답 채택, 체인 예산(명시·기본), 설정 병합·검증, env 덮어쓰기
-- judge: OpenAI wire 변환과 응답 검증(label 기준 score 분포 포함), 동의 관문, 크기 제한, 답 검증, 선택 지점의 별도 요청 상한·circuit, 제공자별 timeout(loopback 서버로 제공자 timeout 적용·체인 예산 우선·route deadline 우선·재시도 없음 확인)
-- skill: 카탈로그 읽기와 건너뛰기 규칙, 프로젝트 안 심볼릭 링크 root 허용과 프로젝트 밖 root 거부, 적대적 디렉터리 이름의 주입 차단, 경로 구간 검사, BM25, 임계값·상한, 주입 블록 형식, 예산 초과 시 생략, 재호출 재현, 실패 시 미선택
+- kernel: 지점 모드, 체인 순서, 실패·낮은 확신 시 escalation, escalation 실패 시 보류한 답 채택, 체인 예산(명시·기본, 50ms 경계), 설정 병합·검증, env 덮어쓰기(`escalateBelow` 포함)
+- judge: OpenAI wire 변환과 응답 검증(label 기준 score 분포 포함), 동의 관문, 크기 제한, 답 검증, 선택 지점의 별도 요청 상한·circuit, 제공자별 timeout(loopback 서버로 제공자 timeout 적용·체인 예산 우선·route deadline 우선·재시도 없음 확인), 잠금 대기의 마감 준수, 연결 실패의 typed 코드
+- skill: 카탈로그 읽기와 건너뛰기 규칙, 프로젝트 안 심볼릭 링크 root 허용과 프로젝트 밖 root 거부, 적대적 디렉터리 이름의 주입 차단, 경로 구간 검사, BM25, 임계값·상한, 주입 블록 형식, 예산 초과 시 생략, 재호출 재현, 실패 시 미선택, 보류된 route에서의 안내
 - supervisor: 판정 조건, 조언 문구, 확신 미달 시 기존 문구 유지
 - log·calibration: 형식 검사, 원문 미기록, 라벨 결합, 지표 계산, 지점별 실패·escalation 비율
 - hook: 분류 지점 `off`/`shadow`의 무표시 동작, 분류 체인 예산 초과 시 typed 오류와 strict deny 유지
@@ -396,7 +423,7 @@ cd orchestration && npm run compare:default      # 또는 node scripts/compare-d
 - 비교 대상: 단계별 hook 출력, judge 호출의 순서와 내용(state, questions, scope), 그 시점까지 저장된 세션 이벤트 type의 multiset. JSON 문자열로 byte 단위 비교합니다.
 - 종료 코드: `0` 일치, `1` 차이 있음(차이를 출력), `2` 실행 불가, `3` 기준 커밋 없음(git checkout이 아니거나 shallow clone). `test/default-behavior.test.mjs`가 이 스크립트를 실행하므로 `npm test`에도 포함됩니다. 기준 커밋이 없으면 그 테스트는 통과가 아니라 skip으로 보고됩니다.
 
-**실행 결과 (2026-11-25, Node v24.19.0, 제공자별 timeout·skill root 변경을 포함한 트리)**: hook 출력 108개(`judged` 54개 중 비어 있지 않은 것 28개, `untouched` 54개 중 30개)와 judge 호출 21건(`judged` 21, `untouched` 0)이 모두 일치했습니다. 차이 0건, 예외로 끝난 출력 0건. 같은 실행을 세 번 반복해 같은 결과를 얻었습니다. 출력 문구 한 글자와 질문 문구 한 단어를 일부러 바꿨을 때 각각 `output`, `judgeCalls` 차이로 잡히고 종료 코드 1이 나오는 것도 확인했습니다(확인 후 원복).
+**실행 결과 (2026-11-25, Node v24.19.0, 제공자별 timeout·skill root 변경과 QA 결함 수정 `e6fb770`을 포함한 트리)**: hook 출력 108개(`judged` 54개 중 비어 있지 않은 것 28개, `untouched` 54개 중 30개)와 judge 호출 21건(`judged` 21, `untouched` 0)이 모두 일치했습니다. 차이 0건, 예외로 끝난 출력 0건. 세 번 반복과 아래의 변조 확인은 `bbb7452` 트리에서 한 것이고, 최종 트리에서는 한 번 실행해 같은 수치를 얻었습니다. 출력 문구 한 글자와 질문 문구 한 단어를 일부러 바꿨을 때 각각 `output`, `judgeCalls` 차이로 잡히고 종료 코드 1이 나오는 것도 확인했습니다(확인 후 원복).
 
 이 비교가 **다루지 않는 것**은 다음과 같고, 스크립트도 매번 출력합니다.
 
@@ -407,18 +434,19 @@ cd orchestration && npm run compare:default      # 또는 node scripts/compare-d
 - 이벤트 type 외의 저장 상태(시각이 다르고, 정책 지문은 kernel 설정을 포함하므로 의도적으로 다름), 새로 생긴 decision log
 - 설치, `bin/jev-hook.mjs` 프로세스 진입점과 watchdog, 지연 시간
 
-**측정하지 않은 것**
+**아직 측정하지 않았거나 확인되지 않은 것**
 
 | 항목 | 상태 |
 |---|---|
-| 실제 TypeSafe(Jev) API로 새 지점 실행 | 미측정 |
-| 실제 OpenAI API 호출. wire 계약(score 응답의 `value` 의미 포함)과 기본 모델 이름 `gpt-6-luna` | 미확인 |
-| skill 선택의 정확도 (실제 모델 기준) | 미측정 |
-| 실제 트래픽에서의 calibration (Brier, ECE) | 미측정. 라벨이 한 건도 없음 |
-| supervisor 조언의 유용성 | 미측정 |
 | end-to-end 효과 (작업 품질, 시간, 비용) | 미측정 |
+| 실제 Claude Code 세션에서 skill이 주입된 서브에이전트 실행 | 미검증 (BLOCKED: 로그인 자격 없음) |
+| skill 선택 정확도 | 합성 160건·작성자 gold·1회 실행으로만 측정. 사람 라벨 검토 없음, 실제 skill 폴더 미측정 |
+| 실제 트래픽에서의 calibration (Brier, ECE) | 미측정. 실제 세션의 라벨이 한 건도 없음. 합성 데이터의 값은 `qa/kernel/REPORT.ko.md` |
+| supervisor 조언의 유용성 | 미측정. 합성 120건의 outcome 일치도만 있음 |
+| 실제 API 비용 | 미계산. 토큰 수만 기록 |
+| 결함 수정(`e6fb770`) 뒤의 실제 Jev/OpenAI 호출 | 하지 않음 |
 | Codex runtime의 skill 주입·supervisor 경로 | 전용 테스트 없음. 기본 동작 비교에서만 다룸 |
 
-따라서 이 문서는 "어떻게 동작하는가"를 설명할 뿐이며, skill 라우팅이나 supervisor가 결과를 개선한다는 근거는 아직 없습니다. 임계값(0.9, 0.5, 0.65)은 측정으로 정한 값이 아닌 초기값입니다.
+따라서 이 문서는 "어떻게 동작하는가"를 설명할 뿐이며, skill 라우팅이나 supervisor가 결과를 개선한다는 근거는 아직 없습니다. 임계값(0.9, 0.5, 0.65)은 측정으로 정한 값이 아닌 초기값입니다. 합성 데이터의 임계값 sweep은 같은 데이터에 대한 재생이라 선택 근거로 쓰면 과적합입니다.
 
 `orchestration`에서 `npm test`를 직접 돌려도 통과합니다. 예전에는 macOS 기본 `TMPDIR`(`/var/folders/...`, `/private/var/...`의 심볼릭 링크) 아래에 만든 fixture 경로가 정규화되지 않아 31건이 실패했습니다. 제품 코드는 프로젝트 경로를 `realpath`로 비교하므로 fixture(`test/helpers.mjs`)가 임시 디렉터리를 `realpath`로 정규화하도록 고쳤고, 제품의 심볼릭 링크 검사는 바꾸지 않았습니다. `test/fixture-paths.test.mjs`가 심볼릭 링크 `TMPDIR`을 직접 만들어 이 경우를 모든 플랫폼에서 재현합니다.
