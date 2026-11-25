@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "project": "studiobook",
+  "note": "Fixed order. Model-authored synthetic tasks. `difficulty` is the author's intended tier and is never shown to a session. `allowedPaths` are the files a task may change; a new file under test/ is allowed for every task.",
+  "tasks": [
+    {
+      "id": "t01",
+      "lang": "en",
+      "difficulty": "moderate",
+      "text": "The mobile app needs to page through long lists without page numbers. In src/api/paginate.mjs add paginateAfter(items, { after, limit }) next to the existing paginate and export it. items is an array of records that each have a unique string id, already in display order. It returns { items, nextCursor }: up to limit records that come after the record whose id is after (from the start when after is null or left out), and nextCursor is the id to pass as after to get the following page, or null when nothing follows the returned page. limit defaults to 20 and must be an integer from 1 to 100; otherwise throw ValidationError with code 'INVALID_LIMIT', the way paginate rejects its own arguments. An after value that matches no record throws ValidationError with code 'INVALID_CURSOR'. Leave paginate as it is.",
+      "allowedPaths": ["src/api/paginate.mjs", "test/paginate.test.mjs"]
+    },
+    {
+      "id": "t02",
+      "lang": "ko",
+      "difficulty": "routine",
+      "text": "대기자 명단 길이 제한을 설정으로 빼려고 합니다. src/config/settings.mjs의 loadSettings(env)가 돌려주는 객체에 maxWaitlist 항목을 추가해 주세요. 환경 변수 STUDIO_MAX_WAITLIST에서 읽고, 변수가 없거나 빈 문자열이면 기본값 20입니다. 1 이상의 정수를 나타내는 숫자 문자열이 아니면(예: '0', '-3', '2.5', '12명') 같은 파일의 다른 항목들과 같은 방식으로 ConfigError를 던져야 합니다. 값은 숫자로 돌려주고, 기존 항목들의 동작은 바꾸지 마세요.",
+      "allowedPaths": ["src/config/settings.mjs", "test/settings.test.mjs"]
+    },
+    {
+      "id": "t03",
+      "lang": "en",
+      "difficulty": "hard",
+      "text": "Two complaints from the front desk about member display names. First, the same person was registered twice under the name José: once typed at the desk on a Mac and once pasted from the web sign-up form. The two entries look identical in the member list, but the directory treated them as different names and did not report NAME_TAKEN. Second, some members cannot register names that are clearly within the 20-character limit, for example a Korean name entered from certain phones, or a short name with a family emoji in it; they get NAME_TOO_LONG. Names that really are longer than 20 characters must still be rejected, and names that differ in what a person reads (Jose and José) are different names. Find the cause in src/members/names.mjs and src/members/directory.mjs and fix it so that names are compared and measured the way a person reads them. Everything else about names (trimming, collapsing spaces, ignoring capitalisation for uniqueness, the error codes) stays as it is.",
+      "allowedPaths": ["src/members/names.mjs", "src/members/directory.mjs", "test/directory.test.mjs"]
+    },
+    {
+      "id": "t04",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "text": "대기자 명단에서 빈자리를 누구에게 먼저 줄지 정하는 규칙이 바뀝니다. src/booking/waitlist.mjs에 orderWaitlist(entries)를 추가해서 export해 주세요. entries는 { memberId, tier, joinedAt } 객체의 배열입니다. tier는 'vip', 'regular', 'trial' 중 하나이고 joinedAt은 ISO 8601 시각 문자열입니다(예: '2026-05-01T09:00:00+09:00'). 함수는 우선순위대로 정렬한 새 배열을 돌려줍니다. vip가 가장 먼저, 그다음 regular, 마지막이 trial이고, 같은 등급 안에서는 더 일찍 대기를 시작한 사람이 먼저입니다. 등급도 대기 시작 시각도 같으면 entries에 들어 있던 순서를 그대로 지켜야 합니다. 넘겨받은 배열은 바꾸지 말고, 모르는 tier가 있으면 ValidationError(code 'UNKNOWN_TIER')를 던지세요. 그리고 Waitlist 클래스의 next()가 지금처럼 가장 먼저 등록한 사람이 아니라 이 순서의 첫 번째 사람을 돌려주도록 바꿔 주세요. promote()도 그 사람을 명단에서 빼야 합니다.",
+      "allowedPaths": ["src/booking/waitlist.mjs", "test/waitlist.test.mjs"]
+    },
+    {
+      "id": "t05",
+      "lang": "en",
+      "difficulty": "routine",
+      "text": "Add src/util/duration.mjs exporting formatDuration(minutes) for the class schedule. It takes a whole number of minutes (0 or more) and returns text like '45m', '1h 30m' or '2h': hours and minutes, leaving out a part that is zero, except that 0 minutes is '0m'. Anything that is not a non-negative integer throws ValidationError from src/util/errors.mjs with code 'INVALID_DURATION'.",
+      "allowedPaths": ["src/util/duration.mjs"]
+    },
+    {
+      "id": "t06",
+      "lang": "ko",
+      "difficulty": "hard",
+      "text": "여러 회원이 수업료 하나를 나눠 내는 '함께 결제' 기능을 만들고 있습니다. src/billing/split.mjs를 새로 만들고 splitCharge(total, currency, weights)를 export해 주세요. total은 인보이스의 total과 같은 형식의 금액 문자열이고(예: '120.00'), currency는 src/money/currency.mjs가 아는 통화 코드, weights는 사람마다 부담하는 몫을 나타내는 양의 정수 배열입니다(똑같이 셋이 나누면 [1, 1, 1], 한 사람이 두 몫을 내면 [2, 1, 1]). weights의 순서대로 각자 낼 금액을 금액 문자열의 배열로 돌려줍니다. 각 금액은 그 통화로 실제로 청구할 수 있는 금액이어야 하고, 모두 더하면 total과 정확히 같아야 합니다. 또 누구의 금액도 자기 몫대로 계산한 값에서 그 통화의 최소 단위 하나 이상 벗어나면 안 됩니다. weights가 빈 배열이거나 양의 정수가 아닌 값이 들어 있으면 ValidationError(code 'INVALID_WEIGHTS')를 던지세요.",
+      "allowedPaths": ["src/billing/split.mjs"]
+    },
+    {
+      "id": "t07",
+      "lang": "en",
+      "difficulty": "moderate",
+      "text": "The payment provider retries webhook deliveries, so recordPayment in src/payments/ledger.mjs is sometimes called more than once for the same payment and members end up with duplicate ledger entries. Add an optional idempotencyKey (a string) to recordPayment's input. All calls that carry the same key must result in exactly one ledger entry, and each of them returns that entry. A retry can arrive while the first delivery is still being written, and a delivery is also retried after it failed. If a key is used again with a different memberId, amount or currency, throw ConflictError with code 'IDEMPOTENCY_MISMATCH' and record nothing. Calls without a key behave as they do today. Change only src/payments/ledger.mjs: the store is shared with other features and its interface must stay as it is.",
+      "allowedPaths": ["src/payments/ledger.mjs", "test/ledger.test.mjs"]
+    },
+    {
+      "id": "t08",
+      "lang": "ko",
+      "difficulty": "hard",
+      "text": "정원이 찬 수업에 예약이 정원보다 더 들어가는 일이 있습니다. 지난주 화요일 저녁 필라테스(정원 12명)에 13명이 예약됐고, 같은 회원의 예약이 두 건 생긴 경우도 있었습니다. 두 경우 모두 예약 개시 직후처럼 요청이 한꺼번에 몰릴 때만 나타났고, 한 명씩 차례로 예약할 때는 재현되지 않습니다. src/booking/booking-service.mjs에서 원인을 찾아 고쳐 주세요. 정원이 찼을 때와 중복 예약일 때 내는 오류(BookingError의 code)는 지금과 같아야 하고, 요청이 몰리더라도 정원만큼은 정상적으로 예약되어야 합니다. src/store/memory-store.mjs는 다른 기능도 함께 쓰므로 바꾸지 마세요.",
+      "allowedPaths": ["src/booking/booking-service.mjs", "test/booking-service.test.mjs"]
+    },
+    {
+      "id": "t09",
+      "lang": "ko",
+      "difficulty": "routine",
+      "text": "출석 보고서를 스프레드시트로 내보내려고 합니다. src/reports/csv.mjs를 새로 만들고 toCsv(rows, columns)를 export해 주세요. rows는 객체의 배열이고 columns는 내보낼 키 이름의 배열입니다. 첫 줄은 columns를 그대로 쓴 머리글이고 그 뒤로 row마다 한 줄씩 columns 순서대로 값을 씁니다. 칸은 쉼표로, 줄은 '\\n'으로 구분하고 마지막 줄 뒤에는 줄바꿈을 붙이지 않습니다. 값이 null이거나 undefined이면 빈 칸으로 두고, 그 밖의 값은 String(값)으로 바꿉니다. 칸의 내용에 쉼표, 큰따옴표, 줄바꿈 중 하나라도 들어 있으면 그 칸을 큰따옴표로 감싸고 안에 있는 큰따옴표는 두 번 씁니다. 머리글에도 같은 규칙을 적용합니다.",
+      "allowedPaths": ["src/reports/csv.mjs"]
+    },
+    {
+      "id": "t10",
+      "lang": "en",
+      "difficulty": "hard",
+      "text": "Studios in New York and London report that weekly classes drift by an hour on the published schedule twice a year: a Tuesday 18:00 class in New York whose first session was on 3 March 2026 is listed at 19:00 from 10 March on. Classes in Seoul are never affected. The schedule is computed in src/schedule/recurrence.mjs. Find the cause and fix it so that a weekly class is always listed at the same studio wall-clock time, in every time zone and in everything that module computes. What the module does otherwise (the shape of its results, the except dates, the from/to range that includes from and excludes to) must stay as it is.",
+      "allowedPaths": ["src/schedule/recurrence.mjs", "test/recurrence.test.mjs"]
+    },
+    {
+      "id": "t11",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "text": "src/store/cache.mjs의 CachedStore는 지금 읽기(get, list)만 지원해서, 캐시를 거치는 화면에서 회원 정보를 고쳐도 TTL이 지날 때까지 옛 값이 보입니다. CachedStore에 set(key, value)와 delete(key)를 추가해 주세요. 둘 다 원본 store에 그대로 반영해야 하고, 쓰기가 끝난 뒤의 get과 list는 옛 내용을 돌려주면 안 됩니다. 쓰기와 관계없는 다른 키의 캐시는 그대로 남아 있어야 합니다(쓰기 한 번에 캐시 전체를 비우지 마세요). TTL 동작과 clear()는 지금과 같아야 합니다.",
+      "allowedPaths": ["src/store/cache.mjs", "test/cache.test.mjs"]
+    },
+    {
+      "id": "t12",
+      "lang": "en",
+      "difficulty": "routine",
+      "text": "Add src/members/contact.mjs with two exported functions for the member list export. normalizeEmail(email) trims surrounding whitespace and lower-cases the address; if the result does not have exactly one '@' with at least one character on each side of it, it throws ValidationError with code 'INVALID_EMAIL'. maskEmail(email) normalizes the address the same way and returns it with every character of the part before the '@' except the first replaced by '*', for example 'Jane.Doe@Example.com' becomes 'j*******@example.com'.",
+      "allowedPaths": ["src/members/contact.mjs"]
+    }
+  ]
+}

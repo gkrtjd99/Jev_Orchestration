@@ -1,0 +1,13 @@
+{
+  "name": "studiobook",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "description": "Class booking and billing back end for small fitness studios",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

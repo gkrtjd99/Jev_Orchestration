@@ -1,0 +1,341 @@
+{
+  "schema": 1,
+  "note": "What each flawed solution gets wrong (why), the hidden check written to catch exactly that (intended), whether the basic checks still hold (done) and the complete list of checks that fail for it (fails). selftest.mjs asserts all of it.",
+  "variants": [
+    {
+      "task": "t01",
+      "variant": "cursor-on-full-page",
+      "why": "Hands out a cursor whenever the page is full, so a list whose length is a multiple of the limit ends with an extra empty page.",
+      "intended": "hidden: a last page that is exactly full has no next cursor",
+      "done": true,
+      "fails": [
+        "hidden: a last page that is exactly full has no next cursor",
+        "hidden: walking the cursors visits every record once and ends"
+      ]
+    },
+    {
+      "task": "t01",
+      "variant": "unknown-cursor-restarts",
+      "why": "findIndex(...) + 1 turns an unknown cursor into index 0: the first page is served again instead of INVALID_CURSOR.",
+      "intended": "hidden: an unknown cursor is rejected",
+      "done": true,
+      "fails": [
+        "hidden: an unknown cursor is rejected"
+      ]
+    },
+    {
+      "task": "t02",
+      "variant": "empty-string-not-default",
+      "why": "Only an unset variable falls back to the default; an empty string is rejected.",
+      "intended": "hidden: an empty value means the default",
+      "done": true,
+      "fails": [
+        "hidden: an empty value means the default"
+      ]
+    },
+    {
+      "task": "t02",
+      "variant": "lenient-parse",
+      "why": "Number.parseInt accepts a number followed by anything: \"2.5\" becomes 2 and \"12명\" becomes 12.",
+      "intended": "hidden: values that are not whole numbers from 1 are rejected",
+      "done": true,
+      "fails": [
+        "hidden: values that are not whole numbers from 1 are rejected"
+      ]
+    },
+    {
+      "task": "t03",
+      "variant": "counts-code-points",
+      "why": "Normalises and counts code points: a family emoji is seven of them, a letter with a combining mark two.",
+      "intended": "hidden: a short name with family emoji is accepted",
+      "done": true,
+      "fails": [
+        "hidden: a short name with family emoji is accepted",
+        "hidden: twenty characters built from combining marks are accepted"
+      ]
+    },
+    {
+      "task": "t03",
+      "variant": "normalized-but-counts-code-units",
+      "why": "Normalises to NFC (the duplicate is caught) but still measures String.length, so emoji and combining sequences count several times.",
+      "intended": "hidden: a short name with family emoji is accepted",
+      "done": true,
+      "fails": [
+        "hidden: a short name with family emoji is accepted",
+        "hidden: twenty characters built from combining marks are accepted"
+      ]
+    },
+    {
+      "task": "t03",
+      "variant": "strips-accents",
+      "why": "Compares names with the accents removed: José can no longer register next to Jose.",
+      "intended": "hidden: names that read differently stay different",
+      "done": true,
+      "fails": [
+        "hidden: names that read differently stay different"
+      ]
+    },
+    {
+      "task": "t04",
+      "variant": "compares-timestamps-as-text",
+      "why": "Sorts joinedAt as text: correct only while every timestamp is written with the same UTC offset.",
+      "intended": "hidden: join times are compared as instants, whatever their UTC offset",
+      "done": true,
+      "fails": [
+        "hidden: join times are compared as instants, whatever their UTC offset"
+      ]
+    },
+    {
+      "task": "t04",
+      "variant": "sorts-in-place",
+      "why": "Array.prototype.sort on the argument: the caller's array is reordered and returned.",
+      "intended": "hidden: the given array is left alone and a new one is returned",
+      "done": true,
+      "fails": [
+        "hidden: the given array is left alone and a new one is returned"
+      ]
+    },
+    {
+      "task": "t04",
+      "variant": "ties-reversed",
+      "why": "Sorts worst-first and reverses, which also reverses entries that tie.",
+      "intended": "hidden: equal tier and time keep the given order",
+      "done": true,
+      "fails": [
+        "hidden: equal tier and time keep the given order",
+        "hidden: join times are compared as instants, whatever their UTC offset"
+      ]
+    },
+    {
+      "task": "t05",
+      "variant": "no-validation",
+      "why": "Checks only \"a number that is not negative\": 1.5 and NaN are formatted instead of rejected.",
+      "intended": "hidden: anything but a non-negative integer is rejected",
+      "done": true,
+      "fails": [
+        "hidden: anything but a non-negative integer is rejected"
+      ]
+    },
+    {
+      "task": "t05",
+      "variant": "zero-part-kept",
+      "why": "Always prints both parts once there is an hour: 120 becomes \"2h 0m\".",
+      "intended": "hidden: a zero part is left out",
+      "done": true,
+      "fails": [
+        "hidden: a zero part is left out"
+      ]
+    },
+    {
+      "task": "t06",
+      "variant": "float-division",
+      "why": "Divides the amount as a floating-point number and prints two decimals: shares do not add up, and KRW/KWD amounts get the wrong number of decimals.",
+      "intended": "hidden: shares add up when the amount does not divide",
+      "done": true,
+      "fails": [
+        "hidden: shares add up when the amount does not divide",
+        "hidden: nobody is more than one minor unit off their share",
+        "hidden: currencies without decimals get whole amounts",
+        "hidden: currencies with three decimals keep three decimals",
+        "hidden: many totals and weights"
+      ]
+    },
+    {
+      "task": "t06",
+      "variant": "remainder-to-last",
+      "why": "Rounds every share and gives the last payer whatever is left: the last share can be several units off, even negative.",
+      "intended": "hidden: nobody is more than one minor unit off their share",
+      "done": true,
+      "fails": [
+        "hidden: shares add up when the amount does not divide",
+        "hidden: nobody is more than one minor unit off their share",
+        "hidden: many totals and weights"
+      ]
+    },
+    {
+      "task": "t07",
+      "variant": "check-then-write",
+      "why": "Looks the key up, then writes: two deliveries in flight both find nothing and both write.",
+      "intended": "hidden: deliveries that overlap produce one entry",
+      "done": true,
+      "fails": [
+        "hidden: deliveries that overlap produce one entry",
+        "hidden: overlapping deliveries with one key and different payments record one entry"
+      ]
+    },
+    {
+      "task": "t07",
+      "variant": "failed-delivery-remembered",
+      "why": "Remembers the promise of the first delivery per key for ever, including a rejected one: the retry of a failed delivery fails again.",
+      "intended": "hidden: a delivery retried after it failed is recorded once",
+      "done": true,
+      "fails": [
+        "hidden: a delivery retried after it failed is recorded once"
+      ]
+    },
+    {
+      "task": "t07",
+      "variant": "mismatch-ignored",
+      "why": "Returns the first entry for any reuse of the key without comparing the payment.",
+      "intended": "hidden: a key reused for another payment is a conflict and records nothing",
+      "done": true,
+      "fails": [
+        "hidden: a key reused for another payment is a conflict and records nothing",
+        "hidden: overlapping deliveries with one key and different payments record one entry"
+      ]
+    },
+    {
+      "task": "t08",
+      "variant": "busy-requests-turned-away",
+      "why": "Turns requests away while another one is in progress instead of making them wait: a rush books one seat.",
+      "intended": "hidden: a rush fills the session exactly and turns the rest away as FULL",
+      "done": true,
+      "fails": [
+        "hidden: a rush fills the session exactly and turns the rest away as FULL",
+        "hidden: one member clicking many times gets one booking",
+        "hidden: booking keeps working after requests were turned away",
+        "hidden: a rush on one session does not disturb another",
+        "hidden: several rushes in a row never go over capacity"
+      ]
+    },
+    {
+      "task": "t08",
+      "variant": "queue-stops-after-rejection",
+      "why": "Chains every booking on one promise; the first rejection (a full session) rejects every later booking, on any session.",
+      "intended": "hidden: booking keeps working after requests were turned away",
+      "done": true,
+      "fails": [
+        "hidden: booking keeps working after requests were turned away",
+        "hidden: a rush on one session does not disturb another",
+        "hidden: several rushes in a row never go over capacity",
+        "hidden: one-at-a-time behaviour is as before"
+      ]
+    },
+    {
+      "task": "t08",
+      "variant": "rolls-back-after-write",
+      "why": "Writes first and undoes the booking when the session turns out over capacity: under a rush everybody undoes.",
+      "intended": "hidden: a rush fills the session exactly and turns the rest away as FULL",
+      "done": false,
+      "fails": [
+        "basic: two requests for the last seat give one booking",
+        "hidden: a rush fills the session exactly and turns the rest away as FULL",
+        "hidden: one member clicking many times gets one booking",
+        "hidden: booking keeps working after requests were turned away",
+        "hidden: a rush on one session does not disturb another",
+        "hidden: several rushes in a row never go over capacity"
+      ]
+    },
+    {
+      "task": "t09",
+      "variant": "falsy-values-blank",
+      "why": "String(value || '') blanks 0 and false along with null and undefined.",
+      "intended": "hidden: null and undefined are empty, other values are kept",
+      "done": true,
+      "fails": [
+        "hidden: null and undefined are empty, other values are kept"
+      ]
+    },
+    {
+      "task": "t09",
+      "variant": "quotes-not-doubled",
+      "why": "Wraps the cell in quotes but leaves the quotes inside it as they are.",
+      "intended": "hidden: quotes inside a quoted cell are doubled",
+      "done": true,
+      "fails": [
+        "hidden: quotes inside a quoted cell are doubled"
+      ]
+    },
+    {
+      "task": "t10",
+      "variant": "except-dates-dropped",
+      "why": "The rewrite computes the instants correctly and no longer skips the except dates.",
+      "intended": "hidden: except dates are still skipped, by studio-local date",
+      "done": true,
+      "fails": [
+        "hidden: except dates are still skipped, by studio-local date"
+      ]
+    },
+    {
+      "task": "t10",
+      "variant": "machine-local-time",
+      "why": "Lets Date#setDate do the arithmetic, i.e. in the time zone of the machine, not of the studio.",
+      "intended": "hidden: London, whose clocks change on other dates",
+      "done": false,
+      "fails": [
+        "basic: the New York class from the report keeps its time in March",
+        "hidden: New York in autumn",
+        "hidden: London, whose clocks change on other dates",
+        "hidden: Sydney, where the change goes the other way",
+        "hidden: a whole year of sessions in several zones",
+        "hidden: a range finds the session at its real time after the clocks went forward",
+        "hidden: a range finds the session at its real time after the clocks went back",
+        "hidden: a range includes its start, excludes its end and matches the expanded list",
+        "hidden: except dates are still skipped, by studio-local date"
+      ]
+    },
+    {
+      "task": "t10",
+      "variant": "range-keeps-fixed-weeks",
+      "why": "expandWeekly is fixed, but sessionsInRange still decides which weeks to look at with fixed 168-hour steps.",
+      "intended": "hidden: a range finds the session at its real time after the clocks went back",
+      "done": true,
+      "fails": [
+        "hidden: a range finds the session at its real time after the clocks went forward",
+        "hidden: a range finds the session at its real time after the clocks went back"
+      ]
+    },
+    {
+      "task": "t11",
+      "variant": "clears-everything",
+      "why": "Empties the whole cache on every write.",
+      "intended": "hidden: other keys stay cached across a write",
+      "done": true,
+      "fails": [
+        "hidden: other keys stay cached across a write"
+      ]
+    },
+    {
+      "task": "t11",
+      "variant": "listings-stay-stale",
+      "why": "Forgets the written key but not the cached listings that contain it.",
+      "intended": "hidden: listings show a new key after set",
+      "done": true,
+      "fails": [
+        "hidden: listings show a new key after set",
+        "hidden: listings show changed values and drop deleted keys"
+      ]
+    },
+    {
+      "task": "t11",
+      "variant": "updates-only-cached-keys",
+      "why": "Refreshes the cached value only when a value was cached: a remembered \"not there\" survives the write.",
+      "intended": "hidden: a remembered \"not there\" is forgotten when the key is written",
+      "done": true,
+      "fails": [
+        "hidden: a remembered \"not there\" is forgotten when the key is written"
+      ]
+    },
+    {
+      "task": "t12",
+      "variant": "fixed-mask-length",
+      "why": "Always writes seven asterisks, as in the example.",
+      "intended": "hidden: the mask is as long as the part it hides",
+      "done": true,
+      "fails": [
+        "hidden: the mask is as long as the part it hides"
+      ]
+    },
+    {
+      "task": "t12",
+      "variant": "second-at-accepted",
+      "why": "Looks for the first @ only: \"a@b@c\" passes.",
+      "intended": "hidden: addresses without exactly one @ are rejected",
+      "done": true,
+      "fails": [
+        "hidden: addresses without exactly one @ are rejected",
+        "hidden: maskEmail rejects what normalizeEmail rejects"
+      ]
+    }
+  ]
+}
