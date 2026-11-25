@@ -26,6 +26,12 @@ node qa/kernel/run-eval.mjs --run-id sk --suite skills --arms local,chain
 
 종료 코드: `0` 성공, `2` 필요한 키 없음(`QA_MISSING_KEYS`), `64` 잘못된 옵션, `1` 그 밖의 실패. 선택한 arm이 요구하는 키만 확인합니다(`jev`·`chain` → `TYPESAFE_API_KEY`, `openai` → `OPENAI_API_KEY`, `local` → 없음). 키 값은 출력하지 않으며, 결과 파일을 쓰기 직전에 키 값이 들어 있는지 검사해 들어 있으면 `QA_SECRET_IN_OUTPUT`으로 중단합니다.
 
+후보 검색 방식의 오프라인 분석(API 미사용, 키 불필요). 제품의 `selectSkills`를 stub judge로 돌려 `lexical`/`adaptive`(`minCoverage` 격자)/`full`에서 gold skill이 judge에게 도달하는 비율, 넓게 판정한 작업 수, 작업당 판정 skill 수와 요청 수를 `results/dev-retrieval-offline/analysis.json`에 씁니다. recall의 상한일 뿐 judge 정확도는 재지 않습니다:
+
+```bash
+node qa/kernel/dev-retrieval-analysis.mjs        # [--data dir] [--out file]
+```
+
 하니스 자체의 오프라인 테스트(주입된 가짜 전송, **측정이 아님**):
 
 ```bash

@@ -63,7 +63,9 @@
 2. **실제 Claude Code 세션에서 종단 확인.** hook 설치 → 위임 → skill 블록이 들어간 서브에이전트가 실제로 skill을 load하는지. 지금은 BLOCKED.
 3. **실제 API 실행의 승인 정리.** `20261125-full`(683건)과 e2e(75건 + 기록 없는 이전 실행)는 사용자 승인 기록 없이 실행됐다. 결과를 근거로 쓸지 폐기할지 사용자가 정해야 한다.
 4. **한국어 후보 검색을 고친다.** 한국어 load recall 0.388은 judge가 아니라 BM25 단계 문제다. 고치지 않으면 한국어 사용자에게 skill 라우팅은 대부분 동작하지 않는다.
+   - 후속(2026-11-25): 선택 기능 `kernel.skills.retrieval`(`adaptive`/`full`)을 추가했다. **기본값은 `lexical` 그대로라 위 수치는 바뀌지 않았다.** 오프라인(API 미사용)으로는 gold skill이 judge에게 도달하는 비율이 0.708(한국어 0.408) → `adaptive` 0.25에서 0.950(한국어 1.000)이다(`results/dev-retrieval-offline/analysis.json`). 이는 상한이고, 실제 judge의 recall·precision은 미측정(null)이다. 남은 것: 실제 judge로 개발용 세트 비교, held-out 세트 1회 채점, 기본값 결정.
 5. **`local` 먼저 체인의 escalation 규칙.** BM25 점수 0 → need 0 → 확신 1이라 Jev로 넘어가지 않는다. 지금 형태의 `local,jev`는 권장할 수 없다.
+   - 후속(2026-11-25): `local`은 어휘 신호가 없으면 기권하도록 바꿨다(mock 체인 테스트로 escalation 확인). 실제 judge로 `chain` arm을 다시 돌리지는 않았다. 위 표의 `local`·`chain` 수치는 변경 전 값이다.
 6. **결함 수정 뒤 실제 judge로 e2e 재실행** (사용자 승인 후). 보류 시 skill 안내와 50ms 경계는 mock·loopback으로만 확인했다.
 7. **supervisor의 "retry를 complete로" 오판**(Jev 6/30, 그중 2건이 Main에게 표시)을 받아들일지 결정. 임계값 0.65는 측정으로 정한 값이 아니다.
 8. 사람이 라벨 표본을 검토한다. 지금 정확도는 전부 모델이 만든 라벨 기준이다.
