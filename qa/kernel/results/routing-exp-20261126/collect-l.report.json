@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "note": "Descriptive only. A loaded skill is what a subagent did, not proof the skill was needed; a pass rate exists only where an external verification result was supplied; nothing in this report changes routing.",
+  "delegations": 12,
+  "routed": 0,
+  "requestedVsEffective": {
+    "profile": {
+      "compared": 0,
+      "matched": 0,
+      "rate": null
+    },
+    "model": {
+      "compared": 0,
+      "exact": 0,
+      "declared": 0,
+      "declaredNotInForce": 0,
+      "aliasUndeclared": 0,
+      "alias": 0,
+      "mismatch": 0,
+      "exactRate": null,
+      "acceptedRate": null,
+      "exactOrAliasRate": null
+    },
+    "effort": {
+      "compared": 0,
+      "matched": 0,
+      "rate": null
+    }
+  },
+  "byProfile": [
+    {
+      "profile": "(not-routed)",
+      "delegations": 12,
+      "verified": 11,
+      "passed": 11,
+      "passRate": 1,
+      "conventionChecked": 0,
+      "conventionPassRate": null,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 7.833333333333333,
+            "measured": 12
+          },
+          "output": {
+            "mean": 4176.75,
+            "measured": 12
+          },
+          "cacheRead": {
+            "mean": 196429.58333333334,
+            "measured": 12
+          },
+          "cacheCreation": {
+            "mean": 21982.833333333332,
+            "measured": 12
+          },
+          "total": {
+            "mean": 222597,
+            "measured": 12
+          }
+        },
+        "apiTurns": {
+          "mean": 3.9166666666666665,
+          "measured": 12
+        },
+        "toolCalls": {
+          "mean": 4.333333333333333,
+          "measured": 12
+        },
+        "wallMs": {
+          "mean": 42810.666666666664,
+          "measured": 12
+        },
+        "endToEndMs": {
+          "mean": 44398.416666666664,
+          "measured": 12
+        }
+      }
+    }
+  ],
+  "all": {
+    "delegations": 12,
+    "verified": 11,
+    "passed": 11,
+    "passRate": 1,
+    "conventionChecked": 0,
+    "conventionPassRate": null,
+    "perDelegation": {
+      "tokens": {
+        "input": {
+          "mean": 7.833333333333333,
+          "measured": 12
+        },
+        "output": {
+          "mean": 4176.75,
+          "measured": 12
+        },
+        "cacheRead": {
+          "mean": 196429.58333333334,
+          "measured": 12
+        },
+        "cacheCreation": {
+          "mean": 21982.833333333332,
+          "measured": 12
+        },
+        "total": {
+          "mean": 222597,
+          "measured": 12
+        }
+      },
+      "apiTurns": {
+        "mean": 3.9166666666666665,
+        "measured": 12
+      },
+      "toolCalls": {
+        "mean": 4.333333333333333,
+        "measured": 12
+      },
+      "wallMs": {
+        "mean": 42810.666666666664,
+        "measured": 12
+      },
+      "endToEndMs": {
+        "mean": 44398.416666666664,
+        "measured": 12
+      }
+    }
+  },
+  "judge": {
+    "requests": {
+      "total": 0,
+      "perDelegation": {
+        "mean": 0,
+        "measured": 12
+      }
+    },
+    "tokens": {
+      "reportedDecisions": 0,
+      "judge": null,
+      "workers": 2671164,
+      "judgeShare": null
+    },
+    "time": {
+      "measured": 0,
+      "routerMs": null,
+      "endToEndMs": null,
+      "routerShare": null
+    }
+  },
+  "skills": {
+    "crossTab": {
+      "blockPresent": {
+        "loadedAny": 0,
+        "loadedNone": 0
+      },
+      "blockAbsent": {
+        "loadedAny": 0,
+        "loadedNone": 11
+      },
+      "blockUnknown": 0,
+      "loadUnknown": 1
+    },
+    "blocksNamingALoadSkill": 0,
+    "blocksWhoseLoadSkillsWereAllLoaded": 0
+  },
+  "records": 12,
+  "corruptLines": 0,
+  "evidenceStore": {
+    "schema": 1,
+    "rows": 0,
+    "current": 0,
+    "stale": 0,
+    "byMatch": {
+      "exact": 0,
+      "declared": 0,
+      "unrecorded": 0
+    },
+    "byProfile": {},
+    "mixedModelProfiles": []
+  }
+}

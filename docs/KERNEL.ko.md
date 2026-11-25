@@ -1121,7 +1121,7 @@ cd orchestration && npm run compare:default      # 또는 node scripts/compare-d
 
 | 항목 | 상태 |
 |---|---|
-| end-to-end 효과 (작업 품질, 시간, 비용) | 미측정 |
+| end-to-end 효과 (작업 품질, 시간, 비용) | 미측정. 모델·effort 라우팅 3-arm 실험 1회(실제 세션 3개, 합성 과제 12개, `qa/kernel/results/routing-exp-20261126/`)는 세 arm 모두 채점기 12/12(사전 등록 집계 11/12, 천장에 가까움)여서 품질 차이를 재지 못했습니다. 그 조건(기본값 fable medium → opus high/xhigh)에서 라우팅한 arm은 서브에이전트 출력 토큰 약 3.5배·시간 약 3.2배였고, 낮은 모델 실행은 0건이었습니다(불확실한 분류는 최소 standard) |
 | 실제 Claude Code 세션에서 skill이 주입된 서브에이전트 실행 | 배선은 확인. 전역 `active` 모드의 실제 세션 3개(pilot 2, 재확인 1), 권한 모드 `auto`에서만. pilot arm B는 skill 과제 6건 중 5건, 재확인은 skill 과제 2건 중 2건에 블록을 주입해 실행. 주입이 결과를 개선하는지는 미측정(위 항목). 재확인 세션의 작업 결과는 채점하지 않음 |
 | skill 선택 정확도 | 합성 데이터 두 세트(개발 160건, held-out 180건)에서 각 1회 측정. 모델이 만든 라벨, 사람 검토 없음. 실제 skill 폴더 미측정 |
 | `adaptive`/`full` 후보 검색에서의 judge 정확도·지연·토큰 | 개발 세트에서 실제 Jev로 1회(`dev-retrieval-decision-1`), held-out 세트에서 `lexical`과 `full`만 1회(`holdout-1-score-1`) 측정([결정 기록](#결정-기록)). `adaptive`의 held-out 수치, 72개보다 큰 카탈로그, 실제 skill 폴더, OpenAI judge는 미측정 |

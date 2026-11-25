@@ -1,0 +1,1036 @@
+{
+  "schema": 1,
+  "generatedBy": "qa/kernel/routing-exp/analyze.mjs",
+  "arm": "R",
+  "armName": "routed",
+  "checker": {
+    "name": "routing-exp-checker",
+    "version": "d1c4013e1870a6138cce558f4c139357e8e63b3878e1ac2d5871be4a8f03f538",
+    "tasksFile": "c77df42cc4996e649491f6c59b8ff76008611b50386b26650cbedb7a507a385c"
+  },
+  "host": {
+    "versions": [
+      "2.1.330"
+    ],
+    "entrypoints": [
+      "claude-desktop"
+    ],
+    "permissionModes": [
+      "auto"
+    ]
+  },
+  "main": {
+    "models": [
+      "claude-fable-5-2"
+    ],
+    "efforts": [
+      "medium"
+    ],
+    "apiTurns": 38,
+    "tokensByModel": {
+      "claude-fable-5-2": {
+        "apiTurns": 38,
+        "input": 76,
+        "output": 16478,
+        "cacheRead": 4293845,
+        "cacheCreation": 102422
+      }
+    },
+    "tokens": {
+      "input": 76,
+      "output": 16478,
+      "cacheRead": 4293845,
+      "cacheCreation": 102422
+    },
+    "wallMs": 1689354,
+    "otherToolCalls": {
+      "mcp__ccd_turn__update_plan": 12,
+      "mcp__ccd_turn__wrap_up": 1
+    },
+    "agentCalls": 24,
+    "refusedCalls": 12,
+    "launchedCalls": 12,
+    "strayAgentCalls": 2,
+    "promptContainsMainPrompt": false,
+    "promptExtraCharacters": null
+  },
+  "tasks": [
+    {
+      "id": "t01",
+      "lang": "en",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_high_e71cff8bbd"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "high",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 14,
+          "output": 7101,
+          "cacheRead": 352418,
+          "cacheCreation": 67354
+        },
+        "apiTurns": 7,
+        "toolCalls": 9,
+        "wallMs": 62763,
+        "endToEndMs": 75323
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_high_e71cff8bbd",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "high",
+        "taskClass": "implement|bounded|routine|normal|missing|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 11867,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 587
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 4412,
+        "outputTokens": 436,
+        "latencyMs": 544,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t02",
+      "lang": "ko",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_high_e71cff8bbd"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "high",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 2982,
+          "cacheRead": 260724,
+          "cacheCreation": 24473
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 29043,
+        "endToEndMs": 36578
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_high_e71cff8bbd",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "high",
+        "taskClass": "implement|small|routine|normal|sufficient|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 6958,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 473
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 4193,
+        "outputTokens": 439,
+        "latencyMs": 441,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t03",
+      "lang": "en",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_xhigh_e9747b20fc"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "xhigh",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 34,
+          "output": 28438,
+          "cacheRead": 1256227,
+          "cacheCreation": 56085
+        },
+        "apiTurns": 17,
+        "toolCalls": 21,
+        "wallMs": 283276,
+        "endToEndMs": 290673
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "xhigh",
+        "taskClass": "implement|bounded|deep|sensitive|sufficient|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 6791,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 490
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 3926,
+        "outputTokens": 424,
+        "latencyMs": 455,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t04",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_high_e71cff8bbd"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "high",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 14,
+          "output": 10138,
+          "cacheRead": 406866,
+          "cacheCreation": 34590
+        },
+        "apiTurns": 7,
+        "toolCalls": 8,
+        "wallMs": 90999,
+        "endToEndMs": 100083
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_high_e71cff8bbd",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "high",
+        "taskClass": "implement|bounded|routine|normal|missing|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 8439,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 486
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 4506,
+        "outputTokens": 436,
+        "latencyMs": 445,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t05",
+      "lang": "en",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_high_e71cff8bbd"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "high",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 4037,
+          "cacheRead": 262718,
+          "cacheCreation": 26324
+        },
+        "apiTurns": 5,
+        "toolCalls": 6,
+        "wallMs": 37646,
+        "endToEndMs": 44060
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_high_e71cff8bbd",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "high",
+        "taskClass": "implement|small|routine|normal|sufficient|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 5427,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 787
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 3987,
+        "outputTokens": 439,
+        "latencyMs": 696,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t06",
+      "lang": "ko",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_xhigh_e9747b20fc"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "xhigh",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 14,
+          "output": 16238,
+          "cacheRead": 415234,
+          "cacheCreation": 40976
+        },
+        "apiTurns": 7,
+        "toolCalls": 9,
+        "wallMs": 150061,
+        "endToEndMs": 158157
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "xhigh",
+        "taskClass": "implement|small|routine|sensitive|missing|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 7472,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 511
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 4134,
+        "outputTokens": 421,
+        "latencyMs": 464,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t07",
+      "lang": "en",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_xhigh_e9747b20fc"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "xhigh",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 22,
+          "output": 20612,
+          "cacheRead": 757728,
+          "cacheCreation": 51715
+        },
+        "apiTurns": 11,
+        "toolCalls": 18,
+        "wallMs": 197608,
+        "endToEndMs": 204796
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "xhigh",
+        "taskClass": "implement|small|deep|sensitive|missing|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 6511,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 590
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 3826,
+        "outputTokens": 421,
+        "latencyMs": 557,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t08",
+      "lang": "ko",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_xhigh_e9747b20fc"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "xhigh",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 26,
+          "output": 21683,
+          "cacheRead": 901477,
+          "cacheCreation": 54787
+        },
+        "apiTurns": 13,
+        "toolCalls": 22,
+        "wallMs": 212517,
+        "endToEndMs": 220806
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "xhigh",
+        "taskClass": "implement|bounded|deep|sensitive|sufficient|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 7557,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 518
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 3937,
+        "outputTokens": 424,
+        "latencyMs": 465,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t09",
+      "lang": "ko",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_high_e71cff8bbd"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "high",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 3850,
+          "cacheRead": 259506,
+          "cacheCreation": 24055
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 37371,
+        "endToEndMs": 45437
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_high_e71cff8bbd",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "high",
+        "taskClass": "implement|small|routine|normal|sufficient|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 7219,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 629
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 4289,
+        "outputTokens": 438,
+        "latencyMs": 588,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t10",
+      "lang": "en",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_xhigh_e9747b20fc"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_xhigh_e9747b20fc",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "xhigh",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 24,
+          "output": 26163,
+          "cacheRead": 842115,
+          "cacheCreation": 53963
+        },
+        "apiTurns": 12,
+        "toolCalls": 17,
+        "wallMs": 248845,
+        "endToEndMs": 255842
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "xhigh",
+        "taskClass": "implement|small|deep|normal|missing|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 5881,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 827
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 3706,
+        "outputTokens": 420,
+        "latencyMs": 764,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t11",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 2,
+        "refusedCalls": 1,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "jev4_implement_standard_high_e71cff8bbd"
+      },
+      "subagent": {
+        "agentType": "jev4_implement_standard_high_e71cff8bbd",
+        "model": "claude-opus-5-5",
+        "modelInMeta": "claude-opus-5-5",
+        "effort": "high",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 20,
+          "output": 12978,
+          "cacheRead": 602567,
+          "cacheCreation": 35344
+        },
+        "apiTurns": 10,
+        "toolCalls": 12,
+        "wallMs": 117227,
+        "endToEndMs": 124725
+      },
+      "route": {
+        "recorded": true,
+        "deferred": false,
+        "deferReason": null,
+        "profile": "jev4_implement_standard_high_e71cff8bbd",
+        "tier": "standard",
+        "role": "implement",
+        "model": "opus",
+        "backend": "opus",
+        "effort": "high",
+        "taskClass": "implement|small|routine|normal|missing|uncertain",
+        "evaluationContext": "desktop-auto-v1",
+        "mode": "active",
+        "basis": "policy_prior_not_measured",
+        "reissued": true,
+        "reissueAgeMs": 6733,
+        "applied": true,
+        "modelEqualsBackend": false,
+        "effortEqualsRoute": true,
+        "hookMs": 656
+      },
+      "judge": {
+        "decisions": 2,
+        "requests": 2,
+        "cached": 0,
+        "requestsWithUsage": 2,
+        "inputTokens": 4107,
+        "outputTokens": 436,
+        "latencyMs": 603,
+        "decisionIdsOnRoute": 2
+      },
+      "notes": []
+    },
+    {
+      "id": "t12",
+      "lang": "en",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": false,
+        "passed": false
+      },
+      "delegation": {
+        "delegated": false,
+        "agentCalls": 0,
+        "refusedCalls": 0,
+        "launchedCalls": 0,
+        "firstPromptVerbatim": null,
+        "firstRequestedType": null,
+        "launchedRequestedType": null
+      },
+      "subagent": null,
+      "route": {
+        "recorded": false,
+        "deferred": false,
+        "deferReason": null,
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": null,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": null,
+      "notes": [
+        "Main did not delegate this task (counts as not passed)"
+      ]
+    }
+  ],
+  "totals": {
+    "tasks": 12,
+    "delegated": 11,
+    "done": 11,
+    "passed": 11,
+    "byDifficulty": {
+      "moderate": {
+        "tasks": 4,
+        "delegated": 4,
+        "done": 4,
+        "passed": 4
+      },
+      "routine": {
+        "tasks": 4,
+        "delegated": 3,
+        "done": 3,
+        "passed": 3
+      },
+      "hard": {
+        "tasks": 4,
+        "delegated": 4,
+        "done": 4,
+        "passed": 4
+      }
+    },
+    "subagentsByModel": {
+      "claude-opus-5-5": {
+        "tasks": 11,
+        "done": 11,
+        "passed": 11,
+        "apiTurns": 99,
+        "toolCalls": 132,
+        "wallMs": 1467356,
+        "input": 198,
+        "output": 154220,
+        "cacheRead": 6317580,
+        "cacheCreation": 469666
+      }
+    },
+    "subagentWallMs": 1467356,
+    "subagentEndToEndMs": 1556480,
+    "routing": {
+      "routed": 11,
+      "deferred": [],
+      "applied": 11,
+      "notApplied": [],
+      "reissued": 11,
+      "profiles": {
+        "jev4_implement_standard_high_e71cff8bbd": 6,
+        "jev4_implement_standard_xhigh_e9747b20fc": 5
+      },
+      "evaluationContexts": [
+        "desktop-auto-v1"
+      ],
+      "byApplication": {
+        "asRoutedProfile": {
+          "tasks": 11,
+          "passed": 11,
+          "models": [
+            "claude-opus-5-5"
+          ]
+        },
+        "notAsRoutedProfile": {
+          "tasks": [],
+          "passed": [],
+          "models": []
+        }
+      }
+    },
+    "noRoutingCheck": null,
+    "judge": {
+      "all": {
+        "decisions": 24,
+        "requests": 24,
+        "cached": 0,
+        "requestsWithUsage": 24,
+        "inputTokens": 49052,
+        "outputTokens": 5172,
+        "latencyMs": 6486
+      },
+      "byPoint": {
+        "delegation.classify": {
+          "decisions": 12,
+          "requests": 12,
+          "cached": 0,
+          "requestsWithUsage": 12,
+          "inputTokens": 17681,
+          "outputTokens": 3404,
+          "latencyMs": 4100
+        },
+        "delegation.profile": {
+          "decisions": 12,
+          "requests": 12,
+          "cached": 0,
+          "requestsWithUsage": 12,
+          "inputTokens": 31371,
+          "outputTokens": 1768,
+          "latencyMs": 2386
+        }
+      },
+      "onTaskRoutes": {
+        "requests": 22,
+        "inputTokens": 45023,
+        "outputTokens": 4734,
+        "latencyMs": 6022
+      }
+    },
+    "unlinkedSubagents": {
+      "files": 1,
+      "tokensByModel": {
+        "claude-opus-5-5": {
+          "input": 10,
+          "output": 5019,
+          "cacheRead": 265154,
+          "cacheCreation": 26892
+        }
+      }
+    }
+  },
+  "unattributedChanges": [],
+  "warnings": [
+    "2 Agent call(s) carry no task text of this experiment",
+    "1 subagent transcript(s) belong to no analysed task launch: their tokens are listed under unlinkedSubagents",
+    "Main used tools other than Agent (mcp__ccd_turn__update_plan x12, mcp__ccd_turn__wrap_up x1): it was told to do no work itself"
+  ]
+}

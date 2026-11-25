@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "note": "Descriptive only. A loaded skill is what a subagent did, not proof the skill was needed; a pass rate exists only where an external verification result was supplied; nothing in this report changes routing.",
+  "delegations": 12,
+  "routed": 12,
+  "requestedVsEffective": {
+    "profile": {
+      "compared": 12,
+      "matched": 12,
+      "rate": 1
+    },
+    "model": {
+      "compared": 12,
+      "exact": 0,
+      "declared": 12,
+      "declaredNotInForce": 0,
+      "aliasUndeclared": 0,
+      "alias": 0,
+      "mismatch": 0,
+      "exactRate": 0,
+      "acceptedRate": 1,
+      "exactOrAliasRate": 1
+    },
+    "effort": {
+      "compared": 12,
+      "matched": 12,
+      "rate": 1
+    }
+  },
+  "byProfile": [
+    {
+      "profile": "jev4_implement_standard_high_e71cff8bbd",
+      "delegations": 7,
+      "verified": 6,
+      "passed": 6,
+      "passRate": 1,
+      "conventionChecked": 0,
+      "conventionPassRate": null,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 12.571428571428571,
+            "measured": 7
+          },
+          "output": {
+            "mean": 6586.428571428572,
+            "measured": 7
+          },
+          "cacheRead": {
+            "mean": 344279,
+            "measured": 7
+          },
+          "cacheCreation": {
+            "mean": 34147.42857142857,
+            "measured": 7
+          },
+          "total": {
+            "mean": 385025.4285714286,
+            "measured": 7
+          }
+        },
+        "apiTurns": {
+          "mean": 6.285714285714286,
+          "measured": 7
+        },
+        "toolCalls": {
+          "mean": 7.142857142857143,
+          "measured": 7
+        },
+        "wallMs": {
+          "mean": 60647.142857142855,
+          "measured": 7
+        },
+        "endToEndMs": {
+          "mean": 68907.57142857143,
+          "measured": 7
+        }
+      }
+    },
+    {
+      "profile": "jev4_implement_standard_xhigh_e9747b20fc",
+      "delegations": 5,
+      "verified": 5,
+      "passed": 5,
+      "passRate": 1,
+      "conventionChecked": 0,
+      "conventionPassRate": null,
+      "perDelegation": {
+        "tokens": {
+          "input": {
+            "mean": 24,
+            "measured": 5
+          },
+          "output": {
+            "mean": 22626.8,
+            "measured": 5
+          },
+          "cacheRead": {
+            "mean": 834556.2,
+            "measured": 5
+          },
+          "cacheCreation": {
+            "mean": 51505.2,
+            "measured": 5
+          },
+          "total": {
+            "mean": 908712.2,
+            "measured": 5
+          }
+        },
+        "apiTurns": {
+          "mean": 12,
+          "measured": 5
+        },
+        "toolCalls": {
+          "mean": 17.4,
+          "measured": 5
+        },
+        "wallMs": {
+          "mean": 218461.4,
+          "measured": 5
+        },
+        "endToEndMs": {
+          "mean": 226054.8,
+          "measured": 5
+        }
+      }
+    }
+  ],
+  "all": {
+    "delegations": 12,
+    "verified": 11,
+    "passed": 11,
+    "passRate": 1,
+    "conventionChecked": 0,
+    "conventionPassRate": null,
+    "perDelegation": {
+      "tokens": {
+        "input": {
+          "mean": 17.333333333333332,
+          "measured": 12
+        },
+        "output": {
+          "mean": 13269.916666666666,
+          "measured": 12
+        },
+        "cacheRead": {
+          "mean": 548561.1666666666,
+          "measured": 12
+        },
+        "cacheCreation": {
+          "mean": 41379.833333333336,
+          "measured": 12
+        },
+        "total": {
+          "mean": 603228.25,
+          "measured": 12
+        }
+      },
+      "apiTurns": {
+        "mean": 8.666666666666666,
+        "measured": 12
+      },
+      "toolCalls": {
+        "mean": 11.416666666666666,
+        "measured": 12
+      },
+      "wallMs": {
+        "mean": 126403.08333333333,
+        "measured": 12
+      },
+      "endToEndMs": {
+        "mean": 134385.58333333334,
+        "measured": 12
+      }
+    }
+  },
+  "judge": {
+    "requests": {
+      "total": 24,
+      "perDelegation": {
+        "mean": 2,
+        "measured": 12
+      }
+    },
+    "tokens": {
+      "reportedDecisions": 24,
+      "judge": 54224,
+      "workers": 7238739,
+      "judgeShare": 0.0074351124501797145
+    },
+    "time": {
+      "measured": 12,
+      "routerMs": 7063.445207999999,
+      "endToEndMs": 1612627,
+      "routerShare": 0.004380086162516192
+    }
+  },
+  "skills": {
+    "crossTab": {
+      "blockPresent": {
+        "loadedAny": 0,
+        "loadedNone": 0
+      },
+      "blockAbsent": {
+        "loadedAny": 0,
+        "loadedNone": 12
+      },
+      "blockUnknown": 0,
+      "loadUnknown": 0
+    },
+    "blocksNamingALoadSkill": 0,
+    "blocksWhoseLoadSkillsWereAllLoaded": 0
+  },
+  "records": 12,
+  "corruptLines": 0,
+  "evidenceStore": {
+    "schema": 1,
+    "rows": 0,
+    "current": 0,
+    "stale": 0,
+    "byMatch": {
+      "exact": 0,
+      "declared": 0,
+      "unrecorded": 0
+    },
+    "byProfile": {},
+    "mixedModelProfiles": []
+  }
+}

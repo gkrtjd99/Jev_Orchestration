@@ -155,6 +155,7 @@ Jev supervisor (advisory): complete (confidence 0.75, reported evidence level 1 
 ### 아직 모르는 것
 
 - **실제 작업의 품질·시간·비용이 좋아지는지는 아직 모릅니다.** skill 주입 있음/없음을 짝지은 작은 pilot(실제 세션 2개, 합성 과제 6쌍, 각 1회 실행)에서는 두 쪽 모두 6개 중 6개가 규칙 검사를 통과했고, 주입이 없는 쪽에서도 subagent가 맞는 skill을 스스로 읽었습니다. 그래서 이 pilot으로는 주입의 이득을 잴 수도, 이득이 없다고 할 수도 없습니다. [pilot 결과](qa/kernel/results/pilot-20261125/README.md)
+- 모델·effort 라우팅을 실제 세션 3개(라우팅 없음, 라우팅, 낮은 모델만 활성)로 한 번 비교했습니다(합성 과제 12개, 각 1회). 세 쪽 모두 채점기로는 12개를 전부 통과했고(사전 등록 집계로는 11/12씩, 과제 12의 글자 치환 때문) 품질 차이는 볼 수 없었습니다. 라우팅한 쪽은 12건을 모두 opus high/xhigh로 보냈고 기본값(fable medium)보다 subagent 출력 토큰 약 3.5배, 시간 약 3.2배를 썼습니다. 낮은 모델만 켠 쪽은 한 건도 라우팅되지 않았습니다(분류가 불확실하면 standard 이상만 허용). 낮은 모델로 내렸을 때의 품질은 측정하지 못했습니다. [라우팅 실험 결과](qa/kernel/results/routing-exp-20261126/README.md)
 - 실제 세션 확인은 배선 확인까지입니다. Claude Code 데스크톱 세션 4회(`advisory`)에서 실제 `Agent` 호출에 hook이 실행되고 실제 judge가 skill을 고르는 것을 확인했습니다. 4회 모두 subagent가 스스로 맞는 skill을 읽었으므로 이 세션들은 효과를 보여 주지 않습니다. [실제 세션 요약](qa/kernel/results/real-session-20261125/summary.json)
 - 실제 세션의 `active` 모드(subagent 지시문 재작성)는 권한 모드 `auto`에서만 확인했습니다. 고쳐진 호출이 실행된 것은 pilot 세션 2개의 위임 16건 중 15건, 재확인 세션 1개의 3건 중 3건입니다. `auto`에서는 host가 고쳐진 호출을 한 번 거부하고 Main이 다시 호출하므로 그런 위임마다 Main 왕복이 한 번 더 듭니다. Jev Orchestration은 이 거부를 우회하지 않습니다. [재확인 요약](qa/kernel/results/real-session-reissue-20261125/summary.json)
 - 그 재확인 세션에서 supervisor 조언은 기본 임계값으로 위임 3건 중 3건에서 Main에 전달됐습니다. 이 세션은 hook 동작만 확인했고 subagent의 작업이 맞았는지는 채점하지 않았습니다.

@@ -1,0 +1,222 @@
+{
+  "schema": 1,
+  "collector": "outcome-collector-4",
+  "dryRun": false,
+  "mode": "state-and-transcripts",
+  "sessions": {
+    "inState": 1,
+    "selected": 1
+  },
+  "delegations": {
+    "seen": 12,
+    "routed": 0,
+    "joined": 12,
+    "unjoined": {},
+    "unrouted": {
+      "route_deferred": 11,
+      "no_route_recorded": 1
+    },
+    "refusedAndReissued": 0,
+    "reroutedAfterRefusal": 0,
+    "repeated": 0,
+    "agentCalls": 12
+  },
+  "skillQuestionMapping": {
+    "decisions": 0,
+    "mapped": 0,
+    "asked": 0,
+    "derived": 0,
+    "unmapped": {},
+    "answersCheckedAgainstLog": 0
+  },
+  "labels": {
+    "written": {},
+    "alreadyPresent": 0,
+    "retracted": {},
+    "unlabelled": {},
+    "indeterminateAccess": {
+      "recursive_search_reaches_skills_folder": 1
+    }
+  },
+  "observations": {
+    "written": 12,
+    "alreadyPresent": 0,
+    "keptVerified": 0
+  },
+  "evaluations": {
+    "produced": 0,
+    "producedByModelMatch": {
+      "exact": 0,
+      "declared": 0
+    },
+    "withheldTasks": 11,
+    "withheld": {
+      "delegation_not_routed": 11
+    },
+    "context": "desktop-auto-v1",
+    "files": [],
+    "imported": false
+  },
+  "modelMatch": {
+    "delegations": {
+      "exact": 0,
+      "declared": 0,
+      "declared-not-in-force": 0,
+      "alias-undeclared": 0,
+      "mismatch": 0,
+      "notCompared": 0
+    },
+    "declarationsKnown": true,
+    "undeclared": [],
+    "resolvedModelCheck": {
+      "hookEvent": {
+        "agreed": 12,
+        "disagreed": 0,
+        "absent": 0
+      },
+      "hostResult": {
+        "agreed": 12,
+        "disagreed": 0,
+        "absent": 0
+      }
+    },
+    "note": null
+  },
+  "verification": {
+    "entries": 11,
+    "matched": 11,
+    "unmatched": 0
+  },
+  "supervisor": {
+    "judged": 0
+  },
+  "delegationIndex": [
+    {
+      "delegationId": "2f88d995fad4df3edb76ad1d6c0a1fddcc8be4f769fe2324af9660dc7e5fd332",
+      "taskHash": "db0609d45c5e405d57c26a06ef7c0f889fc06ab07cec8b9067998039657fb91c",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "2bdd29fb56183b07a354ca874499a68094bc8443aa3f0e800a6d9b4ae85534fd",
+      "taskHash": "92ae5b642c76cf15ba7756c8818ea71f952f6adb76f1571f87567a97459e04c9",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "7b7b7b8d5d52490cf85c3c0abd09a58358b4a2a7cb5d7ebe2966b1b664b27b9c",
+      "taskHash": "e2cdda5a5ea853bc922d8a21495eb93ef11f2085577dc3a19558dcff8a715ca6",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "46cd9b78c9167ad892526b6b626138f06cb234136fa9135c5b9736a22ded82dd",
+      "taskHash": "15c98207126f31aea22d470b97b17829db0b849837448d532408406e5abd3b81",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "793fabd8162d64bb80b2584d1d535237a32181b3db1b7f51c9ff88b7e1a2d784",
+      "taskHash": "f95d0d4b164eda37f4eafc2e181108fc0444efd405374e1af12d1d963d46e6fd",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "282131424ebfc570e8cb71f5e22bbe89dec1a831845e76c945ae5e0dd7e87558",
+      "taskHash": "63fd0f13050428958ccaf58840a0acab27c4c5bdd0f5584e2bc956e93ce14226",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "09b287419e0f73d38ced6f35e975783be2f7f3dedf4bf9fc107d2edd13e4f572",
+      "taskHash": "f3d52ef4391d9177c07e9339914e6ef37a5710c12dc58765e9da3d2f20ab7e30",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "e4414165f25ecbe5b3398beeee8e67a820a718d8e85941f07da28eee245d14f8",
+      "taskHash": "760d7a8f13cb9d3bcb6dca54b5e873567daa543eb575f5c9f380f62fe7447104",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "a6274dd3015db593178d0bc57bc3bdd6a4b47d38bf3bd4b6b6351160c9605490",
+      "taskHash": "dd2a073132a8fca8962662d08b01f4a5b191ae993703ab208b53cc361c535248",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "beabf199e4ecc6f12f62f74ee6f2041c03b69c39f9664b2bd42ab5f134dbcf58",
+      "taskHash": "7466049e5c8b4e572c63fbd2b2aaa7694ad3627b25231115a505f1348526baf4",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "9d4795d2509442149eff3a92f5d816e6553d5dd05545c02ca4ecef675b2949d6",
+      "taskHash": "129f1049e98dc272226a0a4ce703f03a7e43d5f91fb78625fae1c29c9de8ecba",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": true,
+      "supersededAttempt": false
+    },
+    {
+      "delegationId": "893e589e46f3fa06dfee09fbcf61f05780b4dd6980c930439c9a3d58c6504661",
+      "taskHash": "09ea0fb1bc2b98d80d7725177b039017fbc8192ea42018b2fad7b05c78df15c4",
+      "routed": false,
+      "joined": true,
+      "profile": null,
+      "verified": null,
+      "supersededAttempt": false
+    }
+  ],
+  "warnings": {
+    "project_skill_names_unknown": 1
+  },
+  "host": {
+    "versions": [
+      "2.1.330"
+    ],
+    "entrypoints": [
+      "claude-desktop"
+    ],
+    "permissionModes": [
+      "auto"
+    ],
+    "subagentTranscripts": 12,
+    "supportedRuntimes": [
+      "claude"
+    ],
+    "codex": "unsupported: no codex transcript was ever observed, so none is parsed"
+  }
+}

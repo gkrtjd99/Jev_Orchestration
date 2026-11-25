@@ -1,0 +1,641 @@
+{
+  "schema": 1,
+  "generatedBy": "qa/kernel/routing-exp/analyze.mjs",
+  "arm": "N",
+  "armName": "no routing",
+  "checker": {
+    "name": "routing-exp-checker",
+    "version": "d1c4013e1870a6138cce558f4c139357e8e63b3878e1ac2d5871be4a8f03f538",
+    "tasksFile": "c77df42cc4996e649491f6c59b8ff76008611b50386b26650cbedb7a507a385c"
+  },
+  "host": {
+    "versions": [
+      "2.1.330"
+    ],
+    "entrypoints": [
+      "claude-desktop"
+    ],
+    "permissionModes": [
+      "auto"
+    ]
+  },
+  "main": {
+    "models": [
+      "claude-fable-5-2"
+    ],
+    "efforts": [
+      "medium"
+    ],
+    "apiTurns": 26,
+    "tokensByModel": {
+      "claude-fable-5-2": {
+        "apiTurns": 26,
+        "input": 74,
+        "output": 7545,
+        "cacheRead": 2454763,
+        "cacheCreation": 66404
+      }
+    },
+    "tokens": {
+      "input": 74,
+      "output": 7545,
+      "cacheRead": 2454763,
+      "cacheCreation": 66404
+    },
+    "wallMs": 561634,
+    "otherToolCalls": {
+      "mcp__ccd_turn__update_plan": 12,
+      "mcp__ccd_turn__wrap_up": 1
+    },
+    "agentCalls": 12,
+    "refusedCalls": 0,
+    "launchedCalls": 12,
+    "strayAgentCalls": 1,
+    "promptContainsMainPrompt": false,
+    "promptExtraCharacters": null
+  },
+  "tasks": [
+    {
+      "id": "t01",
+      "lang": "en",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 6,
+          "output": 2632,
+          "cacheRead": 103149,
+          "cacheCreation": 56623
+        },
+        "apiTurns": 3,
+        "toolCalls": 3,
+        "wallMs": 28498,
+        "endToEndMs": 30608
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t02",
+      "lang": "ko",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 2785,
+          "cacheRead": 251884,
+          "cacheCreation": 18568
+        },
+        "apiTurns": 5,
+        "toolCalls": 6,
+        "wallMs": 31907,
+        "endToEndMs": 32865
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t03",
+      "lang": "en",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 3388,
+          "cacheRead": 198659,
+          "cacheCreation": 20598
+        },
+        "apiTurns": 4,
+        "toolCalls": 5,
+        "wallMs": 36826,
+        "endToEndMs": 38566
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t04",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 5935,
+          "cacheRead": 199318,
+          "cacheCreation": 24706
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 58245,
+        "endToEndMs": 59740
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t05",
+      "lang": "en",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 2199,
+          "cacheRead": 196510,
+          "cacheCreation": 19848
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 24906,
+        "endToEndMs": 26172
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t06",
+      "lang": "ko",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 4684,
+          "cacheRead": 198515,
+          "cacheCreation": 21816
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 45577,
+        "endToEndMs": 46470
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t07",
+      "lang": "en",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 5615,
+          "cacheRead": 197646,
+          "cacheCreation": 23215
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 54857,
+        "endToEndMs": 56102
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t08",
+      "lang": "ko",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 3779,
+          "cacheRead": 200173,
+          "cacheCreation": 22801
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 39343,
+        "endToEndMs": 40349
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t09",
+      "lang": "ko",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 4,
+          "output": 1447,
+          "cacheRead": 86832,
+          "cacheCreation": 15741
+        },
+        "apiTurns": 2,
+        "toolCalls": 3,
+        "wallMs": 15551,
+        "endToEndMs": 17126
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t10",
+      "lang": "en",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 4187,
+          "cacheRead": 198611,
+          "cacheCreation": 22317
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 41705,
+        "endToEndMs": 42808
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t11",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 5997,
+          "cacheRead": 254794,
+          "cacheCreation": 21938
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 60676,
+        "endToEndMs": 61555
+      },
+      "route": null,
+      "judge": null,
+      "notes": []
+    },
+    {
+      "id": "t12",
+      "lang": "en",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": false,
+        "passed": false
+      },
+      "delegation": {
+        "delegated": false,
+        "agentCalls": 0,
+        "refusedCalls": 0,
+        "launchedCalls": 0,
+        "firstPromptVerbatim": null,
+        "firstRequestedType": null,
+        "launchedRequestedType": null
+      },
+      "subagent": null,
+      "route": null,
+      "judge": null,
+      "notes": [
+        "Main did not delegate this task (counts as not passed)"
+      ]
+    }
+  ],
+  "totals": {
+    "tasks": 12,
+    "delegated": 11,
+    "done": 11,
+    "passed": 11,
+    "byDifficulty": {
+      "moderate": {
+        "tasks": 4,
+        "delegated": 4,
+        "done": 4,
+        "passed": 4
+      },
+      "routine": {
+        "tasks": 4,
+        "delegated": 3,
+        "done": 3,
+        "passed": 3
+      },
+      "hard": {
+        "tasks": 4,
+        "delegated": 4,
+        "done": 4,
+        "passed": 4
+      }
+    },
+    "subagentsByModel": {
+      "claude-fable-5-2": {
+        "tasks": 11,
+        "done": 11,
+        "passed": 11,
+        "apiTurns": 43,
+        "toolCalls": 46,
+        "wallMs": 438091,
+        "input": 86,
+        "output": 42648,
+        "cacheRead": 2086091,
+        "cacheCreation": 268171
+      }
+    },
+    "subagentWallMs": 438091,
+    "subagentEndToEndMs": 452361,
+    "routing": null,
+    "noRoutingCheck": {
+      "clean": true,
+      "refusedCalls": 0,
+      "firstCallAsOtherType": [],
+      "launchedAsOtherType": [],
+      "ranAsOtherType": [],
+      "agentTypeUnknown": []
+    },
+    "judge": null,
+    "unlinkedSubagents": {
+      "files": 1,
+      "tokensByModel": {
+        "claude-fable-5-2": {
+          "input": 8,
+          "output": 3350,
+          "cacheRead": 195516,
+          "cacheCreation": 19858
+        }
+      }
+    }
+  },
+  "unattributedChanges": [],
+  "warnings": [
+    "1 Agent call(s) carry no task text of this experiment",
+    "1 subagent transcript(s) belong to no analysed task launch: their tokens are listed under unlinkedSubagents",
+    "Main used tools other than Agent (mcp__ccd_turn__update_plan x12, mcp__ccd_turn__wrap_up x1): it was told to do no work itself"
+  ]
+}

@@ -1,0 +1,1070 @@
+{
+  "schema": 1,
+  "generatedBy": "qa/kernel/routing-exp/analyze.mjs",
+  "arm": "L",
+  "armName": "lower-model only",
+  "checker": {
+    "name": "routing-exp-checker",
+    "version": "d1c4013e1870a6138cce558f4c139357e8e63b3878e1ac2d5871be4a8f03f538",
+    "tasksFile": "c77df42cc4996e649491f6c59b8ff76008611b50386b26650cbedb7a507a385c"
+  },
+  "host": {
+    "versions": [
+      "2.1.330"
+    ],
+    "entrypoints": [
+      "claude-desktop"
+    ],
+    "permissionModes": [
+      "auto"
+    ]
+  },
+  "main": {
+    "models": [
+      "claude-fable-5-2"
+    ],
+    "efforts": [
+      "medium"
+    ],
+    "apiTurns": 26,
+    "tokensByModel": {
+      "claude-fable-5-2": {
+        "apiTurns": 26,
+        "input": 52,
+        "output": 7445,
+        "cacheRead": 2516600,
+        "cacheCreation": 70709
+      }
+    },
+    "tokens": {
+      "input": 52,
+      "output": 7445,
+      "cacheRead": 2516600,
+      "cacheCreation": 70709
+    },
+    "wallMs": 603590,
+    "otherToolCalls": {
+      "mcp__ccd_turn__update_plan": 12,
+      "mcp__ccd_turn__wrap_up": 1
+    },
+    "agentCalls": 12,
+    "refusedCalls": 0,
+    "launchedCalls": 12,
+    "strayAgentCalls": 1,
+    "promptContainsMainPrompt": false,
+    "promptExtraCharacters": null
+  },
+  "tasks": [
+    {
+      "id": "t01",
+      "lang": "en",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 6,
+          "output": 3174,
+          "cacheRead": 142206,
+          "cacheCreation": 18253
+        },
+        "apiTurns": 3,
+        "toolCalls": 3,
+        "wallMs": 32407,
+        "endToEndMs": 34601
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t02",
+      "lang": "ko",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 6,
+          "output": 1971,
+          "cacheRead": 141131,
+          "cacheCreation": 16693
+        },
+        "apiTurns": 3,
+        "toolCalls": 4,
+        "wallMs": 20600,
+        "endToEndMs": 21498
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t03",
+      "lang": "en",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 4548,
+          "cacheRead": 257398,
+          "cacheCreation": 20032
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 48584,
+        "endToEndMs": 49485
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t04",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 6451,
+          "cacheRead": 200050,
+          "cacheCreation": 23768
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 61630,
+        "endToEndMs": 62523
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t05",
+      "lang": "en",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 6,
+          "output": 1756,
+          "cacheRead": 142611,
+          "cacheCreation": 18150
+        },
+        "apiTurns": 3,
+        "toolCalls": 4,
+        "wallMs": 19320,
+        "endToEndMs": 27366
+      },
+      "route": {
+        "recorded": false,
+        "deferred": false,
+        "deferReason": null,
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": null,
+      "notes": [
+        "no route and no route_deferred event for this task: the hook did not see the call or recorded nothing"
+      ]
+    },
+    {
+      "id": "t06",
+      "lang": "ko",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 5034,
+          "cacheRead": 203161,
+          "cacheCreation": 26347
+        },
+        "apiTurns": 4,
+        "toolCalls": 6,
+        "wallMs": 48955,
+        "endToEndMs": 49798
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t07",
+      "lang": "en",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 6493,
+          "cacheRead": 261253,
+          "cacheCreation": 28314
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 66081,
+        "endToEndMs": 66985
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t08",
+      "lang": "ko",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 8,
+          "output": 4618,
+          "cacheRead": 206686,
+          "cacheCreation": 27802
+        },
+        "apiTurns": 4,
+        "toolCalls": 4,
+        "wallMs": 48979,
+        "endToEndMs": 50008
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t09",
+      "lang": "ko",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 4,
+          "output": 1540,
+          "cacheRead": 87700,
+          "cacheCreation": 15211
+        },
+        "apiTurns": 2,
+        "toolCalls": 3,
+        "wallMs": 17370,
+        "endToEndMs": 18215
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t10",
+      "lang": "en",
+      "difficulty": "hard",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 4707,
+          "cacheRead": 258226,
+          "cacheCreation": 23348
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 48332,
+        "endToEndMs": 49283
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t11",
+      "lang": "ko",
+      "difficulty": "moderate",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": true,
+        "passed": true
+      },
+      "delegation": {
+        "delegated": true,
+        "agentCalls": 1,
+        "refusedCalls": 0,
+        "launchedCalls": 1,
+        "firstPromptVerbatim": true,
+        "firstRequestedType": "general-purpose",
+        "launchedRequestedType": "general-purpose"
+      },
+      "subagent": {
+        "agentType": "general-purpose",
+        "model": "claude-fable-5-2",
+        "modelInMeta": "claude-fable-5-2",
+        "effort": "medium",
+        "finished": true,
+        "files": 3,
+        "tokens": {
+          "input": 10,
+          "output": 6341,
+          "cacheRead": 255280,
+          "cacheCreation": 21653
+        },
+        "apiTurns": 5,
+        "toolCalls": 5,
+        "wallMs": 64518,
+        "endToEndMs": 65303
+      },
+      "route": {
+        "recorded": false,
+        "deferred": true,
+        "deferReason": "no_compatible_profile",
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": false,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": {
+        "decisions": 0,
+        "requests": 0,
+        "cached": 0,
+        "requestsWithUsage": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null,
+        "decisionIdsOnRoute": 0
+      },
+      "notes": [
+        "a deferred route records no judge decision ids: its judge cost is in the arm total only"
+      ]
+    },
+    {
+      "id": "t12",
+      "lang": "en",
+      "difficulty": "routine",
+      "check": {
+        "done": true,
+        "passed": true,
+        "failed": []
+      },
+      "counted": {
+        "done": false,
+        "passed": false
+      },
+      "delegation": {
+        "delegated": false,
+        "agentCalls": 0,
+        "refusedCalls": 0,
+        "launchedCalls": 0,
+        "firstPromptVerbatim": null,
+        "firstRequestedType": null,
+        "launchedRequestedType": null
+      },
+      "subagent": null,
+      "route": {
+        "recorded": false,
+        "deferred": false,
+        "deferReason": null,
+        "profile": null,
+        "tier": null,
+        "role": null,
+        "model": null,
+        "backend": null,
+        "effort": null,
+        "taskClass": null,
+        "evaluationContext": null,
+        "mode": null,
+        "basis": null,
+        "reissued": null,
+        "reissueAgeMs": null,
+        "applied": null,
+        "modelEqualsBackend": null,
+        "effortEqualsRoute": null,
+        "hookMs": null
+      },
+      "judge": null,
+      "notes": [
+        "Main did not delegate this task (counts as not passed)"
+      ]
+    }
+  ],
+  "totals": {
+    "tasks": 12,
+    "delegated": 11,
+    "done": 11,
+    "passed": 11,
+    "byDifficulty": {
+      "moderate": {
+        "tasks": 4,
+        "delegated": 4,
+        "done": 4,
+        "passed": 4
+      },
+      "routine": {
+        "tasks": 4,
+        "delegated": 3,
+        "done": 3,
+        "passed": 3
+      },
+      "hard": {
+        "tasks": 4,
+        "delegated": 4,
+        "done": 4,
+        "passed": 4
+      }
+    },
+    "subagentsByModel": {
+      "claude-fable-5-2": {
+        "tasks": 11,
+        "done": 11,
+        "passed": 11,
+        "apiTurns": 43,
+        "toolCalls": 48,
+        "wallMs": 476776,
+        "input": 86,
+        "output": 46633,
+        "cacheRead": 2155702,
+        "cacheCreation": 239571
+      }
+    },
+    "subagentWallMs": 476776,
+    "subagentEndToEndMs": 495065,
+    "routing": {
+      "routed": 0,
+      "deferred": [
+        "t01",
+        "t02",
+        "t03",
+        "t04",
+        "t06",
+        "t07",
+        "t08",
+        "t09",
+        "t10",
+        "t11"
+      ],
+      "applied": 0,
+      "notApplied": [],
+      "reissued": 0,
+      "profiles": {},
+      "evaluationContexts": [],
+      "byApplication": {
+        "asRoutedProfile": {
+          "tasks": 0,
+          "passed": 0,
+          "models": []
+        },
+        "notAsRoutedProfile": {
+          "tasks": [
+            "t01",
+            "t02",
+            "t03",
+            "t04",
+            "t05",
+            "t06",
+            "t07",
+            "t08",
+            "t09",
+            "t10",
+            "t11"
+          ],
+          "passed": [
+            "t01",
+            "t02",
+            "t03",
+            "t04",
+            "t05",
+            "t06",
+            "t07",
+            "t08",
+            "t09",
+            "t10",
+            "t11"
+          ],
+          "models": [
+            "claude-fable-5-2"
+          ]
+        }
+      }
+    },
+    "noRoutingCheck": null,
+    "judge": {
+      "all": {
+        "decisions": 12,
+        "requests": 12,
+        "cached": 0,
+        "requestsWithUsage": 11,
+        "inputTokens": 16343,
+        "outputTokens": 3116,
+        "latencyMs": 4364
+      },
+      "byPoint": {
+        "delegation.classify": {
+          "decisions": 12,
+          "requests": 12,
+          "cached": 0,
+          "requestsWithUsage": 11,
+          "inputTokens": 16343,
+          "outputTokens": 3116,
+          "latencyMs": 4364
+        }
+      },
+      "onTaskRoutes": {
+        "requests": 0,
+        "inputTokens": null,
+        "outputTokens": null,
+        "latencyMs": null
+      }
+    },
+    "unlinkedSubagents": {
+      "files": 1,
+      "tokensByModel": {
+        "claude-fable-5-2": {
+          "input": 8,
+          "output": 3488,
+          "cacheRead": 201453,
+          "cacheCreation": 24223
+        }
+      }
+    }
+  },
+  "unattributedChanges": [],
+  "warnings": [
+    "1 Agent call(s) carry no task text of this experiment",
+    "1 subagent transcript(s) belong to no analysed task launch: their tokens are listed under unlinkedSubagents",
+    "Main used tools other than Agent (mcp__ccd_turn__update_plan x12, mcp__ccd_turn__wrap_up x1): it was told to do no work itself"
+  ]
+}

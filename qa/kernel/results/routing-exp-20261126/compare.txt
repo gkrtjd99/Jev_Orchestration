@@ -1,0 +1,97 @@
+Routing experiment: three arms, one run each. Descriptive numbers only (12 synthetic tasks, single runs): no significance, no generalisation.
+Known arm differences: in R and L every rewritten delegation costs Main one extra round trip (the host refuses the rewritten call once and Main issues it again);
+in N every subagent is the harness default for general-purpose. Token counts are listed per model and are never added across models.
+
+Per task: checker result (P = passed, D = done but a hidden check failed, x = not done, - = not delegated), then how the subagent ran.
+task  lang  tier      N  N ran as          R  R ran as                                    L  L ran as
+----  ----  --------  -  ----------------  -  ------------------------------------------  -  --------------------------------------------------
+t01   en    moderate  P  fable-5-2/medium  P  implement_standard_high -> opus-5-5/high    P  deferred:no_compatible_profile -> fable-5-2/medium
+t02   ko    routine   P  fable-5-2/medium  P  implement_standard_high -> opus-5-5/high    P  deferred:no_compatible_profile -> fable-5-2/medium
+t03   en    hard      P  fable-5-2/medium  P  implement_standard_xhigh -> opus-5-5/xhigh  P  deferred:no_compatible_profile -> fable-5-2/medium
+t04   ko    moderate  P  fable-5-2/medium  P  implement_standard_high -> opus-5-5/high    P  deferred:no_compatible_profile -> fable-5-2/medium
+t05   en    routine   P  fable-5-2/medium  P  implement_standard_high -> opus-5-5/high    P  no route -> fable-5-2/medium
+t06   ko    hard      P  fable-5-2/medium  P  implement_standard_xhigh -> opus-5-5/xhigh  P  deferred:no_compatible_profile -> fable-5-2/medium
+t07   en    moderate  P  fable-5-2/medium  P  implement_standard_xhigh -> opus-5-5/xhigh  P  deferred:no_compatible_profile -> fable-5-2/medium
+t08   ko    hard      P  fable-5-2/medium  P  implement_standard_xhigh -> opus-5-5/xhigh  P  deferred:no_compatible_profile -> fable-5-2/medium
+t09   ko    routine   P  fable-5-2/medium  P  implement_standard_high -> opus-5-5/high    P  deferred:no_compatible_profile -> fable-5-2/medium
+t10   en    hard      P  fable-5-2/medium  P  implement_standard_xhigh -> opus-5-5/xhigh  P  deferred:no_compatible_profile -> fable-5-2/medium
+t11   ko    moderate  P  fable-5-2/medium  P  implement_standard_high -> opus-5-5/high    P  deferred:no_compatible_profile -> fable-5-2/medium
+t12   en    routine   -  -                 -  -                                           -  -
+
+Per task: subagent tokens as input / output / cache read / cache creation, API turns, wall time.
+task  N (in / out / cache-r / cache-w  turns wall)  R (in / out / cache-r / cache-w  turns wall)  L (in / out / cache-r / cache-w  turns wall)
+----  --------------------------------------------  --------------------------------------------  --------------------------------------------
+t01   6 / 2,632 / 103,149 / 56,623  3t 28s          14 / 7,101 / 352,418 / 67,354  7t 63s         6 / 3,174 / 142,206 / 18,253  3t 32s
+t02   10 / 2,785 / 251,884 / 18,568  5t 32s         10 / 2,982 / 260,724 / 24,473  5t 29s         6 / 1,971 / 141,131 / 16,693  3t 21s
+t03   8 / 3,388 / 198,659 / 20,598  4t 37s          34 / 28,438 / 1,256,227 / 56,085  17t 283s    10 / 4,548 / 257,398 / 20,032  5t 49s
+t04   8 / 5,935 / 199,318 / 24,706  4t 58s          14 / 10,138 / 406,866 / 34,590  7t 91s        8 / 6,451 / 200,050 / 23,768  4t 62s
+t05   8 / 2,199 / 196,510 / 19,848  4t 25s          10 / 4,037 / 262,718 / 26,324  5t 38s         6 / 1,756 / 142,611 / 18,150  3t 19s
+t06   8 / 4,684 / 198,515 / 21,816  4t 46s          14 / 16,238 / 415,234 / 40,976  7t 150s       8 / 5,034 / 203,161 / 26,347  4t 49s
+t07   8 / 5,615 / 197,646 / 23,215  4t 55s          22 / 20,612 / 757,728 / 51,715  11t 198s      10 / 6,493 / 261,253 / 28,314  5t 66s
+t08   8 / 3,779 / 200,173 / 22,801  4t 39s          26 / 21,683 / 901,477 / 54,787  13t 213s      8 / 4,618 / 206,686 / 27,802  4t 49s
+t09   4 / 1,447 / 86,832 / 15,741  2t 16s           10 / 3,850 / 259,506 / 24,055  5t 37s         4 / 1,540 / 87,700 / 15,211  2t 17s
+t10   8 / 4,187 / 198,611 / 22,317  4t 42s          24 / 26,163 / 842,115 / 53,963  12t 249s      10 / 4,707 / 258,226 / 23,348  5t 48s
+t11   10 / 5,997 / 254,794 / 21,938  5t 61s         20 / 12,978 / 602,567 / 35,344  10t 117s      10 / 6,341 / 255,280 / 21,653  5t 65s
+t12   -                                             -                                             -
+
+Primary outcome: tasks passed per arm.
+arm                 passed  done   delegated  routine passed  moderate passed  hard passed
+------------------  ------  -----  ---------  --------------  ---------------  -----------
+N no routing        11/12   11/12  11/12      3/4             4/4              4/4
+R routed            11/12   11/12  11/12      3/4             4/4              4/4
+L lower-model only  11/12   11/12  11/12      3/4             4/4              4/4
+NEAR CEILING: every arm failed at most one task. The quality question stays open: a single task in a single run does not separate the arms.
+Reading of differences (fixed in advance): a difference of one passed task between two arms is not distinguishable in single runs; two or more is described as a difference (descriptive, no significance).
+  N vs R: 11 vs 11, difference 0 -> not distinguishable
+  N vs L: 11 vs 11, difference 0 -> not distinguishable
+  R vs L: 11 vs 11, difference 0 -> not distinguishable
+R: of 11 passed, 11 ran as the routed profile (recorded models: opus-5-5); 0 passed without an applied route.
+L: of 11 passed, 0 ran as the routed profile (recorded models: -); 11 passed without an applied route (t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11; ran as the harness default on: fable-5-2). Only the first number is a lower-model-only result; see the routed comparison and the by-model table.
+
+Routed comparison (tasks whose route was deferred or not applied in arm R or arm L are left out here and kept in the arm totals). Left out: t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12.
+arm  tasks kept  passed  routine passed  moderate passed  hard passed
+---  ----------  ------  --------------  ---------------  -----------
+N    0           0/0     0/0             0/0              0/0
+R    0           0/0     0/0             0/0              0/0
+L    0           0/0     0/0             0/0              0/0
+
+Subagents by effective model (the model id the host recorded in the subagent's own rows). One line per arm and model.
+arm  model             tasks  passed  input  output   cache read  cache creation  turns  tool calls  wall
+---  ----------------  -----  ------  -----  -------  ----------  --------------  -----  ----------  -----
+N    claude-fable-5-2  11     11/11   86     42,648   2,086,091   268,171         43     46          438s
+R    claude-opus-5-5   11     11/11   198    154,220  6,317,580   469,666         99     132         1467s
+L    claude-fable-5-2  11     11/11   86     46,633   2,155,702   239,571         43     48          477s
+
+Main session by model (includes, in R and L, the extra round trip per rewritten delegation).
+arm  model             effort  turns  input  output  cache read  cache creation  Agent calls  refused  wall
+---  ----------------  ------  -----  -----  ------  ----------  --------------  -----------  -------  -----
+N    claude-fable-5-2  medium  26     74     7,545   2,454,763   66,404          12           0        562s
+R    claude-fable-5-2  medium  38     76     16,478  4,293,845   102,422         24           12       1689s
+L    claude-fable-5-2  medium  26     52     7,445   2,516,600   70,709          12           0        604s
+
+Routing and judge (arms with hooks). Judge tokens come from the decision log's usage field and are null when the log has none.
+arm  routed  applied  re-issued  deferred                                 judge requests  judge in  judge out  judge latency  contexts
+---  ------  -------  ---------  ---------------------------------------  --------------  --------  ---------  -------------  ---------------
+R    11      11       11         none                                     24              49,052    5,172      6s             desktop-auto-v1
+L    0       0        0          t01,t02,t03,t04,t06,t07,t08,t09,t10,t11  12              16,343    3,116      4s             -
+  R routed profiles: implement_standard_high x6, implement_standard_xhigh x5
+  L routed profiles: -
+
+Wall time: subagents (sum of each subagent's first to last row), end to end (first Agent call of a task to its subagent's last row), Main session.
+arm  subagents  end to end  main session
+---  ---------  ----------  ------------
+N    438s       452s        562s
+R    1467s      1556s       1689s
+L    477s       495s        604s
+
+Outcome collector (evaluation rows). Rows produced here are far below the importer's minimumSamples (30 per profile on one task set): routing does not change because of them.
+arm  context          rows produced  by model match             tasks withheld  reasons
+---  ---------------  -------------  -------------------------  --------------  -------------------------
+R    desktop-auto-v1  11             {"exact":0,"declared":11}  0               none
+L    desktop-auto-v1  0              {"exact":0,"declared":0}   11              delegation_not_routed x11
+
+No cost estimate: no --prices file was given (none is shipped).
+
+N: host {"versions":["2.1.330"],"entrypoints":["claude-desktop"],"permissionModes":["auto"]}; 3 warning(s), 1 task note(s), 0 unattributed change(s), 1 unlinked subagent transcript(s). Read the arm file for the text.
+R: host {"versions":["2.1.330"],"entrypoints":["claude-desktop"],"permissionModes":["auto"]}; 3 warning(s), 1 task note(s), 0 unattributed change(s), 1 unlinked subagent transcript(s). Read the arm file for the text.
+L: host {"versions":["2.1.330"],"entrypoints":["claude-desktop"],"permissionModes":["auto"]}; 3 warning(s), 12 task note(s), 0 unattributed change(s), 1 unlinked subagent transcript(s). Read the arm file for the text.

@@ -1,0 +1,441 @@
+{
+  "tasks": [
+    {
+      "id": "t01",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: pages follow each other",
+          "ok": true
+        },
+        {
+          "name": "hidden: a last page that is exactly full has no next cursor",
+          "ok": true
+        },
+        {
+          "name": "hidden: walking the cursors visits every record once and ends",
+          "ok": true
+        },
+        {
+          "name": "hidden: nothing after the last record, nothing in an empty list",
+          "ok": true
+        },
+        {
+          "name": "hidden: an unknown cursor is rejected",
+          "ok": true
+        },
+        {
+          "name": "hidden: limit defaults to 20 and is validated",
+          "ok": true
+        },
+        {
+          "name": "basic: the handler pages the member list with text query values",
+          "ok": true
+        },
+        {
+          "name": "hidden: the handler uses the default limit when limit is missing or empty, as listMembers does for its numbers",
+          "ok": true
+        },
+        {
+          "name": "hidden: the handler rejects a limit that is not a whole number from 1 to 100",
+          "ok": true
+        },
+        {
+          "name": "hidden: the handler rejects an unknown cursor and listMembers is unchanged",
+          "ok": true
+        },
+        {
+          "name": "hidden: paginate is unchanged and inputs are not modified",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t02",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: maxWaitlist has a default and is read from the environment",
+          "ok": true
+        },
+        {
+          "name": "hidden: an empty value means the default",
+          "ok": true
+        },
+        {
+          "name": "hidden: the smallest allowed value is 1",
+          "ok": true
+        },
+        {
+          "name": "hidden: values that are not whole numbers from 1 are rejected",
+          "ok": true
+        },
+        {
+          "name": "hidden: the other settings behave as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t03",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: the same name in composed and decomposed form is one name",
+          "ok": true
+        },
+        {
+          "name": "hidden: decomposed first, composed second is also one name",
+          "ok": true
+        },
+        {
+          "name": "hidden: a Hangul name typed as separate jamo equals the composed one",
+          "ok": true
+        },
+        {
+          "name": "hidden: a decomposed Hangul name within the limit is accepted",
+          "ok": true
+        },
+        {
+          "name": "hidden: a short name with family emoji is accepted",
+          "ok": true
+        },
+        {
+          "name": "hidden: twenty characters built from combining marks are accepted",
+          "ok": true
+        },
+        {
+          "name": "hidden: twenty-one characters are still rejected",
+          "ok": true
+        },
+        {
+          "name": "hidden: names that read differently stay different",
+          "ok": true
+        },
+        {
+          "name": "hidden: trimming, spaces, capitalisation and renaming work as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t04",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: vip before regular before trial",
+          "ok": true
+        },
+        {
+          "name": "hidden: earlier joiners first within a tier",
+          "ok": true
+        },
+        {
+          "name": "hidden: equal tier and time keep the given order",
+          "ok": true
+        },
+        {
+          "name": "hidden: join times are compared as instants, whatever their UTC offset",
+          "ok": true
+        },
+        {
+          "name": "hidden: the given array is left alone and a new one is returned",
+          "ok": true
+        },
+        {
+          "name": "hidden: an unknown tier is rejected",
+          "ok": true
+        },
+        {
+          "name": "hidden: Waitlist.next and promote follow the new order",
+          "ok": true
+        },
+        {
+          "name": "hidden: adding, removing and listing work as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t05",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: minutes and hours with minutes",
+          "ok": true
+        },
+        {
+          "name": "hidden: a zero part is left out",
+          "ok": true
+        },
+        {
+          "name": "hidden: zero minutes is 0m",
+          "ok": true
+        },
+        {
+          "name": "hidden: anything but a non-negative integer is rejected",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t06",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: even and weighted splits that divide exactly",
+          "ok": true
+        },
+        {
+          "name": "hidden: shares add up when the amount does not divide",
+          "ok": true
+        },
+        {
+          "name": "hidden: nobody is more than one minor unit off their share",
+          "ok": true
+        },
+        {
+          "name": "hidden: currencies without decimals get whole amounts",
+          "ok": true
+        },
+        {
+          "name": "hidden: currencies with three decimals keep three decimals",
+          "ok": true
+        },
+        {
+          "name": "hidden: many totals and weights",
+          "ok": true
+        },
+        {
+          "name": "hidden: one payer pays everything and weights are validated",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t07",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: a retried delivery returns the first entry and adds nothing",
+          "ok": true
+        },
+        {
+          "name": "hidden: deliveries that overlap produce one entry",
+          "ok": true
+        },
+        {
+          "name": "hidden: a key reused for another payment is a conflict and records nothing",
+          "ok": true
+        },
+        {
+          "name": "hidden: overlapping deliveries with one key and different payments record one entry",
+          "ok": true
+        },
+        {
+          "name": "hidden: a delivery retried after it failed is recorded once",
+          "ok": true
+        },
+        {
+          "name": "hidden: different keys and calls without a key are separate payments",
+          "ok": true
+        },
+        {
+          "name": "hidden: validation and the entry shape are as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t08",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: two requests for the last seat give one booking",
+          "ok": true
+        },
+        {
+          "name": "hidden: a rush fills the session exactly and turns the rest away as FULL",
+          "ok": true
+        },
+        {
+          "name": "hidden: one member clicking many times gets one booking",
+          "ok": true
+        },
+        {
+          "name": "hidden: booking keeps working after requests were turned away",
+          "ok": true
+        },
+        {
+          "name": "hidden: a rush on one session does not disturb another",
+          "ok": true
+        },
+        {
+          "name": "hidden: several rushes in a row never go over capacity",
+          "ok": true
+        },
+        {
+          "name": "hidden: one-at-a-time behaviour is as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t09",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: a header line and one line per row",
+          "ok": true
+        },
+        {
+          "name": "hidden: quotes inside a quoted cell are doubled",
+          "ok": true
+        },
+        {
+          "name": "hidden: commas and line breaks are quoted",
+          "ok": true
+        },
+        {
+          "name": "hidden: null and undefined are empty, other values are kept",
+          "ok": true
+        },
+        {
+          "name": "hidden: the header follows the same rule and columns choose the order",
+          "ok": true
+        },
+        {
+          "name": "hidden: no rows gives the header only, without a trailing line break",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t10",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: the New York class from the report keeps its time in March",
+          "ok": true
+        },
+        {
+          "name": "hidden: New York in autumn",
+          "ok": true
+        },
+        {
+          "name": "hidden: London, whose clocks change on other dates",
+          "ok": true
+        },
+        {
+          "name": "hidden: Sydney, where the change goes the other way",
+          "ok": true
+        },
+        {
+          "name": "hidden: a whole year of sessions in several zones",
+          "ok": true
+        },
+        {
+          "name": "hidden: zones without clock changes are as before",
+          "ok": true
+        },
+        {
+          "name": "hidden: a range finds the session at its real time after the clocks went forward",
+          "ok": true
+        },
+        {
+          "name": "hidden: a range finds the session at its real time after the clocks went back",
+          "ok": true
+        },
+        {
+          "name": "hidden: a range includes its start, excludes its end and matches the expanded list",
+          "ok": true
+        },
+        {
+          "name": "hidden: except dates are still skipped, by studio-local date",
+          "ok": true
+        },
+        {
+          "name": "hidden: invalid input is rejected as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t11",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: set writes through and the new value is read back",
+          "ok": true
+        },
+        {
+          "name": "hidden: a cached value is replaced by a write",
+          "ok": true
+        },
+        {
+          "name": "hidden: a remembered \"not there\" is forgotten when the key is written",
+          "ok": true
+        },
+        {
+          "name": "hidden: delete removes the key from the store and from the cache",
+          "ok": true
+        },
+        {
+          "name": "hidden: listings show a new key after set",
+          "ok": true
+        },
+        {
+          "name": "hidden: listings show changed values and drop deleted keys",
+          "ok": true
+        },
+        {
+          "name": "hidden: other keys stay cached across a write",
+          "ok": true
+        },
+        {
+          "name": "hidden: expiry and clear work as before",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "t12",
+      "done": true,
+      "passed": true,
+      "details": [
+        {
+          "name": "basic: normalizes and masks the example address",
+          "ok": true
+        },
+        {
+          "name": "hidden: the mask is as long as the part it hides",
+          "ok": true
+        },
+        {
+          "name": "hidden: addresses without exactly one @ are rejected",
+          "ok": true
+        },
+        {
+          "name": "hidden: something must stand on both sides of the @",
+          "ok": true
+        },
+        {
+          "name": "hidden: maskEmail rejects what normalizeEmail rejects",
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "unattributedChanges": []
+}
