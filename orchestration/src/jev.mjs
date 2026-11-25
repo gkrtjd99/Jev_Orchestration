@@ -1,23 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { assert, object, hash, readJSON, writeJSON, withLock } from './util.mjs';
+import { assert, hash, readJSON, writeJSON, withLock } from './util.mjs';
 import { validateSafety, secretLike } from './safety.mjs';
 import { QUESTION_VERSION } from './questions.mjs';
-export function validateAnswers(response,questions){
-  assert(object(response)&&typeof response.model==='string'&&object(response.answers),'INVALID_JEV_ENVELOPE');
-  const unit=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=1;
-  for(const [id,q] of Object.entries(questions)){
-    const a=response.answers[id];assert(a?.type===q.type,'INVALID_JEV_ANSWER_TYPE');
-    if(q.type==='noul'){assert(unit(a.noul),'INVALID_JEV_NOUL');continue;}
-    assert(q.type==='choice'&&unit(a.confidence)&&object(a.probabilities),'INVALID_JEV_CHOICE');
-    const keys=Object.keys(q.criteria);assert(keys.includes(a.choice),'UNKNOWN_JEV_CHOICE');
-    assert(Object.keys(a.probabilities).length===keys.length&&keys.every(k=>Object.hasOwn(a.probabilities,k)&&unit(a.probabilities[k])),'INVALID_JEV_PROBABILITIES');
-    assert(Math.abs(Object.values(a.probabilities).reduce((s,x)=>s+x,0)-1)<0.001,'INVALID_JEV_DISTRIBUTION');
-    assert(a.probabilities[a.choice]>=Math.max(...Object.values(a.probabilities))-1e-8,'CHOICE_DISTRIBUTION_MISMATCH');
-  }
-  return response;
-}
+import { validateAnswers } from './kernel/answers.mjs';
+// Re-exported so existing importers of jev.mjs keep working.
+export { validateAnswers };
 export class JevClient{
   constructor(config,apiKey,{fetchImpl=fetch}={}){this.config=config;this.key=apiKey;this.fetch=fetchImpl;}
   async request(state,questions,{timeoutMs=this.config.timeoutMs}={}){
