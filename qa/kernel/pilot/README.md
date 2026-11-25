@@ -32,7 +32,7 @@
 ```bash
 cd qa/kernel/pilot
 node checkers/selftest.mjs        # SELFTEST PASSED
-node --test analyze.test.mjs      # 14 pass
+node --test analyze.test.mjs      # 22 pass
 sh leak-check.sh                  # 여섯 줄 모두 ok
 node catalog-stats.mjs            # catalog check ok
 node build-main-prompt.mjs --check
@@ -78,7 +78,11 @@ node compare.mjs --a ~/pilot-runs/arm-a.json --b ~/pilot-runs/arm-b.json        
 node compare.mjs --a ~/pilot-runs/arm-a.json --b ~/pilot-runs/arm-b.json --json   # 같은 내용의 JSON
 ```
 
-- `--state-dir`은 `sessions/<세션>/events/*.json`이 들어 있는 폴더입니다.
+- `--state-dir`은 `sessions/<세션>/events/*.json`이 들어 있는 폴더입니다. 같은 폴더의 `decisions-log/*.jsonl`도 읽습니다(judge 지연).
+- `--sanitized-out <파일>`을 더하면 경로, 세션/agent/tool-use id, prompt 원문이 빠진 사본을 따로 씁니다. 저장소에는 이 사본만 넣습니다.
+- subagent transcript 옆의 `agent-<agentId>.meta.json`(agentType, model, toolUseId)이 있으면 함께 읽습니다.
+- **세션 이후 수정 (2026-11-25):** 두 세션을 실행한 뒤 분석기의 읽기 방식을 실제 파일 모양에 맞춰 고쳤습니다. 무엇을 왜 바꿨는지는
+  [PROTOCOL.md](PROTOCOL.md) 끝의 "세션 이후 분석기 수정 기록"과 `../results/pilot-20261125/notes.txt`에 있습니다.
 - 채점만 따로 보려면 `node checkers/check.mjs --project ~/pilot-runs/arm-a`.
 - arm 파일의 과제별 `subagent.targetListedToSubagent`는 target skill 이름이 subagent에게 보인 목록에 있었는지입니다. `null`이면
   목록 행을 찾지 못한 것이니 그 arm의 subagent transcript 앞부분을 직접 확인하세요.

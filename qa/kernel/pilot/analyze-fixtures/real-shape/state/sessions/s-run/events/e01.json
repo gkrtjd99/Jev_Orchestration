@@ -1,0 +1,1 @@
+{"type":"route","time":1,"taskId":"toolu_r01a","inputHash":"x","mode":"active","cached":false,"latencyMs":1169.6,"hookMs":1200.3,"route":{"role":"implement","tier":"light","model":"small","effort":"xhigh","profile":"jev4_implement_light_x","decisionReason":"synthetic_reason"}}

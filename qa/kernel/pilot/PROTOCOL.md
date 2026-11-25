@@ -194,3 +194,26 @@ result에 적힌 agentId를 씁니다. `spawn_observed` 이벤트가 **아예 �
 - 채점기는 프로젝트의 모듈을 자식 프로세스에서 import해 실행합니다(쓰기는 하지 않음, 과제당 20초 제한). subagent가 함수 이름이나
   호출 형태를 과제 문장과 다르게 만들면 `done`이 `false`가 됩니다.
 - 분석기는 `Agent`라는 이름의 tool 호출만 위임으로 셉니다.
+
+## 세션 이후 분석기 수정 기록 (2026-11-25, 사후)
+
+이 절은 두 세션을 **실행한 뒤에** 덧붙인 기록입니다. 위의 본문은 한 글자도 바꾸지 않았습니다. 과제, skill, 채점기, `main-prompt.txt`,
+결과 정의는 그대로입니다. 바뀐 것은 `analyze.mjs`와 `compare.mjs`가 실제 세션 파일을 읽는 방식이고, 이 문서 첫머리의 "같은 커밋으로
+고정"에서 벗어난 것이므로 여기에 밝힙니다.
+
+- **왜:** 사전 등록한 분석기는 1차 결과(프로젝트 폴더 채점)는 읽었지만 2차 측정은 16개 과제 실행 중 1개에서만 읽었습니다. 실제
+  transcript와 hook 상태의 모양이 가정과 달랐기 때문입니다.
+- **읽기 방식 수정:** 대화 행(`user`/`assistant`/`attachment`)만 읽고 요청 기록 행(`api-request*`)의 중복 항목은 버립니다. subagent의
+  첫 prompt는 harness 알림(`isMeta`)이 아닌 첫 user 글입니다. skill 목록은 `skill_listing` attachment의 `names`에서 읽습니다.
+  `agent-<id>.meta.json`과 `decisions-log/*.jsonl`을 함께 읽습니다.
+- **연결 규칙의 해석(결과를 본 뒤 정함):** 권한 모드 `auto`에서는 hook이 Agent 호출의 입력을 고치면 harness가 그 호출을 **실행하기
+  전에 거부**하고, Main에게 고친 입력으로 다시 호출하라고 합니다. 그래서 위임 한 번이 Agent 호출 두 개(거부된 시도 + 실제로 시작된
+  호출)로 남습니다. 본문의 "첫 번째 호출" 규칙을 글자 그대로 적용하면 거부된 시도가 과제의 호출이 되어 subagent 측정이 16개 중
+  15개에서 `null`이 됩니다. 분석기는 **실행 전에 거부되지 않은 첫 호출**을 그 과제의 호출로 쓰고, 거부된 시도는 `attempts`,
+  `delegationDetail`, `otherCalls`에 그대로 남깁니다. 모든 호출이 거부됐으면 본문 규칙대로 첫 호출입니다. 이 해석은 2차 측정을 어느
+  subagent transcript에서 읽는지만 바꾸고, 1차 결과에는 영향을 주지 않습니다.
+- **더해진 참고값(결과 정의가 아님):** 호출별 hook 판단(need, load/suggest 확률, target에 대한 judge 확률, route), judge 지연,
+  토큰 구성, target load와 첫 쓰기의 순서, 사용자 수준 skill 검색 도구 사용, Main 세션 정보, 짝 차이.
+- **끝내 측정하지 못한 값:** judge 토큰(결정 기록에 토큰 수가 없음), arm A의 `injected`(skills 이벤트가 없으므로 `false`가 아니라
+  `null`), `Bash`로 쓴 파일의 귀속.
+- 결과 파일과 자세한 목록: `../results/pilot-20261125/` (`notes.txt`).

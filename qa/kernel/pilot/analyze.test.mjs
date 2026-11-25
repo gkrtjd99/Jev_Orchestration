@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { analyze } from './analyze.mjs';
+import { analyze, sanitize } from './analyze.mjs';
 import { compare, render } from './compare.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -22,9 +22,9 @@ function project(fixtures) {
 }
 
 // Copies the synthetic transcripts, pointing "__PROJECT__" at the temp project.
-function transcriptsFor(projectDir) {
+function transcriptsFor(projectDir, set = 'transcripts') {
   const dir = temp();
-  cpSync(join(here, 'analyze-fixtures', 'transcripts'), dir, { recursive: true });
+  cpSync(join(here, 'analyze-fixtures', set), dir, { recursive: true });
   const walk = (folder) => {
     for (const name of readdirSync(folder)) {
       const full = join(folder, name);
@@ -290,6 +290,178 @@ test('command line: analyze writes the file, compare reads it', () => {
   assert.match(table.stdout, /Paired convention outcome over 6 measured pair/);
   const bad = spawnSync(process.execPath, [join(here, 'analyze.mjs'), '--arm', 'A'], { encoding: 'utf8' });
   assert.equal(bad.status, 64);
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// The row shapes of the real sessions (analyze-fixtures/real-shape, synthetic content): request-log copies,
+// a refused Agent attempt followed by the launched call, meta files, the skill_listing attachment.
+const realProject = project([['reference', 't01'], ['reference', 't03'], ['reference', 't04']]);
+const real = analyze({ arm: 'R', project: realProject, stateDir: join(here, 'analyze-fixtures', 'real-shape', 'state'), transcripts: transcriptsFor(realProject, join('real-shape', 'transcripts')) });
+const realTask = (id) => real.tasks.find((row) => row.id === id);
+
+test('real shape: a refused attempt is not the delegation; request-log copies are not counted', () => {
+  assert.equal(real.agentCallsInMain, 5); // 5 Agent tool_use ids; the api-request-blob copies add none
+  const t = realTask('t01');
+  assert.deepEqual(t.delegation, { toolUseId: 'toolu_r01b', subagentType: 'jev4_implement_light_x', promptVerbatim: false, agentCalls: 2, spawnFailed: false });
+  assert.deepEqual(t.delegationDetail, { refusedAttempts: 1, launchedCalls: 1, scoredCallIndex: 1, scoredCallOutcome: 'launched',
+    firstCallPromptVerbatim: true, firstCallSubagentType: 'general-purpose', scoredPromptIsHookRewrite: true });
+  assert.deepEqual(t.attempts.map((attempt) => [attempt.toolUseId, attempt.scored, attempt.outcome, attempt.refusalCode]),
+    [['toolu_r01a', false, 'refused', 'classifier:auto-mode:unavailable'], ['toolu_r01b', true, 'launched', null]]);
+  assert.deepEqual(t.attempts[0].hookRewrite, { subagentType: 'jev4_implement_light_x', routingBlocks: 1, skillsBlocks: 1 });
+  assert.deepEqual(t.attempts[1].promptBlocks, { routing: 1, skills: 1 });
+  assert.deepEqual(t.attempts[1].hookRewrite, { subagentType: 'jev4_implement_standard_y', routingBlocks: 2, skillsBlocks: 2 });
+  assert.deepEqual(t.otherCalls, [{ toolUseId: 'toolu_r01a', agentId: null, agentIdSource: null, spawnFailed: null, injected: true, load: ['partner-file-exports'] }]);
+  assert.equal(t.agentId, 'ar01');
+  assert.equal(t.agentIdSource, 'spawn_observed');
+  // the hook events are those of the scored call, never of the refused attempt
+  assert.equal(t.hook.injected, true);
+  assert.deepEqual(t.hook.route, { profile: 'jev4_implement_standard_y', model: 'large', effort: 'high' });
+  assert.deepEqual(t.hookDetail.load, [{ name: 'partner-file-exports', probability: 0.98 }]);
+  assert.deepEqual(t.hookDetail.suggest, []);
+  assert.deepEqual(t.attempts[0].hookDetail.suggest, [{ name: 'carrier-csv-intake', probability: 0.6 }]);
+  assert.deepEqual(t.attempts[0].target, { probability: 0.97, stage: 'loaded' });
+  assert.deepEqual(t.targetJudged, { probability: 0.98, stage: 'loaded' });
+  assert.deepEqual(t.hookDetail.judge, { requests: 2, decisionsLogged: 2, latencyMsSum: 585, latencyMsMax: 295, cached: false });
+  assert.deepEqual(t.hookDetail.route, { profile: 'jev4_implement_standard_y', model: 'large', effort: 'high', tier: 'standard', decisionReason: 'synthetic_reason', latencyMs: 470, hookMs: 500, cached: false });
+  // what ran is what the harness recorded, not the route of the second rewrite
+  assert.deepEqual(t.effective, { agentType: 'jev4_implement_light_x', model: 'model-light', scoredCallRewriteApplied: false });
+  assert.ok(t.warnings.some((w) => w.includes('refused by the harness before the tool ran')));
+  assert.ok(t.warnings.some((w) => w.includes('second rewrite and its route were not applied')));
+  assert.ok(t.warnings.some((w) => w.includes('ran as jev4_implement_light_x')));
+  assert.ok(!t.warnings.some((w) => w.includes('otherCalls')));
+  assert.equal(real.delegationsInTaskOrder, true);
+  assert.ok(!real.warnings.some((w) => w.includes('match no task')));
+});
+
+test('real shape: subagent tool calls, load order, listing, tokens and wall time', () => {
+  const s = realTask('t01').subagent;
+  assert.equal(s.toolCalls, 6); // the api-request-blob row repeats two of them under the same ids
+  assert.deepEqual(s.toolNames, { Bash: 3, Skill: 1, Write: 1, SubagentHandback: 1 });
+  assert.deepEqual([s.toolCallsWithoutHandback, s.handbackCalls, s.toolErrors], [5, 1, 1]);
+  assert.deepEqual(s.loadedSkills, [{ name: 'partner-file-exports', via: 'Skill', callIndex: 1 }]);
+  assert.deepEqual([s.targetLoadCallIndex, s.firstWriteCallIndex, s.firstBashWriteLikeCallIndex, s.bashWriteLikeCommands], [1, 3, 2, 1]);
+  assert.deepEqual([s.targetLoadedBeforeFirstWrite, s.targetLoadedBeforeAnyWrite], [true, true]);
+  assert.deepEqual(s.skillListing, { found: true, source: 'attachment:skill_listing', catalogNamesListed: 60, catalogSize: 60 });
+  assert.deepEqual(s.listingDetail, { totalNamesListed: 62, catalogNamesWithDescription: 60, nonCatalogNamesListed: 2, nonCatalogNames: ['plugin-x:plugin-skill', 'user-level-skill'] });
+  assert.equal(s.targetListedToSubagent, true);
+  // the first prompt is the delegation text, not the harness reminder that follows it
+  assert.deepEqual([s.firstPromptContainsTask, s.promptHadSkillsBlock], [true, true]);
+  assert.deepEqual([s.promptBlockLoad, s.promptBlockConsider, s.promptBlockCounts], [['partner-file-exports'], ['carrier-csv-intake'], { skills: 1, routing: 1 }]);
+  assert.deepEqual(s.tokens, { input: 12, output: 1050, cacheRead: 230900, cacheCreation: 11400, messages: 6, assistantMessages: 6, total: 243362 });
+  assert.equal(s.wallMs, 51000);
+  assert.deepEqual(s.timestampCoverage, { rows: 19, withTimestamp: 19 }); // request-log rows are not transcript rows
+  assert.deepEqual(s.filesWritten, ['test/overdue.test.mjs']);
+  assert.deepEqual(s.skillSearch, { mcpSkillToolCalls: 0, mcpSkillTools: {}, toolSearchForSkill: 0, nonCatalogSkillCalls: [] });
+  assert.deepEqual(s.models, ['model-light']);
+  assert.ok(realTask('t01').warnings.some((w) => w.includes('1 Bash command(s) look like file writes')));
+});
+
+test('real shape: user-level skill search and a rejected tool call are reported per task', () => {
+  const t = realTask('t03');
+  assert.deepEqual(t.subagent.skillSearch, { mcpSkillToolCalls: 1, mcpSkillTools: { 'mcp__skill-finder__search_skills': 1 }, toolSearchForSkill: 1, nonCatalogSkillCalls: ['user-level-skill'] });
+  assert.deepEqual(t.subagent.rejectedToolCalls, [{ tool: 'plan_tool', reasonCode: 'hook:PreToolUse' }]);
+  assert.equal(t.hook.injected, false);
+  assert.equal(t.hookDetail.need, 0.09);
+  assert.equal(t.subagent.promptHadSkillsBlock, false);
+  assert.ok(t.warnings.some((w) => w.includes('not in the project catalog')));
+  assert.deepEqual(real.totals.skillSearch, { tasksMeasured: 3, tasksUsingMcpSkillTool: ['t03'], tasksUsingToolSearchForSkill: ['t03'], tasksCallingNonCatalogSkill: ['t03'] });
+});
+
+test('real shape: a deferred route leaves one call, launched as Main sent it', () => {
+  const t = realTask('t04');
+  assert.deepEqual(t.delegation, { toolUseId: 'toolu_r04', subagentType: 'general-purpose', promptVerbatim: true, agentCalls: 1, spawnFailed: false });
+  assert.deepEqual(t.delegationDetail, { refusedAttempts: 0, launchedCalls: 1, scoredCallIndex: 0, scoredCallOutcome: 'launched',
+    firstCallPromptVerbatim: true, firstCallSubagentType: 'general-purpose', scoredPromptIsHookRewrite: null });
+  assert.equal(t.hook.route, null);
+  assert.equal(t.hookDetail.routeDeferred, 'selector_abstained');
+  // need under the gate: nothing injected although the judge rated the target 0.93
+  assert.deepEqual([t.hook.injected, t.hookDetail.need], [false, 0.4]);
+  assert.deepEqual(t.targetJudged, { probability: 0.93, stage: 'need_gate' });
+  assert.deepEqual(t.hookDetail.judge, { requests: 2, decisionsLogged: 1, latencyMsSum: 270, latencyMsMax: 270, cached: false });
+  assert.deepEqual(t.effective, { agentType: null, model: 'model-main', scoredCallRewriteApplied: null }); // no meta file
+  assert.deepEqual([t.subagent.targetLoadCallIndex, t.subagent.targetLoadedBeforeAnyWrite], [0, true]);
+});
+
+test('real shape: run totals, judge cost and the Main session', () => {
+  assert.deepEqual(real.totals.agentCalls, { all: 5, refusedBeforeRunning: 2, launched: 3, tasksWithSeveralLaunchedCalls: [] });
+  assert.deepEqual(real.totals.injectedOnSkillTasks, { yes: 1, measured: 2, of: 6 });
+  assert.deepEqual(real.totals.injectedOnControls, { yes: 0, measured: 1, of: 2 });
+  assert.deepEqual(real.totals.blockInSubagentPrompt, { skillTasks: { yes: 1, measured: 2, of: 6 }, controls: { yes: 0, measured: 1, of: 2 } });
+  assert.deepEqual(real.totals.targetLoadedAsFirstToolCall, { yes: 1, measured: 2, of: 6 });
+  assert.deepEqual(real.totals.subagentTokenParts.output, { sum: 1050 + 50 + 20, measured: 3, of: 8 });
+  assert.deepEqual(real.totals.effectiveProfiles, { 'jev4_implement_light_x / model-light': ['t01'], 'jev4_implement_standard_y / model-standard': ['t03'], '(unknown) / model-main': ['t04'] });
+  assert.deepEqual(real.judge.byPoint['delegation.skills'], { decisions: 9, cached: 0, latencyMsSum: 2592, latencyMsMax: 310, providers: { jev: 9 } });
+  assert.deepEqual(real.judge.byPoint['delegation.profile'].providers, { jev: 1, none: 1 });
+  assert.deepEqual(real.judge.skills, { events: 5, requests: 10, latencyMsSum: 611 + 585 + 561 + 565 + 270, scoredCalls: { events: 3, requests: 6, latencyMsSum: 585 + 565 + 270 } });
+  assert.equal(real.judge.tokens, null); // the decision log has no token field: unmeasured, not zero
+  assert.deepEqual(real.judge.hookMsPerAgentCall, { sum: 1200 + 500 + 520 + 540, measured: 4, of: 5 });
+  assert.ok(real.warnings.some((w) => w.includes('judge tokens are unmeasured')));
+  const m = real.mainSession;
+  assert.deepEqual([m.userPrompts, m.firstPromptEqualsMainPromptFile, m.firstPromptContainsMainPromptFile, m.firstPromptExtraChars], [1, false, true, 55]);
+  assert.deepEqual(m.toolNames, { plan_tool: 1, Agent: 5 });
+  assert.deepEqual([m.models, m.efforts, m.permissionModes], [['model-main'], ['medium'], ['auto']]);
+  assert.deepEqual(m.tokens, { input: 14, output: 2200, cacheRead: 22000, cacheCreation: 220, messages: 7, assistantMessages: 7, total: 24434 });
+  assert.equal(m.wallMs, 151000);
+  assert.ok(real.warnings.some((w) => w.includes('contains main-prompt.txt word for word but is not equal')));
+  assert.ok(real.warnings.some((w) => w.includes('state dir holds 2 sessions')));
+});
+
+test('when no call was launched the literal first-call rule still applies, and a meta file can name the subagent', () => {
+  const dir = temp();
+  const transcripts = join(dir, 'transcripts');
+  mkdirSync(join(transcripts, 'subagents'), { recursive: true });
+  mkdirSync(join(dir, 'state'), { recursive: true });
+  const call = (id, prompt) => ({ type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', id, name: 'Agent', input: { prompt, subagent_type: 'general-purpose' } }] } });
+  const refusal = (id) => ({ type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, is_error: true, content: 'refused' }] }, permissionDecision: { decision: 'reject', reasonCode: 'x' } });
+  writeFileSync(join(transcripts, 'main.jsonl'), [call('k5a', tasksText.t05), refusal('k5a'), call('k5b', tasksText.t05), refusal('k5b'), call('k6', tasksText.t06)].map((row) => JSON.stringify(row)).join('\n') + '\n');
+  writeFileSync(join(transcripts, 'subagents', 'agent-m6.jsonl'), [userRow('not the task text'), toolRow('u1', 'Skill', { skill: 'read-endpoints' })].map((row) => JSON.stringify(row)).join('\n') + '\n');
+  writeFileSync(join(transcripts, 'subagents', 'agent-m6.meta.json'), JSON.stringify({ agentType: 'some-profile', model: 'model-z', toolUseId: 'k6' }));
+  const run = analyze({ arm: 'X', project: join(here, 'template'), stateDir: join(dir, 'state'), transcripts });
+  const t5 = run.tasks.find((row) => row.id === 't05');
+  assert.equal(t5.delegation.toolUseId, 'k5a');
+  assert.deepEqual([t5.delegationDetail.refusedAttempts, t5.delegationDetail.launchedCalls, t5.delegationDetail.scoredCallOutcome], [2, 0, 'refused']);
+  assert.equal(t5.subagent, null); // unmeasured, not a failure
+  const t6 = run.tasks.find((row) => row.id === 't06');
+  assert.deepEqual([t6.agentId, t6.agentIdSource], ['m6', 'subagent_meta']);
+  assert.deepEqual(t6.effective, { agentType: 'some-profile', model: 'model-z', scoredCallRewriteApplied: null });
+  assert.equal(t6.subagent.targetSkillLoaded, true);
+});
+
+test('the sanitized copy keeps numbers and names and drops paths and ids', () => {
+  const clean = sanitize(real);
+  const text = JSON.stringify(clean);
+  assert.equal(clean.sanitized, true);
+  assert.equal(clean.inputs, undefined);
+  for (const leak of ['toolu_', 'ar01', 'ar03', 'ar04', 's-run', 's-setup', realProject, tmpdir(), here]) assert.ok(!text.includes(leak), `sanitized output still holds ${leak}`);
+  const t = clean.tasks.find((row) => row.id === 't01');
+  assert.deepEqual([t.delegation.toolUseId, t.agentId, t.attempts.map((attempt) => attempt.toolUseId)], ['t01-call2', 't01-subagent', ['t01-call1', 't01-call2']]);
+  assert.deepEqual(clean.sessions.map((entry) => entry.session), ['session-1', 'session-2']);
+  assert.deepEqual(t.subagent.tokens, realTask('t01').subagent.tokens);
+  assert.deepEqual(t.checkDetails, realTask('t01').checkDetails);
+  assert.ok(t.checkDetails.length > 0 && t.checkDetails.every((entry) => typeof entry.check === 'string' && typeof entry.ok === 'boolean'));
+  // a write outside the project keeps no path
+  const outside = sanitize(result).tasks.find((row) => row.id === 't03').subagent.outOfScopeWrites;
+  assert.deepEqual(outside, ['package.json', '<path>']);
+});
+
+test('compare: delegation, load order, judge and paired cost sections', () => {
+  const paired = compare(real, real);
+  assert.deepEqual(paired.differences.tokens.all, { pairsMeasured: 3, of: 8, a: 243362 + 6160 + 1174, b: 243362 + 6160 + 1174, diff: 0, bLower: 0, bHigher: 0 });
+  assert.equal(paired.differences.tokens.sameSetup.pairsMeasured, 2); // t04 has no recorded agent type on either side
+  const text = render(paired);
+  assert.match(text, /^t01\s+1 \+ 1\s+1 \+ 1\s+jev4_implement_light_x \/ model-light/m);
+  assert.match(text, /^t04\s+0 \+ 1\s+0 \+ 1\s+- \/ model-main/m);
+  assert.match(text, /^t01\s+R\s+yes \(60\/62\)\s+Skill\s+1\s+3\s+2\s+yes\s+yes/m);
+  assert.match(text, /^t04\s+R\s+launched\s+0\.4\s+no\s+0\.93 need_gate/m);
+  assert.match(text, /delegation\.skills 9 decisions, latency sum 2592 ms/);
+  assert.match(text, /Judge tokens: - \(not recorded\)/);
+  assert.match(text, /MCP skill tool in 1 task\(s\) \[t03\]/);
+  assert.match(text, /t01 R: 2 Agent calls \(1 refused before running, 1 launched; launched input is exactly the hook's rewrite: yes\)/);
+  // an arm file written before schema 3 still renders
+  const old = JSON.parse(JSON.stringify(real));
+  delete old.judge; delete old.mainSession;
+  for (const row of old.tasks) { delete row.delegationDetail; delete row.attempts; delete row.hookDetail; delete row.effective; }
+  assert.match(render(compare(old, old)), /PRIMARY convention passed/);
 });
 
 test('main-prompt.txt is exactly what tasks.json generates', () => {

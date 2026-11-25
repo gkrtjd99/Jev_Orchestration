@@ -34,6 +34,37 @@ export function compare(a, b) {
       wallMs: t.subagent?.wallMs ?? null,
       outOfScopeWrites: t.subagent?.outOfScopeWrites ?? null,
       warnings: t.warnings?.length ?? 0,
+      // ---- schema 3 fields (absent in older arm files: every one falls back to null)
+      refusedAttempts: t.delegationDetail?.refusedAttempts ?? null,
+      launchedCalls: t.delegationDetail?.launchedCalls ?? null,
+      scoredPromptIsHookRewrite: t.delegationDetail?.scoredPromptIsHookRewrite ?? null,
+      firstCallPromptVerbatim: t.delegationDetail?.firstCallPromptVerbatim ?? null,
+      agentType: t.effective?.agentType ?? null,
+      model: t.effective?.model ?? null,
+      routeProfile: t.hook?.route?.profile ?? null,
+      routeDeferred: t.hookDetail?.routeDeferred ?? null,
+      need: t.hookDetail?.need ?? null,
+      load: t.hookDetail?.load ?? null,
+      suggest: t.hookDetail?.suggest ?? null,
+      top: t.hookDetail?.top ?? null,
+      targetJudged: t.targetJudged ?? null,
+      judge: t.hookDetail?.judge ?? null,
+      attemptsJudged: (t.attempts ?? []).map((attempt) => ({ outcome: attempt.outcome, need: attempt.hookDetail?.need ?? null, injected: attempt.injected ?? null, target: attempt.target ?? null,
+        load: attempt.hookDetail?.load ?? null, suggest: attempt.hookDetail?.suggest ?? null, profile: attempt.hookDetail?.route?.profile ?? null })),
+      blockInPrompt: t.subagent?.promptHadSkillsBlock ?? null,
+      blockLoad: t.subagent?.promptBlockLoad ?? null,
+      blockConsider: t.subagent?.promptBlockConsider ?? null,
+      loadIndex: t.subagent?.targetLoadCallIndex ?? null,
+      firstWriteIndex: t.subagent?.firstWriteCallIndex ?? null,
+      firstBashWriteIndex: t.subagent?.firstBashWriteLikeCallIndex ?? null,
+      beforeFirstWrite: t.subagent?.targetLoadedBeforeFirstWrite ?? null,
+      beforeAnyWrite: t.subagent?.targetLoadedBeforeAnyWrite ?? null,
+      listedCatalog: t.subagent?.skillListing?.catalogNamesListed ?? null,
+      listedTotal: t.subagent?.listingDetail?.totalNamesListed ?? null,
+      listedWithDescription: t.subagent?.listingDetail?.catalogNamesWithDescription ?? null,
+      tokenParts: t.subagent?.tokens ? { input: t.subagent.tokens.input, output: t.subagent.tokens.output, cacheRead: t.subagent.tokens.cacheRead, cacheCreation: t.subagent.tokens.cacheCreation } : null,
+      toolCallsWithoutHandback: t.subagent?.toolCallsWithoutHandback ?? null,
+      skillSearch: t.subagent?.skillSearch ?? null,
     } : null);
     return { id: ta.id, kind: ta.kind, lang: ta.lang, targetSkill: ta.targetSkill, a: side(ta), b: side(tb) };
   });
@@ -46,7 +77,24 @@ export function compare(a, b) {
     onlyB: both.filter((pair) => !pair.a.convention && pair.b.convention).length,
     neither: both.filter((pair) => !pair.a.convention && !pair.b.convention).length,
   };
-  return { arms: { a: a.arm, b: b.arm }, pairs, paired, totals: { a: a.totals, b: b.totals }, warnings: { a: a.warnings, b: b.warnings }, problems };
+  // Paired differences (b minus a) of the cost measures, only over pairs measured in both arms.
+  const measures = { toolCalls: (x) => x?.toolCalls, tokens: (x) => x?.tokens, outputTokens: (x) => x?.tokenParts?.output, inputTokens: (x) => x?.tokenParts?.input,
+    cacheReadTokens: (x) => x?.tokenParts?.cacheRead, cacheCreationTokens: (x) => x?.tokenParts?.cacheCreation, wallMs: (x) => x?.wallMs };
+  const differences = Object.fromEntries(Object.entries(measures).map(([name, pick]) => {
+    // sameSetup: both subagents ran as the same agent type on the same model (null when that is unknown).
+    const perTask = pairs.map((pair) => ({ id: pair.id, kind: pair.kind, a: pick(pair.a) ?? null, b: pick(pair.b) ?? null,
+      sameSetup: pair.a?.agentType && pair.b?.agentType ? pair.a.agentType === pair.b.agentType && pair.a.model === pair.b.model : null }))
+      .map((row) => ({ ...row, diff: typeof row.a === 'number' && typeof row.b === 'number' ? row.b - row.a : null }));
+    const total = (rows) => {
+      const measured = rows.filter((row) => row.diff !== null);
+      return { pairsMeasured: measured.length, of: rows.length, a: measured.length ? measured.reduce((n, row) => n + row.a, 0) : null, b: measured.length ? measured.reduce((n, row) => n + row.b, 0) : null,
+        diff: measured.length ? measured.reduce((n, row) => n + row.diff, 0) : null, bLower: measured.filter((row) => row.diff < 0).length, bHigher: measured.filter((row) => row.diff > 0).length };
+    };
+    return [name, { perTask, all: total(perTask), skillTasks: total(perTask.filter((row) => row.kind === 'skill')), controls: total(perTask.filter((row) => row.kind === 'control')),
+      sameSetup: total(perTask.filter((row) => row.sameSetup === true)), sameSetupSkillTasks: total(perTask.filter((row) => row.sameSetup === true && row.kind === 'skill')) }];
+  }));
+  return { arms: { a: a.arm, b: b.arm }, pairs, paired, differences, totals: { a: a.totals, b: b.totals }, judge: { a: a.judge ?? null, b: b.judge ?? null },
+    mainSession: { a: a.mainSession ?? null, b: b.mainSession ?? null }, warnings: { a: a.warnings, b: b.warnings }, problems };
 }
 
 export function render(result) {
@@ -79,12 +127,68 @@ export function render(result) {
   both('subagent tokens, all tasks', (t) => t?.subagentTokens, sum);
   both('subagent wall time ms, all tasks', (t) => t?.subagentWallMs, sum);
   out.push('', `Paired convention outcome over ${paired.pairsMeasured} measured pair(s): both pass ${paired.bothPass}, only ${arms.a} ${paired.onlyA}, only ${arms.b} ${paired.onlyB}, neither ${paired.neither}`);
+  const table = (head, body) => {
+    const w = head.map((cell, i) => Math.max(cell.length, ...body.map((row) => row[i].length)));
+    const fmt = (cells) => cells.map((cell, i) => cell.padEnd(w[i])).join('  ').trimEnd();
+    return [fmt(head), fmt(w.map((n) => '-'.repeat(n))), ...body.map(fmt)];
+  };
+  const prob = (list) => (Array.isArray(list) ? (list.length ? list.map((entry) => `${entry.name} ${show(entry.probability)}`).join(', ') : '(none)') : '-');
+  const signed = (n) => (typeof n === 'number' ? (n > 0 ? `+${n}` : String(n)) : '-');
+  if (pairs.some((pair) => pair.a?.refusedAttempts !== null || pair.b?.refusedAttempts !== null)) {
+    out.push('', 'Delegation as it ran (Agent calls = refused before running + launched; profile / model are what the harness recorded for the subagent)');
+    out.push(...table(['task', `calls ${arms.a}`, `calls ${arms.b}`, `ran as ${arms.a}`, `ran as ${arms.b}`, `block in prompt ${arms.a}`, `block in prompt ${arms.b}`],
+      pairs.map((pair) => [pair.id, ...['a', 'b'].map((side) => (pair[side]?.delegated ? `${show(pair[side].refusedAttempts)} + ${show(pair[side].launchedCalls)}` : 'none')),
+        ...['a', 'b'].map((side) => `${show(pair[side]?.agentType)} / ${show(pair[side]?.model)}`), show(pair.a?.blockInPrompt), show(pair.b?.blockInPrompt)])));
+    out.push('', 'Target skill: listing, load route and order (index = position among the subagent\'s tool calls, 0 is the first; "bash write" is a heuristic)');
+    out.push(...table(['task', 'arm', 'listed (catalog/all)', 'loaded via', 'load index', 'first Write/Edit', 'first bash write', 'before Write/Edit', 'before any write', 'other project skills loaded'],
+      pairs.filter((pair) => pair.kind === 'skill').flatMap((pair) => ['a', 'b'].map((side) => {
+        const x = pair[side];
+        return [pair.id, arms[side], x?.listedCatalog === null || x?.listedCatalog === undefined ? '-' : `${show(x.targetListedToSubagent)} (${x.listedCatalog}/${show(x.listedTotal)})`,
+          show(x?.targetSkillLoadedVia), show(x?.loadIndex), show(x?.firstWriteIndex), show(x?.firstBashWriteIndex), show(x?.beforeFirstWrite), show(x?.beforeAnyWrite),
+          x?.loadedSkills ? (x.loadedSkills.filter((name) => name !== pair.targetSkill).join(', ') || '(none)') : '-'];
+      }))));
+    out.push('', `Skill judge per Agent call, ${arms.b} and ${arms.a} (each task: refused attempt first, then the launched call; "target" is the judge's probability for the target skill and the stage it ended in)`);
+    out.push(...table(['task', 'arm', 'call', 'need', 'injected', 'target', 'load', 'suggest', 'route profile'],
+      pairs.flatMap((pair) => ['a', 'b'].flatMap((side) => (pair[side]?.attemptsJudged ?? []).filter((attempt) => attempt.need !== null || attempt.injected !== null || side === 'b').map((attempt) => [pair.id, arms[side], attempt.outcome,
+        show(attempt.need), show(attempt.injected), attempt.target ? `${show(attempt.target.probability)} ${show(attempt.target.stage)}` : '-', prob(attempt.load), prob(attempt.suggest), show(attempt.profile)])))));
+    const d = result.differences;
+    out.push('', `Subagent cost, paired (${arms.b} minus ${arms.a}); tokens = input + output + cache read + cache creation, each message id once`);
+    out.push(...table(['task', `tools ${arms.a}`, `tools ${arms.b}`, 'diff', `tokens ${arms.a}`, `tokens ${arms.b}`, 'diff', `output ${arms.a}`, `output ${arms.b}`, 'diff', `wall s ${arms.a}`, `wall s ${arms.b}`, 'diff s'],
+      [...d.toolCalls.perTask.map((row, i) => [row.id, show(row.a), show(row.b), signed(row.diff), show(d.tokens.perTask[i].a), show(d.tokens.perTask[i].b), signed(d.tokens.perTask[i].diff),
+        show(d.outputTokens.perTask[i].a), show(d.outputTokens.perTask[i].b), signed(d.outputTokens.perTask[i].diff),
+        show(seconds(d.wallMs.perTask[i].a)), show(seconds(d.wallMs.perTask[i].b)), d.wallMs.perTask[i].diff === null ? '-' : signed(Number((d.wallMs.perTask[i].diff / 1000).toFixed(1)))]),
+      ...['all', 'skillTasks', 'controls', 'sameSetup', 'sameSetupSkillTasks'].map((group) => [`sum ${group} (${d.toolCalls[group].pairsMeasured}/${d.toolCalls[group].of})`, show(d.toolCalls[group].a), show(d.toolCalls[group].b), signed(d.toolCalls[group].diff),
+        show(d.tokens[group].a), show(d.tokens[group].b), signed(d.tokens[group].diff), show(d.outputTokens[group].a), show(d.outputTokens[group].b), signed(d.outputTokens[group].diff),
+        show(seconds(d.wallMs[group].a)), show(seconds(d.wallMs[group].b)), d.wallMs[group].diff === null ? '-' : signed(Number((d.wallMs[group].diff / 1000).toFixed(1)))])]));
+    const unlike = d.toolCalls.perTask.filter((row) => row.sameSetup === false).map((row) => row.id);
+    out.push(`"sameSetup" rows count only pairs whose two subagents ran as the same agent type on the same model${unlike.length ? `; left out: ${unlike.join(', ')}` : ''}.`);
+    out.push(`Token parts, all tasks: input ${arms.a} ${show(d.inputTokens.all.a)} / ${arms.b} ${show(d.inputTokens.all.b)}; output ${show(d.outputTokens.all.a)} / ${show(d.outputTokens.all.b)}; cache read ${show(d.cacheReadTokens.all.a)} / ${show(d.cacheReadTokens.all.b)}; cache creation ${show(d.cacheCreationTokens.all.a)} / ${show(d.cacheCreationTokens.all.b)}`);
+    out.push(`Pairs where ${arms.b} was lower / higher: tool calls ${d.toolCalls.all.bLower}/${d.toolCalls.all.bHigher}, tokens ${d.tokens.all.bLower}/${d.tokens.all.bHigher}, wall time ${d.wallMs.all.bLower}/${d.wallMs.all.bHigher} (of ${d.toolCalls.all.pairsMeasured} measured pairs)`);
+    const judgeLine = (side) => {
+      const j = result.judge?.[side];
+      if (!j) return `${arms[side]}: -`;
+      const points = Object.entries(j.byPoint ?? {}).map(([point, entry]) => `${point} ${entry.decisions} decisions, latency sum ${show(entry.latencyMsSum)} ms, max ${show(entry.latencyMsMax)} ms`).join('; ') || 'no decision log';
+      return `${arms[side]}: ${points}. PreToolUse hook time over ${show(j.hookMsPerAgentCall?.measured)}/${show(j.hookMsPerAgentCall?.of)} Agent calls: ${show(j.hookMsPerAgentCall?.sum)} ms. Judge tokens: ${show(j.tokens)} (not recorded).`;
+    };
+    out.push('', 'Judge cost from the decision log (one decision = one judge request)', `  ${judgeLine('a')}`, `  ${judgeLine('b')}`);
+    const searchLine = (side) => {
+      const sk = totals[side]?.skillSearch;
+      return sk ? `${arms[side]}: MCP skill tool in ${sk.tasksUsingMcpSkillTool.length} task(s)${sk.tasksUsingMcpSkillTool.length ? ` [${sk.tasksUsingMcpSkillTool.join(', ')}]` : ''}, ToolSearch about skills in ${sk.tasksUsingToolSearchForSkill.length}, Skill call outside the project catalog in ${sk.tasksCallingNonCatalogSkill.length} (of ${sk.tasksMeasured} subagents read)` : `${arms[side]}: -`;
+    };
+    out.push('', 'User-level skill search by subagents', `  ${searchLine('a')}`, `  ${searchLine('b')}`);
+    const mainLine = (side) => {
+      const m = result.mainSession?.[side];
+      return m ? `${arms[side]}: ${m.userPrompts} user prompt(s); equals main-prompt.txt ${show(m.firstPromptEqualsMainPromptFile)}, contains it ${show(m.firstPromptContainsMainPromptFile)} (+${show(m.firstPromptExtraChars)} chars); model ${m.models.join(',') || '-'}, effort ${m.efforts.join(',') || '-'}, permission mode ${m.permissionModes.join(',') || '-'}; tools ${Object.entries(m.toolNames).map(([name, n]) => `${name} x${n}`).join(', ') || '-'}; tokens ${show(m.tokens?.total)}; wall ${show(seconds(m.wallMs))} s` : `${arms[side]}: -`;
+    };
+    out.push('', 'Main session', `  ${mainLine('a')}`, `  ${mainLine('b')}`);
+  }
   const scoped = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side]?.outOfScopeWrites?.length).map((side) => `${pair.id} ${arms[side]}: ${pair[side].outOfScopeWrites.join(', ')}`));
   if (scoped.length) out.push('', 'Writes outside the task\'s own paths:', ...scoped.map((entry) => `  ${entry}`));
   const blocked = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side]?.blockedBy?.length).map((side) => `${pair.id} ${arms[side]}: ${pair[side].blockedBy.join(', ')}`));
   if (blocked.length) out.push('', 'Blocked by another task\'s file (the pair is contaminated; read its result with that in mind):', ...blocked.map((entry) => `  ${entry}`));
-  const retried = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side] && (!pair[side].delegated || pair[side].agentCalls > 1)).map((side) => `${pair.id} ${arms[side]}: ${pair[side].delegated ? `${pair[side].agentCalls} Agent calls` : 'not delegated'}`));
-  if (retried.length) out.push('', 'Delegation deviations (not delegated counts as measured done=false; with several calls the first is scored):', ...retried.map((entry) => `  ${entry}`));
+  const retried = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side] && (!pair[side].delegated || pair[side].agentCalls > 1)).map((side) => `${pair.id} ${arms[side]}: ${pair[side].delegated
+    ? `${pair[side].agentCalls} Agent calls${pair[side].refusedAttempts !== null ? ` (${pair[side].refusedAttempts} refused before running, ${pair[side].launchedCalls} launched${pair[side].scoredPromptIsHookRewrite === null ? '' : `; launched input is exactly the hook's rewrite: ${show(pair[side].scoredPromptIsHookRewrite)}`})` : ''}` : 'not delegated'}`));
+  if (retried.length) out.push('', 'Delegation deviations (not delegated counts as measured done=false; a call refused before the tool ran is not scored, otherwise the first call is):', ...retried.map((entry) => `  ${entry}`));
   const noted = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side]?.warnings).map((side) => `${pair.id} ${arms[side]}: ${pair[side].warnings}`));
   out.push('', `Warnings: ${arms.a} ${result.warnings.a?.length ?? 0} run-level, ${arms.b} ${result.warnings.b?.length ?? 0} run-level${noted.length ? `; per task: ${noted.join('; ')}` : ''}. Read them in the arm files.`);
   for (const problem of result.problems) out.push(`PROBLEM: ${problem}`);

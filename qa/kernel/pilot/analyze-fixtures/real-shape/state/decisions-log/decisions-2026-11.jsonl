@@ -1,0 +1,13 @@
+{"schema":1,"time":1,"pointId":"delegation.classify","mode":"active","decisionId":"c1","provider":"jev","model":"judge-x","cached":false,"latencyMs":400.2,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.classify","mode":"active","decisionId":"c2","provider":"jev","model":"judge-x","cached":false,"latencyMs":300.4,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.profile","mode":"active","decisionId":"p1","provider":"jev","model":"judge-x","cached":false,"latencyMs":200.6,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.profile","mode":"active","decisionId":"p2","provider":"none","model":"judge-x","cached":false,"latencyMs":1200,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d1","provider":"jev","model":"judge-x","cached":false,"latencyMs":300.4,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d2","provider":"jev","model":"judge-x","cached":false,"latencyMs":310.4,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d3","provider":"jev","model":"judge-x","cached":false,"latencyMs":290.1,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d4","provider":"jev","model":"judge-x","cached":false,"latencyMs":295.1,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d5","provider":"jev","model":"judge-x","cached":false,"latencyMs":280,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d6","provider":"jev","model":"judge-x","cached":false,"latencyMs":281,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d7","provider":"jev","model":"judge-x","cached":false,"latencyMs":282,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d8","provider":"jev","model":"judge-x","cached":false,"latencyMs":283,"answers":{},"trail":[]}
+{"schema":1,"time":1,"pointId":"delegation.skills","mode":"active","decisionId":"d9","provider":"jev","model":"judge-x","cached":false,"latencyMs":270,"answers":{},"trail":[]}
