@@ -4,9 +4,21 @@
 
 기존 **Claude Code / Codex Main**을 유지하는 native hook 확장(3.2.0)도 보존합니다. 기본 `shadow`와 기존 `active`/`advisory` 모드는 Main이 **이미 요청한** 위임에 Jev 분류와 모델×effort 프로필 선택을 적용합니다. 새 **`controller` 모드(Claude 전용, 명시적 opt-in)**는 반대로 Astra 계획→Main의 native worker 배정→Main의 근거 확인을 중심에 두고, Jev를 선택적·비구속적 누락 검사자로 제한합니다. 독립 검증기 **1.1.0**은 별도 폴더에 있습니다.
 
+## Decision kernel (3.2.0)
+
+기존 hook 경로의 모든 판단은 이제 [decision kernel](docs/KERNEL.ko.md)을 지나갑니다. 흐름·임계값·주입 문구는 코드가 갖고, judge는 typed 확률만 공급합니다.
+
+- **지점 6개**, 각각 `off`/`shadow`/`active`: 위임 분류, 프로필 선택, 실패 분류, 읽기 조언(기존, 기본 active) + skill 라우팅, supervisor(신규, **기본 off**).
+- **judge 체인**: `jev`, `openai`(OpenAI Decisions), `local`(skill용 어휘 규칙)을 순서대로 묶고, 실패하거나 확신이 낮으면 다음으로 넘깁니다(뒤가 모두 실패하면 앞의 낮은 확신 답을 씁니다). 기본은 `jev` 하나입니다. `openai`는 별도 승인과 키가 필요합니다.
+- **skill 라우팅**: 위임 경계에서 skill 카탈로그 → BM25 후보 → judge 확률 → 임계값으로 고르고, worker brief에 이름·경로·확률만 담은 `<jev-skills>` 블록을 붙입니다.
+- **supervisor**: 라우팅한 worker의 보고 텍스트를 분류해 조언만 합니다. 재시도·차단은 하지 않습니다.
+- **decision log**: 해시·숫자·선택지 이름만 로컬에 기록하고, 라벨을 붙여 calibration 보고서를 만듭니다.
+
+기본 설정의 hook 동작은 3.1.0과 같습니다. 검사는 mock·로컬 judge 기반의 오프라인 테스트(Node 508/508)뿐이며, **실제 모델에서의 skill 선택 정확도·calibration·end-to-end 효과는 측정하지 않았습니다.**
+
 새 대화형 CLI, 독립 worker 실행 엔진, MCP 서버, 재귀 `claude -p`/`codex exec` 실행은 없습니다. ultracode 경로의 작은 `jev-plan.mjs`는 자문 JSON만 반환하고 원래 Workflow가 실행을 맡습니다. 기존 hook 경로에서는 Main이 **native Agent/Task**에 직접 위임합니다. Reporivet과 AgentOTelStack의 코드를 복제하거나 설치하지 않습니다.
 
-**상태:** 2026-09-26의 Node 395/395·검증기 자기 테스트 72/72·구문 검사 46개 모듈·기존 라우팅의 독립 offline 검사는 통과했습니다. 새 자문 CLI의 dry-run·미동의 fallback·합성 loopback 응답/캐시/요청 cap도 검사했지만, 실제 TypeSafe 계획 자문과 ultracode 성능 비교는 **NOT_RUN**입니다. [두 유지보수 과제의 실모델 native/controller 비교](reports/REPOSITORY_PILOT_20260926.md)에서는 native 후보 두 건이 독립 채점 통과, controller 후보 두 건이 무수정·채점 실패였습니다. `active`는 별도 TypeSafe 전송 동의가 없어 미실행이므로 세 조건 우위·실제 청구 비용은 알 수 없습니다. 실제 AgentOTelStack 저장·조회도 검증하지 않았습니다. 제한적인 과거 실제 TypeSafe·native 위임 시험은 별도로 있습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
+**상태:** 3.2.0 decision kernel은 2026-11-25 오프라인 검사(Node 508/508, mock·로컬 judge)만 통과했고 실제 TypeSafe/OpenAI API로는 실행하지 않았습니다([검증 상태](docs/KERNEL.ko.md#검증-상태)). 아래는 그 이전 기록입니다. 2026-09-26의 Node 395/395·검증기 자기 테스트 72/72·구문 검사 46개 모듈·기존 라우팅의 독립 offline 검사는 통과했습니다. 새 자문 CLI의 dry-run·미동의 fallback·합성 loopback 응답/캐시/요청 cap도 검사했지만, 실제 TypeSafe 계획 자문과 ultracode 성능 비교는 **NOT_RUN**입니다. [두 유지보수 과제의 실모델 native/controller 비교](reports/REPOSITORY_PILOT_20260926.md)에서는 native 후보 두 건이 독립 채점 통과, controller 후보 두 건이 무수정·채점 실패였습니다. `active`는 별도 TypeSafe 전송 동의가 없어 미실행이므로 세 조건 우위·실제 청구 비용은 알 수 없습니다. 실제 AgentOTelStack 저장·조회도 검증하지 않았습니다. 제한적인 과거 실제 TypeSafe·native 위임 시험은 별도로 있습니다. 새 Workflow 차단 정책에 이전 검증 결과를 소급하지 않습니다. 초기 `Agent` 위임 네 건에서는 Jev 선택과 child 모델을 연결했지만 effort 관측을 보고하지 못했습니다. 후속 유지보수 3쌍·웹 1쌍의 보관된 child 이벤트를 다시 읽으면 **2/4쌍에서 CLI typed effort `high → xhigh`**가 확인됩니다. 그러나 `Workflow` 내부 worker 라우팅, Codex 재작성 적용, Jev 판단의 정확도·작업 품질·총비용 우위는 **입증되지 않았습니다**. [실제 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md), [판단 경계 감사](reports/DECISION_AUDIT_20260925.md), [기존 검증 범위](reports/VERIFICATION.md)를 구분해 보세요. 파일이나 mock의 성공을 실제 모델 성공으로 간주하지 않습니다.
 
 ## 무엇을 통합했나
 
@@ -38,9 +50,10 @@
 ```text
 기존 Main이 목표를 이해하고 native 위임 호출을 제안
   → PreToolUse: 동의·capability·기존 설정·문서·revision 확인
-  → Jev: 역할/범위/위험/추론/정보 충분성/문서 판단
+  → judge(기본 Jev): 역할/범위/위험/추론/정보 충분성/문서 판단
   → 로컬 코드: 허용된 실제 모델×effort 후보 구성
-  → Jev: 구체적인 선택/제외 기준으로 프로필 선택 또는 보류
+  → judge(기본 Jev): 구체적인 선택/제외 기준으로 프로필 선택 또는 보류
+  → (skill 지점이 켜져 있으면) 분류와 병렬로 skill 선택, active에서 brief에 블록 추가
   → 재검사: 작업 revision과 profile 파일 일치
   → active: 검토된 native 호출 변경 / advisory: 변경 없이 권고
   → 원래 호스트가 worker 실행·권한·승인을 담당
@@ -62,7 +75,7 @@
 
 Reporivet에서 가져온 원칙은 [AGENTS.md](AGENTS.md)의 짧은 정본 포인터와 기존 파일 보존·기계적 링크 확인뿐입니다. AgentOTelStack으로 보내는 OTLP protobuf trace는 `JEV_OTEL_ENABLED=true`와 실제 ingest 인증을 갖춘 경우에만 로컬 Gateway로 전송합니다. 여기에는 프롬프트·소스·경로 원문을 넣지 않습니다. **Gateway 수락은 저장·조회 성공이나 라우팅 품질 증거가 아닙니다.**
 
-**기본값:** `shadow`, `JEV_ALLOW_EGRESS=false`, `JEV_SHARE_PLAN_CONTEXT=false`, `JEV_WORKFLOW_POLICY=warn`, `JEV_CODEX_REWRITE_APPROVED=false`, `JEV_CODEX_COLLABORATION_REWRITE_APPROVED=false`. 모델 registry의 가용성도 `declared`입니다. 설치만으로 외부 호출이나 강제 라우팅이 켜지지 않습니다.
+**기본값:** `shadow`, `JEV_ALLOW_EGRESS=false`, `JEV_SHARE_PLAN_CONTEXT=false`, `JEV_WORKFLOW_POLICY=warn`, `JEV_CODEX_REWRITE_APPROVED=false`, `JEV_CODEX_COLLABORATION_REWRITE_APPROVED=false`, `JEV_SKILLS_MODE=off`, `JEV_SUPERVISOR_MODE=off`, `JEV_OPENAI_DECISIONS_APPROVED=false`. 모델 registry의 가용성도 `declared`입니다. 설치만으로 외부 호출이나 강제 라우팅이 켜지지 않습니다.
 
 **active도 모든 요청의 위임을 강제하지 않습니다.** Main이 native 위임을 선택했을 때 해당 경계에서 적용합니다. 사소한 직접 작업은 기존 Main이 처리합니다. `Workflow` 스크립트 안의 `agent()`에는 개별 native hook 경계가 없어 Jev가 모델·effort를 강제하지 못합니다. 명시적인 `JEV_WORKFLOW_POLICY=block`은 Claude active 세션의 모든 `Workflow`를 거부하여 native `Agent`/`Task` 위임을 요청할 뿐, 내부 worker를 직접 제어하거나 Main의 재위임을 보장하지 않습니다. Codex는 현재 `updatedInput`에 `allow`를 동반해야 하므로 별도 동의를 받기 전에는 active에서도 권고만 하며, `collaborationspawn_agent`에는 한 단계 추가 승인이 필요합니다.
 
@@ -118,7 +131,7 @@ python3 verification/verify.py --suite offline --sut ./orchestration \
 
 실계정 테스트는 별도 opt-in입니다. 기존 작은 함수 과제는 `--suite native`/`benchmark`, `--accept-costs`, 확인한 registry와 모델/effort 관측이 필요합니다. 동일한 실제 저장소 유지보수 작업의 `native / active / controller` pilot은 별도 [`verification/repo_compare.py`](verification/repo_compare.py)로 준비했습니다. 오프라인 결함 주입·참조 복구 canary와 실제 `native / controller` 두 과제의 품질·시간·CLI 토큰·표시 비용을 [기록](reports/REPOSITORY_PILOT_20260926.md)했으나, `active` 미실행 및 실제 청구액 부재로 세 조건·총비용 우위는 판정할 수 없습니다. [범위·실행 조건](docs/VERIFICATION.ko.md#같은-저장소-유지보수-작업의-3조건-pilot)을 보세요. verifier는 SUT를 import하지 않고 설치·stdin hook·native transcript·외부 테스트를 검사합니다. **이는 코드 경로의 분리이지 외부 기관의 인증이나 악성 코드 격리 보증이 아닙니다.**
 
-[검증 방법](docs/VERIFICATION.ko.md) · [보안·한계](docs/SECURITY.ko.md) · [오프라인 결과](reports/VERIFICATION.md) · [실제 위임 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md) · [동일 데이터 웹 대시보드 1쌍·토큰/시간/브라우저 비교](reports/dashboard-benchmark-20260925/README.md) · [실제 판단 경계 감사](reports/DECISION_AUDIT_20260925.md) · [원본 출처](docs/source-inputs.json)
+[Decision kernel](docs/KERNEL.ko.md) · [검증 방법](docs/VERIFICATION.ko.md) · [보안·한계](docs/SECURITY.ko.md) · [오프라인 결과](reports/VERIFICATION.md) · [실제 위임 반복 비교](reports/PLAN_ROUTING_COMPARISON_20260925.md) · [동일 데이터 웹 대시보드 1쌍·토큰/시간/브라우저 비교](reports/dashboard-benchmark-20260925/README.md) · [실제 판단 경계 감사](reports/DECISION_AUDIT_20260925.md) · [원본 출처](docs/source-inputs.json)
 
 ## 게시 상태
 
