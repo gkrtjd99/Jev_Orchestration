@@ -3,7 +3,7 @@
 import { defaults, validateConfig } from '../../../orchestration/src/config.mjs';
 import { createKernel } from '../../../orchestration/src/kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from '../../../orchestration/src/kernel/log.mjs';
-import { SKILLS_POINT, localSkillResolver } from '../../../orchestration/src/kernel/skills.mjs';
+import { SKILLS_POINT, RETRIEVAL_MODES, localSkillResolver } from '../../../orchestration/src/kernel/skills.mjs';
 
 export const ARMS = {
   jev: { judges: ['jev'], escalateBelow: 0, suites: ['skills', 'supervisor'], keys: ['TYPESAFE_API_KEY'] },
@@ -16,11 +16,16 @@ export const ARMS = {
 // calls are measured instead of truncated; everything else in the config must still pass validateConfig.
 const PRODUCT_TIMEOUT_CAP_MS = 5000;
 
+export { RETRIEVAL_MODES };
+
+/** Result key of a skills arm: the arm name alone, or `<arm>-<mode>` when the run crosses arms with retrieval modes. */
+export const armKey = (arm, retrieval) => (retrieval ? `${arm}-${retrieval}` : arm);
+
 /**
  * Harness-only config: a disposable stateDir, egress and the OpenAI judge approved here and nowhere else,
  * response cache disabled, and the point under test set to the arm's judge chain.
  */
-export function armConfig({ arm, pointId, stateDir, timeoutMs, openaiModel }) {
+export function armConfig({ arm, pointId, stateDir, timeoutMs, openaiModel, retrieval = null }) {
   const spec = ARMS[arm];
   const cfg = defaults('/qa-kernel-eval-unused-home');
   cfg.stateDir = stateDir;
@@ -32,6 +37,12 @@ export function armConfig({ arm, pointId, stateDir, timeoutMs, openaiModel }) {
   // measured rather than cut at the default; anything slower than 5000 ms still ends as DECISIONS_TIMEOUT.
   cfg.kernel.providers.openai.timeoutMs = Math.max(50, Math.min(timeoutMs, PRODUCT_TIMEOUT_CAP_MS));
   cfg.kernel.points[pointId] = { mode: 'shadow', judges: [...spec.judges], escalateBelow: spec.escalateBelow };
+  // Candidate retrieval mode for the skills point. null keeps whatever the product ships as its default;
+  // minCoverage, maxJudged and chunk are always the shipped defaults.
+  if (retrieval !== null) {
+    if (!RETRIEVAL_MODES.includes(retrieval)) throw fail('QA_INVALID_RETRIEVAL');
+    cfg.kernel.skills.retrieval = retrieval;
+  }
   cfg.cacheTtlMs = 0;
   cfg.circuit.maxRequestsPerSession = 10000;
   validateConfig({ ...structuredClone(cfg), timeoutMs: Math.min(timeoutMs, PRODUCT_TIMEOUT_CAP_MS) });
@@ -105,7 +116,8 @@ export async function pool(items, size, fn) {
   return out;
 }
 
-const TIMEOUT_CODES = new Set(['JEV_TIMEOUT', 'DECISIONS_TIMEOUT', 'KERNEL_DEADLINE']);
+// SKILLS_DEADLINE: a chunk request of a wide skills decision that had not answered when the shared allowance ran out.
+const TIMEOUT_CODES = new Set(['JEV_TIMEOUT', 'DECISIONS_TIMEOUT', 'KERNEL_DEADLINE', 'SKILLS_DEADLINE']);
 // Untyped failures are what a thrown fetch (DNS, reset, TLS) looks like once it leaves the product code.
 const UNTYPED_CODES = new Set(['SKILL_JUDGE_FAILED', 'KERNEL_JUDGE_ERROR', 'UNTYPED_ERROR']);
 
@@ -136,5 +148,13 @@ export async function trailsByScope(log, pointId) {
   const { decisions, corruptLines } = await log.read({ pointId });
   const map = new Map();
   for (const d of decisions) map.set(d.scope, d);
+  return { map, decisions: decisions.length, corruptLines };
+}
+
+/** Every decision-log record per scope, in log order. A wide skills decision writes one record per chunk request. */
+export async function decisionsByScope(log, pointId) {
+  const { decisions, corruptLines } = await log.read({ pointId });
+  const map = new Map();
+  for (const d of decisions) { if (!map.has(d.scope)) map.set(d.scope, []); map.get(d.scope).push(d); }
   return { map, decisions: decisions.length, corruptLines };
 }

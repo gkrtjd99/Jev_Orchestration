@@ -44,38 +44,72 @@ const supervisorGold = (row, file) => {
   return { outcome: row.gold, evidence };
 };
 
+const exists = async file => { try { await fs.access(file); return true; } catch { return false; } };
+
+/** A label file name given on the command line: relative to the data directory and never outside it. */
+export function labelPath(rel) {
+  const clean = typeof rel === 'string' ? path.posix.normalize(rel.trim().split(path.sep).join('/')) : '';
+  if (!clean || clean === '.' || path.isAbsolute(clean) || clean.split('/').includes('..')) throw fail('DATA_INVALID_LABEL_PATH', String(rel));
+  return clean;
+}
+
 /**
- * Returns { items, gold: { author: Map, blind: Map|null, consensus: Map|null }, issues }.
- * consensus holds only ids where both labelers agree exactly (skill sets as sets; outcome equal).
+ * Returns { items, gold: { author: Map, blind: Map|null, consensus: Map|null }, labels, files, issues }.
+ * author is always <stem>.gold.jsonl over all items. consensus holds only the ids on which label file A and
+ * label file B agree exactly (skill sets as sets; outcome equal); blind is label file B. By default A is the
+ * author gold, so consensus is "author and the second labeler agree".
  */
-async function loadSuite(dir, stem, { parse, agree, merge, limit }) {
+async function loadSuite(dir, stem, { parse, agree, merge, limit, labels = null, secondDefaults }) {
   const file = name => path.join(dir, name);
+  const authorFile = `${stem}.gold.jsonl`;
   let items = await readJsonl(file(`${stem}.jsonl`));
   byId(items, `${stem}.jsonl`);
   if (Number.isInteger(limit) && limit > 0) items = items.slice(0, limit);
-  const authorRows = byId(await readJsonl(file(`${stem}.gold.jsonl`)), `${stem}.gold.jsonl`);
-  const blindRaw = await readJsonl(file(`${stem}.blind.jsonl`), { optional: true });
-  const blindRows = blindRaw ? byId(blindRaw, `${stem}.blind.jsonl`) : null;
-  const author = new Map(), blind = blindRows ? new Map() : null, consensus = blindRows ? new Map() : null;
-  const issues = { missingAuthorGold: [], missingBlindGold: [] };
-  for (const item of items) {
-    const a = authorRows.get(item.id);
-    if (!a) { issues.missingAuthorGold.push(item.id); continue; }
-    const ag = parse(a, `${stem}.gold.jsonl`);
-    author.set(item.id, ag);
-    if (!blindRows) continue;
-    const b = blindRows.get(item.id);
-    if (!b) { issues.missingBlindGold.push(item.id); continue; }
-    const bg = parse(b, `${stem}.blind.jsonl`);
-    blind.set(item.id, bg);
-    if (agree(ag, bg)) consensus.set(item.id, merge(ag, bg));
+  const authorRows = byId(await readJsonl(file(authorFile)), authorFile);
+
+  let aFile = authorFile, bFile = null;
+  if (labels) {
+    if (!Array.isArray(labels) || labels.length !== 2) throw fail('DATA_INVALID_LABEL_PATH', 'two label files are required');
+    [aFile, bFile] = labels.map(labelPath);
+    if (aFile === bFile) throw fail('DATA_INVALID_LABEL_PATH', 'the two label files are the same file');
+  } else {
+    for (const name of secondDefaults) if (await exists(file(name))) { bFile = name; break; }
   }
-  return { items, gold: { author, blind, consensus }, issues };
+  // Named explicitly, a label file must exist; only the default second file is optional.
+  const aRows = aFile === authorFile ? authorRows : byId(await readJsonl(file(aFile)), aFile);
+  const bRows = bFile ? byId(await readJsonl(file(bFile)), bFile) : null;
+
+  const author = new Map(), blind = bRows ? new Map() : null, consensus = bRows ? new Map() : null;
+  const labelA = aFile === authorFile ? author : new Map();
+  const issues = { missingAuthorGold: [], missingBlindGold: [], missingLabelA: [] };
+  for (const item of items) {
+    const row = authorRows.get(item.id);
+    if (!row) issues.missingAuthorGold.push(item.id); else author.set(item.id, parse(row, authorFile));
+    if (labelA !== author) {
+      const a = aRows.get(item.id);
+      if (!a) issues.missingLabelA.push(item.id); else labelA.set(item.id, parse(a, aFile));
+    }
+    if (!bRows) continue;
+    const b = bRows.get(item.id);
+    if (!b) { issues.missingBlindGold.push(item.id); continue; }
+    const bg = parse(b, bFile);
+    blind.set(item.id, bg);
+    const ag = labelA.get(item.id);
+    if (ag !== undefined && agree(ag, bg)) consensus.set(item.id, merge(ag, bg));
+  }
+  return {
+    items, gold: { author, blind, consensus }, labelA, issues,
+    labels: { author: authorFile, a: aFile, b: bFile },
+    // Every data file this suite read, relative to the data directory (used by the hold-out check).
+    files: [...new Set([`${stem}.jsonl`, authorFile, aFile, ...(bFile ? [bFile] : [])])],
+  };
 }
 
-export async function loadSkillSuite(dir, { limit } = {}) {
+export async function loadSkillSuite(dir, { limit, labels } = {}) {
   const suite = await loadSuite(dir, 'skill-tasks', {
-    parse: skillSet, agree: setEqual, merge: a => a, limit,
+    parse: skillSet, agree: setEqual, merge: a => a, limit, labels,
+    // The second labeling pass (no category hints) is preferred when it exists.
+    secondDefaults: ['relabel/skill-tasks.blind2.jsonl', 'skill-tasks.blind.jsonl'],
   });
   for (const item of suite.items) {
     if (typeof item.task !== 'string' || !item.task.trim()) throw fail('DATA_INVALID_TASK', item.id);
@@ -89,7 +123,7 @@ export async function loadSupervisorSuite(dir, { limit } = {}) {
     agree: (a, b) => a.outcome === b.outcome,
     // The consensus evidence level exists only where both labelers also agree on it.
     merge: (a, b) => ({ outcome: a.outcome, evidence: a.evidence !== null && a.evidence === b.evidence ? a.evidence : null }),
-    limit,
+    limit, secondDefaults: ['supervisor-reports.blind.jsonl'],
   });
   for (const item of suite.items) {
     if (typeof item.report !== 'string') throw fail('DATA_INVALID_REPORT', item.id);
@@ -97,10 +131,12 @@ export async function loadSupervisorSuite(dir, { limit } = {}) {
   return suite;
 }
 
-export function skillAgreement({ items, gold }, catalogNames) {
+export function skillAgreement({ items, gold, labelA = gold.author, labels = null }, catalogNames) {
   const out = {
+    // Which two files the agreement and the consensus subset are computed from (a, b), relative to the data dir.
+    labelFiles: labels,
     items: items.length, authorLabeled: gold.author.size, blindLabeled: gold.blind ? gold.blind.size : null,
-    consensus: gold.consensus ? gold.consensus.size : null, exactSetMatchRate: null, anySkillKappa: null,
+    consensus: gold.consensus ? gold.consensus.size : null, consensusShareOfItems: null, exactSetMatchRate: null, anySkillKappa: null,
     authorNoneTasks: [...gold.author.values()].filter(s => s.size === 0).length,
     goldNamesNotInCatalog: { author: [], blind: [] },
   };
@@ -111,10 +147,12 @@ export function skillAgreement({ items, gold }, catalogNames) {
     out.goldNamesNotInCatalog[who] = [...unknown].sort();
   }
   if (!gold.blind) return out;
-  const both = items.filter(i => gold.author.has(i.id) && gold.blind.has(i.id));
+  const both = items.filter(i => labelA.has(i.id) && gold.blind.has(i.id));
   out.bothLabeled = both.length;
   out.exactSetMatchRate = ratio(gold.consensus.size, both.length);
-  out.anySkillKappa = cohenKappa(both.map(i => gold.author.get(i.id).size > 0), both.map(i => gold.blind.get(i.id).size > 0));
+  out.anySkillKappa = cohenKappa(both.map(i => labelA.get(i.id).size > 0), both.map(i => gold.blind.get(i.id).size > 0));
+  // Share of ALL items that are in the consensus subset (items missing a label count as not agreed).
+  out.consensusShareOfItems = ratio(gold.consensus.size, items.length);
   return out;
 }
 

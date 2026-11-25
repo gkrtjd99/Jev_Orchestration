@@ -17,6 +17,7 @@ import { LocalJudge } from '../../orchestration/src/kernel/judges.mjs';
 import { SKILLS_POINT, lexicalCoverage, loadSkillCatalog, localSkillResolver, selectSkills } from '../../orchestration/src/kernel/skills.mjs';
 import { options } from '../../orchestration/src/util.mjs';
 import { readJsonl } from './lib/data.mjs';
+import { readHoldout, SWEEP_LABEL } from './lib/holdout.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MIN_COVERAGE_GRID = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1];
@@ -82,6 +83,9 @@ async function main() {
   const dataDir = path.resolve(typeof args.data === 'string' ? args.data : path.join(HERE, 'data'));
   const outFile = path.resolve(typeof args.out === 'string' ? args.out : path.join(HERE, 'results', 'dev-retrieval-offline', 'analysis.json'));
 
+  // This whole script is a sweep, and a sweep over a held-out set is tuning on it. Refused outright.
+  if (await readHoldout(dataDir)) throw Object.assign(new Error('QA_HOLDOUT_NO_SWEEPS'), { code: 'QA_HOLDOUT_NO_SWEEPS' });
+
   // The dataset's skills are read through the extra-dir route; the catalog content is the same as via .claude/skills.
   const catalog = await loadSkillCatalog({ project: path.join(dataDir, 'no-such-project'), dirs: [path.join(dataDir, 'skills')] });
   if (!catalog.skills.length) throw Object.assign(new Error('DATA_EMPTY_SKILL_CATALOG'), { code: 'DATA_EMPTY_SKILL_CATALOG' });
@@ -107,6 +111,7 @@ async function main() {
   }
 
   const out = {
+    label: SWEEP_LABEL,
     what: 'Offline candidate-retrieval analysis on the development set. Upper bound on recall only: the judge is a stub.',
     notMeasured: [
       'judge precision, need accuracy or calibration when the judge is shown the wide skill list',
@@ -150,6 +155,7 @@ async function main() {
   const langs = Object.keys(out.modes.lexical);
   const row = (label, r) => `${label.padEnd(16)} wide ${langs.map(l => `${l} ${r[l].wideTasks}/${r[l].tasks}`).join(' ')} | gold reach ${langs.map(l => `${l} ${pct(r[l].goldRecallAmongJudged)} (${r[l].goldReached}/${r[l].goldSkills})`).join(' ')} | judged/task ${fix(r.overall.meanSkillsJudged)} req/task ${fix(r.overall.meanRequests)}`;
   const lines = [
+    `[${SWEEP_LABEL}]`,
     `Development set: ${items.length} tasks (${Object.entries(out.dataset.byLanguage).map(([l, n]) => `${l} ${n}`).join(', ')}), ${catalog.skills.length} skills, ${out.dataset.goldSkills} gold skills (author gold). No API calls.`,
     `lexicalSignal: ${Object.entries(distribution).map(([l, d]) => `${l} zero ${d.zero}/${d.tasks} p50 ${fix(d.quantiles.p50)} p90 ${fix(d.quantiles.p90)}`).join(' | ')}`,
     row('lexical', out.modes.lexical),

@@ -1,4 +1,5 @@
 // Supervisor evaluation: the same decide -> supervisorAdvice path the PostToolUse hook runs, scored against gold.
+import { SWEEP_LABEL } from './holdout.mjs';
 import { performance } from 'node:perf_hooks';
 import { redact } from '../../../orchestration/src/util.mjs';
 import { secretLike } from '../../../orchestration/src/safety.mjs';
@@ -143,7 +144,7 @@ function scoreVariant(rows, gold, confidence) {
     evidence: evidenceMetrics(rows, gold),
     calibrationDirect: cal(rows),
     shippedThreshold: thresholdEffect(rows, gold, confidence),
-    thresholdSweep: CONFIDENCE_SWEEP.map(t => thresholdEffect(rows, gold, t)),
+    thresholdSweep: { label: SWEEP_LABEL, points: CONFIDENCE_SWEEP.map(t => thresholdEffect(rows, gold, t)) },
     byLanguage: Object.fromEntries([...groupBy(scoped, r => r.lang ?? 'unknown').entries()].sort(([a], [b]) => (a < b ? -1 : 1))
       .map(([lang, group]) => {
         const o = outcomeMetrics(group, gold);
@@ -183,13 +184,14 @@ function crossCheck(report, direct, directEvidence) {
   return { comparedMetrics: compared, maxAbsDiff, countMismatch, agrees: compared > 0 && !countMismatch && maxAbsDiff < 1e-9 };
 }
 
-export async function supervisorMetrics({ run, gold }) {
+export async function supervisorMetrics({ run, gold, labelGold: labelGoldName = null }) {
   const { rows, attempts, settings, log, http } = run;
   const variants = {};
   for (const name of ['consensus', 'author', 'blind']) variants[name] = gold[name] ? scoreVariant(rows, gold[name], settings.confidence) : null;
-  const labelGold = gold.consensus ?? gold.author;
-  const product = await productCalibration({ rows, gold: labelGold, log, source: gold.consensus ? 'qa-consensus-gold' : 'qa-author-gold' });
-  const labelVariant = gold.consensus ? variants.consensus : variants.author;
+  const useConsensus = labelGoldName ? labelGoldName === 'consensus' : gold.consensus !== null;
+  const labelGold = useConsensus ? gold.consensus : gold.author;
+  const product = await productCalibration({ rows, gold: labelGold, log, source: useConsensus ? 'qa-consensus-gold' : 'qa-author-gold' });
+  const labelVariant = useConsensus ? variants.consensus : variants.author;
   const failed = rows.filter(r => r.status === 'unavailable');
   const latencies = attempts.map(a => a.latencyMs);
   return {

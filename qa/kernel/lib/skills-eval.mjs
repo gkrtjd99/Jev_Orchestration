@@ -5,8 +5,9 @@ import {
 } from '../../../orchestration/src/kernel/skills.mjs';
 import { calibrationReport } from '../../../orchestration/src/kernel/calibration.mjs';
 import {
-  armConfig, buildKernel, countingFetch, pool, isTimeout, isTransport, sumUsage, trailsByScope,
+  armConfig, armKey, buildKernel, countingFetch, pool, isTimeout, isTransport, sumUsage, decisionsByScope,
 } from './harness.mjs';
+import { SWEEP_LABEL } from './holdout.mjs';
 import {
   ratio, mean, latencySummary, prf, binaryMetrics, binaryCalibration, countBy, groupBy, setEqual,
 } from './stats.mjs';
@@ -17,11 +18,15 @@ const LATENCY_BUDGETS_MS = [1200, 2500, 3000, 5000];
 
 // ---------------------------------------------------------------- live run
 
-/** Runs every item through selectSkills with the arm's judge chain. Returns raw rows and request attempts. */
+/**
+ * Runs every item through selectSkills with the arm's judge chain and, when `retrieval` is given, that
+ * candidate retrieval mode. Returns raw rows and one entry per judge request (a wide decision has several).
+ */
 export async function runSkillsArm({
-  arm, runId, items, catalog, env, innerFetch, stateDir, timeoutMs, concurrency, openaiModel, retry, maxRequests, onProgress = () => {},
+  arm, retrieval = null, runId, items, catalog, env, innerFetch, stateDir, timeoutMs, concurrency, openaiModel, retry, maxRequests, onProgress = () => {},
 }) {
-  const cfg = armConfig({ arm, pointId: SKILLS_POINT, stateDir, timeoutMs, openaiModel });
+  const key = armKey(arm, retrieval);
+  const cfg = armConfig({ arm, pointId: SKILLS_POINT, stateDir, timeoutMs, openaiModel, retrieval });
   const { fetchImpl, stats: http } = countingFetch(innerFetch, { maxRequests });
   const { kernel, log } = buildKernel(cfg, { arm, env, fetchImpl });
   const settings = kernel.kernel.skills;
@@ -31,43 +36,70 @@ export async function runSkillsArm({
 
   const attempt = async (item, n) => {
     // A fresh scope per attempt: no cache hit, and the request cap and circuit never couple two items.
-    const scope = `qa:${runId}:skills:${arm}:${item.id}:a${n}`;
-    let call = null;
+    const scope = `qa:${runId}:skills:${key}:${item.id}:a${n}`;
+    const calls = [];
+    let first = null, closed = false;
     // Recording proxy around the real kernel point; it changes nothing that selectSkills sees.
+    // selectSkills calls it once per chunk request, concurrently when there are several.
     const judge = {
       evaluate: async (state, questions, sc, limits) => {
         const start = performance.now();
+        first ??= start;
+        const call = {
+          start, names: Array.isArray(state?.skills) ? state.skills.map(s => s.name) : [], ok: null, code: null, latencyMs: null,
+          need: null, provider: null, model: null, usage: null, decisionId: null,
+        };
+        calls.push(call);
         try {
           const r = await inner.evaluate(state, questions, sc, limits);
-          call = { ok: true, latencyMs: r.latencyMs, provider: r.provider, model: r.response.model, usage: r.response.usage ?? null };
+          const need = r?.response?.answers?.need?.noul;
+          if (!closed) Object.assign(call, {
+            ok: true, latencyMs: r.latencyMs, provider: r.provider, model: r.response.model, usage: r.response.usage ?? null,
+            decisionId: typeof r.decisionId === 'string' ? r.decisionId : null, need: typeof need === 'number' ? need : null,
+          });
           return r;
         } catch (e) {
-          call = { ok: false, latencyMs: performance.now() - start };
+          if (!closed) Object.assign(call, { ok: false, code: typeof e?.code === 'string' ? e.code : 'SKILL_JUDGE_FAILED', latencyMs: performance.now() - start });
           throw e;
         }
       },
     };
     const result = await selectSkills({ task: item.task, catalog, judge, scope, config: settings, limits: { timeoutMs: cfg.timeoutMs } });
+    const end = performance.now();
+    closed = true;
+    // A request selectSkills stopped waiting for (the shared allowance of a wide decision ran out).
+    for (const c of calls) if (c.ok === null) Object.assign(c, { ok: false, code: 'SKILLS_DEADLINE', latencyMs: end - c.start });
     const code = result.status === 'unavailable' ? result.code ?? 'SKILL_JUDGE_FAILED' : null;
-    if (call) attempts.push({ id: item.id, attempt: n, ok: call.ok, code, latencyMs: call.latencyMs });
+    for (const c of calls) attempts.push({ id: item.id, attempt: n, ok: c.ok, code: c.code, latencyMs: c.latencyMs });
     const context = result.status === 'selected' ? skillContext(result) : '';
+    const answered = calls.filter(c => c.ok);
     onProgress(++done);
     return {
-      suite: 'skills', arm, id: item.id, lang: item.lang ?? null, category: item.category ?? null, attempt: n, scope,
-      status: result.status, code, judged: call !== null, need: result.need, candidateCount: result.candidates,
+      suite: 'skills', arm: key, judgeArm: arm, id: item.id, lang: item.lang ?? null, category: item.category ?? null, attempt: n, scope,
+      status: result.status, code, judged: calls.length > 0, need: result.need, candidateCount: result.candidates,
+      retrieval: { ...result.retrieval },
       candidates: result.trace.filter(t => t.rank <= result.candidates).map(t => ({ name: t.name, rank: t.rank, bm25: t.bm25, p: t.probability, stage: t.stage })),
       load: result.load.map(s => ({ name: s.name, p: s.probability })),
       suggest: result.suggest.map(s => ({ name: s.name, p: s.probability })),
       ranking: result.trace.map(t => t.name),
-      provider: call?.ok ? call.provider : null, model: call?.ok ? call.model : null, decisionId: result.decisionId,
-      latencyMs: call ? call.latencyMs : null, usage: call?.ok ? call.usage : null, contextChars: context.length,
+      // One entry per judge request of this task, in the order selectSkills sent them.
+      calls: calls.map(c => ({
+        names: c.names, ok: c.ok, code: c.code, latencyMs: c.latencyMs, sinceFirstMs: c.start - first, need: c.need,
+        provider: c.provider, model: c.model, usage: c.usage, decisionId: c.decisionId,
+      })),
+      provider: answered[0]?.provider ?? null, model: answered[0]?.model ?? null,
+      decisionId: result.decisionId, decisionIds: result.decisionIds ?? [],
+      // Wall clock of the whole task: from the first judge request until selectSkills returned (null: nothing was sent).
+      latencyMs: first === null ? null : end - first,
+      usage: sumCallUsage(answered), contextChars: context.length,
     };
   };
 
   const rows = await pool(items, concurrency, item => attempt(item, 1));
   const firstPassFailures = countBy(rows.filter(r => r.status === 'unavailable'), r => r.code);
 
-  // One explicit, counted retry pass for transport errors only. Timeouts stay failures.
+  // One explicit, counted retry pass for transport errors only. Timeouts stay failures. A task whose
+  // requests failed only in part is not 'unavailable' and is not retried (the product does not retry either).
   const targets = retry ? rows.map((r, i) => ({ r, i })).filter(({ r }) => r.status === 'unavailable' && isTransport(r.code)) : [];
   await pool(targets, concurrency, async ({ r, i }) => {
     const again = await attempt(items[i], 2);
@@ -75,13 +107,22 @@ export async function runSkillsArm({
     rows[i] = again;
   });
 
-  const { map, decisions, corruptLines } = await trailsByScope(log, SKILLS_POINT);
+  const { map, decisions, corruptLines } = await decisionsByScope(log, SKILLS_POINT);
   for (const row of rows) {
-    const d = map.get(row.scope);
-    row.trail = d ? d.trail : null;
-    if (d && !row.decisionId && d.provider === 'none') row.failedDecisionId = d.decisionId;
+    const ds = map.get(row.scope) ?? [];
+    // One decision-log record per judge request.
+    row.decisions = ds.map(d => ({ decisionId: d.decisionId ?? null, provider: d.provider ?? null, trail: d.trail ?? null }));
+    row.trail = ds.length ? ds[0].trail : null;
+    if (ds.length && !row.decisionId && ds[0].provider === 'none') row.failedDecisionId = ds[0].decisionId;
   }
-  return { cfg, kernel, log, settings, rows, attempts, http, retried: targets.length, firstPassFailures, logged: { decisions, corruptLines } };
+  return { key, arm, cfg, kernel, log, settings, rows, attempts, http, retried: targets.length, firstPassFailures, logged: { decisions, corruptLines } };
+}
+
+/** Adapter-reported usage summed over the answered requests of one task; null when none carried any. */
+function sumCallUsage(calls) {
+  const total = sumUsage(calls.map(c => c.usage));
+  if (!total.responsesWithUsage) return null;
+  return { input_tokens: total.inputTokens, output_tokens: total.outputTokens };
 }
 
 // ---------------------------------------------------------------- scoring
@@ -179,11 +220,22 @@ function scoreVariant(preds, gold, needGate, { breakdown = true } = {}) {
 /** Replays logged probabilities through the real selectSkills with another config. No judge is called. */
 async function replay(row, item, catalog, config) {
   if (row.status === 'unavailable' || row.need === null) return { ...predFromRow(row), load: [], suggest: [] };
-  const answers = { need: { type: 'noul', noul: row.need } };
-  row.candidates.forEach((c, i) => { answers[`skill_${i}`] = { type: 'noul', noul: c.p }; });
+  const logged = new Map(row.candidates.map(c => [c.name, c.p]));
   const result = await selectSkills({
     task: item.task, catalog, config, scope: 'qa-offline-replay',
-    judge: { evaluate: async () => ({ response: { answers } }) },
+    judge: {
+      // Called once per chunk request. A chunk whose request failed in the live run fails again here, so its
+      // skills stay unselectable. Every answered chunk gets the task-level need (the product takes the maximum).
+      evaluate: async state => {
+        const answers = { need: { type: 'noul', noul: row.need } };
+        state.skills.forEach((s, i) => {
+          const p = logged.get(s.name);
+          if (typeof p !== 'number') throw Object.assign(new Error('QA_REPLAY_CHUNK_NOT_ANSWERED'), { code: 'QA_REPLAY_CHUNK_NOT_ANSWERED' });
+          answers[`skill_${i}`] = { type: 'noul', noul: p };
+        });
+        return { response: { answers } };
+      },
+    },
   });
   const cut = result.trace.filter(t => t.rank <= result.candidates);
   if (cut.length !== row.candidates.length || cut.some((t, i) => t.name !== row.candidates[i].name)) {
@@ -196,17 +248,29 @@ async function replay(row, item, catalog, config) {
   };
 }
 
+// Gold label of one request's `need` question. With a single request it is the task-level label ("the task
+// needs some skill"), exactly as before retrieval modes existed. With several requests each one was asked
+// about its own chunk only, so the label is whether a gold skill is in that chunk.
+const needLabel = (row, call, g) => (row.retrieval.requests <= 1 ? g.size > 0 : call.names.some(name => g.has(name)));
+
 function directCalibration(rows, gold) {
   const need = [], skill = [], byProvider = new Map();
   for (const row of rows) {
     if (row.status === 'unavailable' || row.need === null || !gold.has(row.id)) continue;
     const g = gold.get(row.id);
-    const pairs = [{ p: row.need, y: g.size > 0 ? 1 : 0 }];
-    need.push(pairs[0]);
-    for (const c of row.candidates) { const pair = { p: c.p, y: g.has(c.name) ? 1 : 0 }; skill.push(pair); pairs.push(pair); }
-    const key = row.provider ?? 'unknown';
-    if (!byProvider.has(key)) byProvider.set(key, []);
-    byProvider.get(key).push(...pairs);
+    // Task level: the need the product gates on (the maximum over answered requests) against "needs a skill".
+    need.push({ p: row.need, y: g.size > 0 ? 1 : 0 });
+    const logged = new Map(row.candidates.map(c => [c.name, c.p]));
+    for (const c of row.candidates) if (typeof c.p === 'number') skill.push({ p: c.p, y: g.has(c.name) ? 1 : 0 });
+    // Request level, per accepting provider: the same questions and labels the product log is given below.
+    for (const call of row.calls) {
+      if (!call.ok || call.need === null) continue;
+      const pairs = [{ p: call.need, y: needLabel(row, call, g) ? 1 : 0 }];
+      for (const name of call.names) if (typeof logged.get(name) === 'number') pairs.push({ p: logged.get(name), y: g.has(name) ? 1 : 0 });
+      const key = call.provider ?? 'unknown';
+      if (!byProvider.has(key)) byProvider.set(key, []);
+      byProvider.get(key).push(...pairs);
+    }
   }
   return {
     need: binaryCalibration(need), perSkill: binaryCalibration(skill),
@@ -219,14 +283,18 @@ function directCalibration(rows, gold) {
 async function productCalibration({ rows, gold, log, threshold, source }) {
   let labels = 0, decisions = 0;
   for (const row of rows) {
-    if (!row.decisionId || !gold.has(row.id)) continue;
+    if (!gold.has(row.id)) continue;
     const g = gold.get(row.id);
-    decisions++;
-    await log.label(row.decisionId, { questionId: 'need', outcome: g.size > 0, source });
-    labels++;
-    for (let i = 0; i < row.candidates.length; i++) {
-      await log.label(row.decisionId, { questionId: `skill_${i}`, outcome: g.has(row.candidates[i].name), source });
+    // One logged decision per answered request; question ids are local to the request's chunk.
+    for (const call of row.calls) {
+      if (!call.ok || !call.decisionId) continue;
+      decisions++;
+      await log.label(call.decisionId, { questionId: 'need', outcome: needLabel(row, call, g), source });
       labels++;
+      for (let i = 0; i < call.names.length; i++) {
+        await log.label(call.decisionId, { questionId: `skill_${i}`, outcome: g.has(call.names[i]), source });
+        labels++;
+      }
     }
   }
   const report = calibrationReport(await log.read({ pointId: SKILLS_POINT }), { threshold });
@@ -254,13 +322,18 @@ function operations({ run, catalog }) {
   const failed = rows.filter(r => r.status === 'unavailable');
   const latencies = attempts.map(a => a.latencyMs);
   const byJudge = new Map();
-  for (const row of rows) for (const step of row.trail ?? []) {
+  // Logged decisions (one per judge request), each with its own trail.
+  const trailed = rows.flatMap(r => r.decisions ?? []).filter(d => Array.isArray(d.trail) && d.trail.length);
+  for (const d of trailed) for (const step of d.trail) {
     if (!byJudge.has(step.provider)) byJudge.set(step.provider, []);
     byJudge.get(step.provider).push(step.latencyMs);
   }
-  const trailed = rows.filter(r => Array.isArray(r.trail) && r.trail.length);
   const escalated = trailed.filter(r => r.trail.length > 1);
   const noRemote = trailed.filter(r => r.trail.every(s => s.provider === 'local'));
+  const wide = rows.filter(r => r.retrieval.wide);
+  const requests = rows.map(r => r.retrieval.requests), judgedSkills = rows.map(r => r.retrieval.judged);
+  const langs = [...groupBy(rows, r => r.lang ?? 'unknown').entries()].sort(([a], [b]) => (a < b ? -1 : 1));
+  const perTask = total => (total === null || !rows.length ? null : total / rows.length);
   const injected = rows.filter(r => r.contextChars > 0).map(r => r.contextChars);
   const listing = catalog.skills.map(s => `- ${s.name}: ${s.description}`).join('\n').length;
   const meanInjected = mean(injected);
@@ -269,7 +342,24 @@ function operations({ run, catalog }) {
     retriedTransportErrors: retried, failuresFirstPassByCode: firstPassFailures,
     failedItems: failed.length, failureRate: ratio(failed.length, rows.length), failuresByCode: countBy(failed, r => r.code),
     timeouts: attempts.filter(a => isTimeout(a.code)).length,
-    // One entry per judge call (chain = whole chain), failures and retries included.
+    // Candidate retrieval as it actually ran, over the final attempt of every task.
+    retrieval: {
+      mode: run.settings.retrieval, minCoverage: run.settings.minCoverage, maxJudged: run.settings.maxJudged, chunk: run.settings.chunk,
+      tasks: rows.length, wideTasks: wide.length, wideShare: ratio(wide.length, rows.length),
+      wideShareByLanguage: Object.fromEntries(langs.map(([l, g]) => [l, { tasks: g.length, wideTasks: g.filter(r => r.retrieval.wide).length, wideShare: ratio(g.filter(r => r.retrieval.wide).length, g.length) }])),
+      requestsPerTask: { mean: mean(requests), max: requests.length ? Math.max(...requests) : null },
+      skillsJudgedPerTask: { mean: mean(judgedSkills), max: judgedSkills.length ? Math.max(...judgedSkills) : null },
+      // Chunk requests that failed or were late, and tasks that lost some but not all of their requests.
+      failedRequests: rows.reduce((a, r) => a + r.retrieval.failed, 0),
+      tasksWithPartialFailure: rows.filter(r => r.retrieval.failed > 0 && r.status !== 'unavailable').length,
+    },
+    // One entry per TASK: wall clock from its first judge request until selectSkills returned, so the
+    // concurrent chunk requests of a wide decision count once. Failed tasks included; final attempt only.
+    taskLatencyMs: latencySummary(rows.map(r => r.latencyMs)),
+    // Tokens in the API response bodies divided by the number of tasks (requests of a retried attempt
+    // included). null when no response carried the field, which is always the case for the local judge.
+    tokensPerTask: { input: perTask(http.wireUsage.inputTokens), output: perTask(http.wireUsage.outputTokens) },
+    // One entry per judge REQUEST (chain = whole chain), failures and retries included.
     latencyMs: latencySummary(latencies),
     latencySuccessfulMs: latencySummary(attempts.filter(a => a.ok).map(a => a.latencyMs)),
     latencyByJudgeMs: Object.fromEntries([...byJudge.entries()].map(([k, v]) => [k, latencySummary(v)])),
@@ -277,7 +367,7 @@ function operations({ run, catalog }) {
     shareOverBudgetMs: Object.fromEntries(LATENCY_BUDGETS_MS.map(ms => [ms, ratio(latencies.filter(x => x > ms).length, latencies.length)])),
     // As exposed by the product adapter for the accepted answer (the local judge reports 0; the OpenAI adapter
     // turns a missing field into 0). http.wireUsage holds what the API bodies actually carried.
-    tokens: sumUsage(rows.map(r => r.usage)),
+    tokens: sumUsage(rows.flatMap(r => r.calls.filter(c => c.ok).map(c => c.usage))),
     http,
     // Only meaningful when the point has more than one judge.
     chain: run.cfg.kernel.points[SKILLS_POINT].judges.length < 2 ? null : {
@@ -287,7 +377,7 @@ function operations({ run, catalog }) {
       // Decisions settled without any attempt on a remote judge.
       savedRemoteCalls: noRemote.length, savedCallRate: ratio(noRemote.length, trailed.length),
       heldAnswerFallbacks: escalated.filter(r => r.provider === r.trail[0].provider && r.trail.slice(1).every(s => !s.ok)).length,
-      acceptedBy: countBy(rows.filter(r => r.provider), r => r.provider),
+      acceptedBy: countBy(rows.flatMap(r => r.calls).filter(c => c.ok && c.provider), c => c.provider),
     },
     context: {
       itemsWithInjection: injected.length, meanInjectedChars: meanInjected,
@@ -299,7 +389,7 @@ function operations({ run, catalog }) {
   };
 }
 
-export async function skillsMetrics({ run, items, catalog, gold }) {
+export async function skillsMetrics({ run, items, catalog, gold, labelGold: labelGoldName = null }) {
   const { rows, settings, log } = run;
   const preds = rows.map(predFromRow);
   const byId = new Map(items.map(i => [i.id, i]));
@@ -328,26 +418,30 @@ export async function skillsMetrics({ run, items, catalog, gold }) {
     sweep.push(entry);
   }
 
-  const labelGold = gold.consensus ?? gold.author;
+  // Which gold the product decision log is labeled with: the run's headline gold, or consensus when it exists.
+  const useConsensus = labelGoldName ? labelGoldName === 'consensus' : gold.consensus !== null;
+  const labelGold = useConsensus ? gold.consensus : gold.author;
   const product = await productCalibration({
-    rows, gold: labelGold, log, threshold: settings.autoLoad, source: gold.consensus ? 'qa-consensus-gold' : 'qa-author-gold',
+    rows, gold: labelGold, log, threshold: settings.autoLoad, source: useConsensus ? 'qa-consensus-gold' : 'qa-author-gold',
   });
   const direct = {
     labelGold: directCalibration(rows, labelGold),
     author: directCalibration(rows, gold.author),
   };
   return {
+    judgeArm: run.arm, retrievalMode: settings.retrieval,
     judges: run.cfg.kernel.points[SKILLS_POINT].judges, escalateBelow: run.cfg.kernel.points[SKILLS_POINT].escalateBelow,
-    thresholds: { need: settings.need, autoLoad: settings.autoLoad, suggest: settings.suggest, maxCandidates: settings.maxCandidates, maxLoaded: settings.maxLoaded, maxSuggested: settings.maxSuggested },
+    thresholds: { need: settings.need, autoLoad: settings.autoLoad, suggest: settings.suggest, maxCandidates: settings.maxCandidates, maxLoaded: settings.maxLoaded, maxSuggested: settings.maxSuggested,
+      retrieval: settings.retrieval, minCoverage: settings.minCoverage, maxJudged: settings.maxJudged, chunk: settings.chunk },
     operations: operations({ run, catalog }),
     gold: variants,
-    autoLoadSweep: { replayOfShippedThresholdsMismatches: replayMismatches, points: sweep },
+    autoLoadSweep: { label: SWEEP_LABEL, replayOfShippedThresholdsMismatches: replayMismatches, points: sweep },
     calibration: { product, direct, crossCheck: crossCheck(product.report, direct.labelGold) },
     decisionLog: run.logged,
   };
 }
 
-/** Arm-independent: recall of gold skills in the BM25 top-k, by language. No judge involved. */
+/** Arm-independent sweep over k: recall of gold skills in the BM25 top-k, by language. No judge involved. */
 export function retrievalAnalysis({ items, catalog, gold }) {
   const ranks = new Map();
   for (const item of items) {
@@ -379,7 +473,7 @@ export function retrievalAnalysis({ items, catalog, gold }) {
     const pack = c => ({ ...c, goldSkillRecall: ratio(c.inTopK, c.goldSkills), taskAllGoldRetrievedRate: ratio(c.tasksAllInTopK, c.tasks) });
     return { k, overall: pack(overall), byLanguage: Object.fromEntries([...byLang.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([l, c]) => [l, pack(c)])) };
   };
-  const out = { catalogSkills: catalog.skills.length };
+  const out = { label: SWEEP_LABEL, catalogSkills: catalog.skills.length };
   for (const name of ['consensus', 'author', 'blind']) {
     out[name] = gold[name] ? CANDIDATE_SWEEP.map(k => at(gold[name], k)) : null;
   }
