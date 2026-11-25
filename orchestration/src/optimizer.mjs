@@ -70,7 +70,8 @@ export function summarizeEvidence(rows,profiles,{context,projectHash,classKey,no
     if(!p||r.profileFingerprint!==p.fingerprint||r.context!==context||r.projectHash!==projectHash||r.taskClass!==classKey)continue;
     if(r.createdAt>now||now-r.createdAt>ttlDays*86400000)continue;
     if(r.verification?.source!=='independent-validator'||typeof r.verification.passed!=='boolean'||r.effective?.confirmed!==true)continue;
-    if(r.effective.model!==p.backend||r.effective.effort!==p.effort)continue;
+    // The backend itself, or an id the user declared for the profile's registry entry (catalog.mjs resolvesTo).
+    if((r.effective.model!==p.backend&&!(Array.isArray(p.resolvesTo)&&p.resolvesTo.includes(r.effective.model)))||r.effective.effort!==p.effort)continue;
     const key=hash([r.context,r.projectHash,r.taskId,p.profileId]);if(seen.has(key))continue;seen.add(key);
     const g=groups.get(p.profileId)||[];g.push(r);groups.set(p.profileId,g);
   }
