@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { assert, object, hash } from '../util.mjs';
 import { JevClient } from '../jev.mjs';
 import { minConfidence } from './answers.mjs';
-import { DEFAULT_RETRIEVAL, RETRIEVAL_MODES } from './skills.mjs';
+import { DEFAULT_RETRIEVAL, RETRIEVAL_MODES, MAX_SKILL_REQUESTS, skillRequests } from './skills.mjs';
 import { OpenAIDecisionsClient, LocalJudge, OPENAI_TIMEOUT_DEFAULT_MS, OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './judges.mjs';
 
 export const POINTS = ['delegation.classify', 'delegation.profile', 'delegation.skills', 'supervisor.outcome', 'failure.classify', 'read.advice'];
@@ -103,6 +103,10 @@ export function validateKernel(k) {
   assert(intIn(s.maxJudged, 1, 400) && s.maxJudged >= s.maxCandidates, 'INVALID_KERNEL_SKILLS_MAX_JUDGED');
   // 64 skills plus the need question is the most one decision-log record holds.
   assert(intIn(s.chunk, 4, 64), 'INVALID_KERNEL_SKILLS_CHUNK');
+  // One wide delegation sends ceil(maxJudged / chunk) requests. Each counts against the per-session
+  // auxiliary cap shared with supervisor.outcome and their starts are serialized by the request-control
+  // lock, so the fan-out is bounded whatever the retrieval mode is set to now.
+  assert(skillRequests(s) <= MAX_SKILL_REQUESTS, 'INVALID_KERNEL_SKILLS_FANOUT');
 
   const v = k.supervisor;
   assert(object(v), 'INVALID_KERNEL_SUPERVISOR');

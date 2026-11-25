@@ -41,7 +41,8 @@ async function routeSkills(kernel,cfg,project,task,scope){
 // Names, stages and probabilities only: skill descriptions and the task text stay out of session state.
 function skillsEvent(taskId,mode,result,injected){
   const slim=list=>(Array.isArray(list)?list:[]).map(s=>({name:s.name,probability:s.probability}));
-  return {taskId,mode,status:result.status,code:result.code||null,need:result.need??null,candidates:result.candidates??0,
+  // partial: some of a wide decision's requests failed and the rest answered (failedCode says how).
+  return {taskId,mode,status:result.status,code:result.code||null,...(result.partial===true?{partial:true,failedCode:result.failedCode||null}:{}),need:result.need??null,candidates:result.candidates??0,
     decisionId:result.decisionId??null,decisionIds:Array.isArray(result.decisionIds)?result.decisionIds:[],retrieval:result.retrieval??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
     load:slim(result.load),suggest:slim(result.suggest),
     trace:(result.trace||[]).filter(t=>t.stage!=='retrieval').slice(0,SKILL_EVENT_TRACE).map(t=>({name:t.name,stage:t.stage,probability:t.probability}))};

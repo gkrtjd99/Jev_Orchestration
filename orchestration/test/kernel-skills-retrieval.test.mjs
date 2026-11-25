@@ -179,7 +179,6 @@ test('retrieval settings are validated before anything is judged', async () => {
   ]) {
     await assert.rejects(selectSkills({ task: 'x y', catalog, judge, scope: 's', config: { ...BASE, ...extra } }), code('INVALID_SKILLS_CONFIG'), JSON.stringify(extra));
   }
-  assert.throws(() => localSkillResolver({ minCoverage: 2 }), code('INVALID_SKILLS_CONFIG'));
   assert.equal(judge.calls.length, 0);
 });
 
@@ -369,7 +368,7 @@ test('each chunk is a real judge request: it counts against the auxiliary cap an
   f.config.cacheTtlMs = 0;
   f.config.circuit.maxRequestsPerSession = 5;
   f.config.kernel.points[SKILLS_POINT] = { mode: 'active', judges: ['jev'], escalateBelow: 0 };
-  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', chunk: 4 };
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', maxJudged: 32, chunk: 4 };
   const log = new DecisionLog(decisionLogDir(f.config));
   const kernel = createKernel(f.config, { apiKey: 'fixture-key', log });
   const catalog = catalogOf(Array.from({ length: 12 }, (_, i) => [`s${String(i).padStart(2, '0')}`, `DESCRIPTION_MARKER procedure ${i}`]));
@@ -437,22 +436,22 @@ test('one record holds the largest allowed chunk: 64 skills plus the need questi
 
 // ---------------------------------------------------------------- local resolver and chains
 
-test('localSkillResolver abstains without usable lexical signal instead of answering need 0', async () => {
+test('localSkillResolver abstains only when there is no lexical signal at all, instead of answering need 0', async () => {
   const catalog = many(6);
   const state = task => ({ task, skills: catalog.skills.map((s, i) => ({ index: i, name: s.name, description: s.description })) });
   const questions = skillQuestions(catalog.skills);
   const resolver = localSkillResolver();
 
   assert.equal(resolver(state(KOREAN), questions), null); // signal 0
-  assert.equal(resolver(state('PDF 보고서에서 표를 뽑아 주세요'), questions), null); // signal > 0 but below 0.25
+  // Signal above 0 but below minCoverage: one known token is a BM25 hit, so it answers (it used to abstain).
+  const mixedTask = 'PDF 보고서에서 표를 뽑아 주세요';
+  assert.ok(lexicalCoverage(mixedTask, catalog.skills) > 0 && lexicalCoverage(mixedTask, catalog.skills) < 0.25);
+  assert.ok(resolver(state(mixedTask), questions).need.noul > 0);
   const answers = resolver(state(ENGLISH), questions);
   assert.ok(answers.need.noul > 0 && answers.skill_0.noul === answers.need.noul);
 
-  // The floor is the resolver's own setting unless the caller supplies the catalog-level statistic.
-  const loose = localSkillResolver({ minCoverage: 0 });
-  assert.ok(loose(state('PDF 보고서에서 표를 뽑아 주세요'), questions).need.noul > 0);
-  assert.equal(loose(state(KOREAN), questions), null); // zero signal abstains whatever the floor
-  assert.equal(resolver(state(ENGLISH), questions, { lexical: { signal: 0.1, minCoverage: 0.25 } }), null);
+  // The caller's catalog-level statistic decides, and only its zero abstains: minCoverage is not a floor here.
+  assert.ok(resolver(state(ENGLISH), questions, { lexical: { signal: 0.1, minCoverage: 0.25 } }).need.noul > 0);
   assert.equal(resolver(state(ENGLISH), questions, { lexical: { signal: 0, minCoverage: 0 } }), null);
   assert.ok(resolver(state('PDF 보고서에서 표를 뽑아 주세요'), questions, { lexical: { signal: 0.3, minCoverage: 0.25 } }).need.noul > 0);
   // Malformed hints are ignored, not trusted.
@@ -593,7 +592,7 @@ test('hook: a config written before the retrieval settings existed produces byte
 
 test('hook: adaptive retrieval fans a Korean task out, records every decision id and replays the same block', async t => {
   const f = await nineSkills(t);
-  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'adaptive', chunk: 4 };
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'adaptive', maxJudged: 32, chunk: 4 };
   const judge = hookJudge({ 'zz-other-7': 0.95 });
   const deps = { config: f.config, client: judge };
   const raw = koreanEvent(f.project);
@@ -636,7 +635,7 @@ test('hook: adaptive retrieval fans a Korean task out, records every decision id
 
 test('hook: a chunk that misses the shared judge budget is dropped, the others count and the route is unaffected', async t => {
   const f = await nineSkills(t);
-  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', chunk: 4 };
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', maxJudged: 32, chunk: 4 };
   // Chain budget 200 ms (Jev's timeout) inside a 1000 ms route deadline, as in the default 1200 / 3000 split.
   f.config.timeoutMs = 200;
   f.config.optimization.routeDeadlineMs = 1000;
@@ -665,7 +664,7 @@ test('hook: a chunk that misses the shared judge budget is dropped, the others c
 
   // When nothing is back by the route deadline itself, skills are unavailable as with a single request.
   const g = await nineSkills(t);
-  g.config.kernel.skills = { ...g.config.kernel.skills, retrieval: 'full', chunk: 4 };
+  g.config.kernel.skills = { ...g.config.kernel.skills, retrieval: 'full', maxJudged: 32, chunk: 4 };
   g.config.optimization.routeDeadlineMs = 200;
   const slow = hookJudge({});
   const hung = { calls: slow.calls, async evaluate(state, questions, scope, limits) {
@@ -693,7 +692,8 @@ test('retrieval settings can be set from the environment and reject bad values w
   assert.deepEqual(config.kernel.skills, { ...kernelDefaults().skills, retrieval: 'adaptive', minCoverage: 0.4, maxJudged: 120, chunk: 16 });
   for (const [env, expected] of [
     [{ JEV_SKILLS_RETRIEVAL: 'full' }, { retrieval: 'full' }], [{ JEV_SKILLS_MIN_COVERAGE: '0' }, { minCoverage: 0 }], [{ JEV_SKILLS_MIN_COVERAGE: '1.0' }, { minCoverage: 1 }],
-    [{ JEV_SKILLS_MAX_JUDGED: '400' }, { maxJudged: 400 }], [{ JEV_SKILLS_MAX_JUDGED: '8' }, { maxJudged: 8 }], [{ JEV_SKILLS_CHUNK: '4' }, { chunk: 4 }], [{ JEV_SKILLS_CHUNK: '64' }, { chunk: 64 }],
+    [{ JEV_SKILLS_MAX_JUDGED: '256' }, { maxJudged: 256 }], [{ JEV_SKILLS_MAX_JUDGED: '8' }, { maxJudged: 8 }], [{ JEV_SKILLS_CHUNK: '8' }, { chunk: 8 }], [{ JEV_SKILLS_CHUNK: '64' }, { chunk: 64 }],
+    [{ JEV_SKILLS_MAX_JUDGED: '400', JEV_SKILLS_CHUNK: '64' }, { maxJudged: 400, chunk: 64 }], [{ JEV_SKILLS_MAX_JUDGED: '32', JEV_SKILLS_CHUNK: '4' }, { maxJudged: 32, chunk: 4 }],
   ]) {
     assert.deepEqual((await loadConfig(file, env)).config.kernel.skills, { ...kernelDefaults().skills, ...expected }, JSON.stringify(env));
   }
@@ -713,6 +713,10 @@ test('retrieval settings can be set from the environment and reject bad values w
   }
   // In range on its own but inconsistent with maxCandidates (8): the combined config is still refused.
   await assert.rejects(loadConfig(file, { JEV_SKILLS_MAX_JUDGED: '7' }), code('INVALID_KERNEL_SKILLS_MAX_JUDGED'));
+  // Each in range on its own, but together more than MAX_SKILL_REQUESTS (8) requests per delegation.
+  for (const env of [{ JEV_SKILLS_MAX_JUDGED: '400' }, { JEV_SKILLS_CHUNK: '4' }, { JEV_SKILLS_MAX_JUDGED: '400', JEV_SKILLS_CHUNK: '4' }, { JEV_SKILLS_MAX_JUDGED: '257' }]) {
+    await assert.rejects(loadConfig(file, env), code('INVALID_KERNEL_SKILLS_FANOUT'), JSON.stringify(env));
+  }
 });
 
 test('skills CLI: --retrieval, and the local judge abstaining on a task it cannot read', async t => {
@@ -738,4 +742,198 @@ test('skills CLI: --retrieval, and the local judge abstaining on a task it canno
 
   const bad = await run('--task', 'x', '--retrieval', 'semantic');
   assert.deepEqual([bad.code, bad.stderr.trim(), bad.stdout], [1, 'INVALID_RETRIEVAL', '']);
+});
+
+// ---------------------------------------------------------------- regressions from the independent review
+
+test('the local judge still answers a same-language task whose coverage is low: small catalog, long delegation brief', async () => {
+  // Coverage falls with task length and with a small catalog vocabulary. Abstaining below minCoverage
+  // made the local-only resolver answer none of these although BM25 has a clear best match.
+  const catalog = catalogOf([
+    ['pdf-merge', 'Merge and split pdf documents into one pdf file'],
+    ['deploy', 'Ship services to production'],
+    ['release-notes', 'Write release notes from merged changes'],
+  ]);
+  const brief = 'You are a careful engineer working inside an existing repository. Read the surrounding code before changing anything, '
+    + 'keep the patch minimal, follow the house style, never touch unrelated modules, and report exactly what you verified at the end. '
+    + 'Task: merge the three quarterly pdf documents into a single pdf. Constraints: no new dependencies, no network access, '
+    + 'keep every existing test green, explain each trade-off briefly, and stop to ask whenever a requirement looks ambiguous or unsafe.';
+  const signal = lexicalCoverage(brief, catalog.skills);
+  assert.ok(signal > 0 && signal < DEFAULT_RETRIEVAL.minCoverage, `coverage ${signal}`);
+  assert.equal(bm25Rank(brief, catalog.skills)[0].skill.name, 'pdf-merge');
+  const judge = new LocalJudge({ [SKILLS_POINT]: localSkillResolver() });
+  for (const retrieval of RETRIEVAL_MODES) {
+    const result = await selectSkills({ task: brief, catalog, judge, scope: 's', config: { ...BASE, retrieval, need: 0.1, autoLoad: 0.3, suggest: 0.2 } });
+    assert.deepEqual([result.status, result.code, result.retrieval.failed], ['selected', undefined, 0], retrieval);
+    assert.equal(result.load[0].name, 'pdf-merge', retrieval);
+  }
+});
+
+test('the fan-out is bounded: validateKernel refuses more than 8 requests per delegation and selectSkills never sends more', async t => {
+  const f = await fixture(t);
+  const withSkills = extra => ({ ...f.config, kernel: { ...f.config.kernel, skills: { ...f.config.kernel.skills, ...extra } } });
+  for (const [maxJudged, chunk] of [[400, 4], [400, 32], [64, 4], [65, 8]]) {
+    for (const retrieval of RETRIEVAL_MODES) { // refused whatever the mode is now: the env can switch the mode later
+      assert.throws(() => createKernel(withSkills({ retrieval, maxJudged, chunk })), code('INVALID_KERNEL_SKILLS_FANOUT'), `${maxJudged}/${chunk}`);
+    }
+  }
+  for (const [maxJudged, chunk] of [[400, 64], [256, 32], [64, 8], [32, 4], [64, 32]]) createKernel(withSkills({ retrieval: 'full', maxJudged, chunk }));
+
+  // A caller that bypasses the kernel validation is clamped, and the cut is reported, not silent.
+  const judge = mockJudge({ s00: 0.95 });
+  const result = await selectSkills({ task: ENGLISH, catalog: many(60), judge, scope: 's', config: { ...BASE, retrieval: 'full', maxJudged: 64, chunk: 4 } });
+  assert.equal(judge.calls.length, 8);
+  assert.deepEqual(result.retrieval, { mode: 'full', wide: true, lexicalSignal: 1, requests: 8, failed: 0, judged: 32, dropped: 28 });
+  assert.equal(result.load[0].name, 's00');
+});
+
+test('a wide mode is refused when one delegation could use more than a quarter of the per-session auxiliary request cap', async t => {
+  const f = await fixture(t);
+  const dir = path.join(f.home, '.config', 'jev-hooks');
+  const file = path.join(dir, 'config.json');
+  const write = async (skills, cap) => {
+    const c = structuredClone(f.config);
+    c.kernel.skills = { ...c.kernel.skills, ...skills };
+    c.circuit.maxRequestsPerSession = cap;
+    await writeJSON(file, c);
+  };
+  // 8 requests per delegation: needs a cap of at least 32.
+  await write({ retrieval: 'full', maxJudged: 64, chunk: 8 }, 31);
+  await assert.rejects(loadConfig(file, {}), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
+  await write({ retrieval: 'adaptive', maxJudged: 64, chunk: 8 }, 31);
+  await assert.rejects(loadConfig(file, {}), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
+  await write({ retrieval: 'full', maxJudged: 64, chunk: 8 }, 32);
+  assert.equal((await loadConfig(file, {})).config.kernel.skills.retrieval, 'full');
+  // The default (lexical, one request) keeps working with any cap, and switching the mode by env is checked too.
+  await write({}, 1);
+  assert.equal((await loadConfig(file, {})).config.kernel.skills.retrieval, 'lexical');
+  await assert.rejects(loadConfig(file, { JEV_SKILLS_RETRIEVAL: 'full' }), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
+});
+
+test('one wide delegation leaves the auxiliary budget usable: later delegations still get their requests', async t => {
+  const f = await fixture(t);
+  const s = await jevServer(t, { s07: 0.95 });
+  Object.assign(f.config, { endpoint: s.endpoint, allowLoopback: true, cacheTtlMs: 0 });
+  f.config.kernel.points[SKILLS_POINT] = { mode: 'active', judges: ['jev'], escalateBelow: 0 };
+  // The largest fan-out validation accepts, on a 400-skill catalog, with the default cap of 100.
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', maxJudged: 400, chunk: 64 };
+  const kernel = createKernel(f.config, { apiKey: 'fixture-key' });
+  const catalog = catalogOf(Array.from({ length: 400 }, (_, i) => [`s${String(i).padStart(3, '0')}`, `procedure ${i}`]));
+  const run = task => selectSkills({ task, catalog, judge: kernel.forPoint(SKILLS_POINT), scope: 'scope-budget', config: kernel.kernel.skills, limits: { timeoutMs: 3000 } });
+  const first = await run('첫 번째 작업');
+  assert.deepEqual([first.retrieval.requests, first.retrieval.failed, first.retrieval.judged], [7, 0, 400]);
+  const second = await run('두 번째 작업');
+  assert.deepEqual([second.status === 'unavailable', second.retrieval.failed], [false, 0]);
+  assert.equal(s.requests.length, 14);
+  const control = path.join(f.config.stateDir, 'request-control', hash({ scope: 'scope-budget', endpoint: f.config.endpoint, account: hash('fixture-key'), bucket: 'auxiliary' }) + '.json');
+  assert.equal((await readJSON(control)).requests, 14); // 86 of the 100 left for supervisor.outcome and later delegations
+});
+
+test('real client: the chunks of one decision share its deadline and count as one circuit failure', async t => {
+  const f = await fixture(t);
+  const started = [];
+  const s = await server(t, async (req, res, parsed) => { started.push(performance.now()); await sleep(900); res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(answer(parsed.questions))); });
+  Object.assign(f.config, { endpoint: s.endpoint, allowLoopback: true, cacheTtlMs: 0, timeoutMs: 3000 });
+  f.config.circuit.failureThreshold = 3;
+  f.config.kernel.points[SKILLS_POINT] = { mode: 'active', judges: ['jev'], escalateBelow: 0 };
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', maxJudged: 32, chunk: 4 };
+  const kernel = createKernel(f.config, { apiKey: 'fixture-key' });
+  const scope = 'scope-deadline';
+  const control = () => readJSON(path.join(f.config.stateDir, 'request-control', hash({ scope, endpoint: f.config.endpoint, account: hash('fixture-key'), bucket: 'auxiliary' }) + '.json'));
+  const began = performance.now();
+  // 12 skills -> 3 requests against a judge that needs 900 ms, with a 200 ms allowance and a 3000 ms client timeout.
+  const result = await selectSkills({ task: KOREAN, catalog: many(12), judge: kernel.forPoint(SKILLS_POINT), scope, config: kernel.kernel.skills, limits: { timeoutMs: 200 } });
+  const elapsed = performance.now() - began;
+  assert.ok(elapsed < 600, `returned after ${elapsed} ms`);
+  assert.deepEqual([result.status, result.retrieval.requests, result.retrieval.failed], ['unavailable', 3, 3]);
+  assert.ok(['SKILLS_DEADLINE', 'JEV_TIMEOUT'].includes(result.code), result.code);
+  // The requests were aborted at the shared deadline, not at the client's own 3000 ms timeout: well before
+  // the judge would have answered, all three are booked as failed - as ONE failure, so the circuit stays closed.
+  await sleep(250);
+  const info = await control();
+  assert.deepEqual([info.requests, info.failures, info.openUntil], [3, 1, 0]);
+  assert.equal(started.length, 3);
+  for (const at of started) assert.ok(at - began < 200 + 50, 'no request starts after the shared deadline');
+  await sleep(300);
+  assert.equal(started.length, 3); // and nothing is sent after the result was returned
+
+  // Three separate failing decisions still open the circuit, exactly as three failing lexical requests would.
+  for (const n of [2, 3]) await selectSkills({ task: `${KOREAN} ${n}`, catalog: many(12), judge: kernel.forPoint(SKILLS_POINT), scope, config: kernel.kernel.skills, limits: { timeoutMs: 120 } });
+  await sleep(200);
+  const after = await control();
+  assert.equal(after.failures, 3);
+  assert.ok(after.openUntil > Date.now());
+  const refused = await selectSkills({ task: `${KOREAN} 4`, catalog: many(12), judge: kernel.forPoint(SKILLS_POINT), scope, config: kernel.kernel.skills, limits: { timeoutMs: 120 } });
+  assert.deepEqual([refused.status, refused.code], ['unavailable', 'JEV_CIRCUIT_OPEN']);
+  assert.equal(started.length, 9);
+});
+
+test('real client: a request whose turn comes after the shared deadline is neither sent nor counted', async t => {
+  const f = await fixture(t);
+  const s = await jevServer(t, {});
+  Object.assign(f.config, { endpoint: s.endpoint, allowLoopback: true, cacheTtlMs: 0 });
+  f.config.kernel.points[SKILLS_POINT] = { mode: 'active', judges: ['jev'], escalateBelow: 0 };
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', maxJudged: 32, chunk: 4 };
+  const kernel = createKernel(f.config, { apiKey: 'fixture-key' });
+  const scope = 'scope-late';
+  const controlFile = path.join(f.config.stateDir, 'request-control', hash({ scope, endpoint: f.config.endpoint, account: hash('fixture-key'), bucket: 'auxiliary' }) + '.json');
+  // Hold the request-control lock so that no chunk can be counted until after the 80 ms allowance.
+  await fs.mkdir(controlFile + '.lock', { recursive: true });
+  const release = setTimeout(() => fs.rm(controlFile + '.lock', { recursive: true, force: true }), 200);
+  t.after(() => clearTimeout(release));
+  const result = await selectSkills({ task: KOREAN, catalog: many(12), judge: kernel.forPoint(SKILLS_POINT), scope, config: kernel.kernel.skills, limits: { timeoutMs: 80 } });
+  assert.equal(result.status, 'unavailable');
+  await sleep(450);
+  assert.equal(s.requests.length, 0);
+  assert.equal((await readJSON(controlFile, { requests: 0 })).requests, 0);
+});
+
+test('a partial failure that ends with nothing selected is not reported as a clean negative', async () => {
+  const catalog = many(8);
+  const config = { ...BASE, retrieval: 'full', chunk: 4 };
+  // The request holding the only lexical match (s00, BM25 rank 1) times out; the other answers "no skill needed".
+  const judge = mockJudge({}, { need: 0.05, behave: async (index, state) => {
+    if (state.skills.some(x => x.name === 's00')) throw Object.assign(new Error('JEV_TIMEOUT'), { code: 'JEV_TIMEOUT' });
+  } });
+  const gated = await selectSkills({ task: ENGLISH, catalog, judge, scope: 's', config });
+  assert.deepEqual([gated.status, gated.code, gated.partial, gated.failedCode, gated.need], ['none', 'JEV_TIMEOUT', true, 'JEV_TIMEOUT', 0.05]);
+  assert.equal(gated.retrieval.failed, 1);
+  assert.equal(whyNot(gated, 's00').stage, 'judge_unavailable');
+
+  // Need gate open but nothing above the thresholds: same marking.
+  const open = mockJudge({}, { need: 0.9, behave: async (index, state) => {
+    if (state.skills.some(x => x.name === 's00')) throw Object.assign(new Error('JEV_HTTP_503'), { code: 'JEV_HTTP_503' });
+  } });
+  const below = await selectSkills({ task: ENGLISH, catalog, judge: open, scope: 's', config });
+  assert.deepEqual([below.status, below.code, below.partial, below.failedCode], ['none', 'JEV_HTTP_503', true, 'JEV_HTTP_503']);
+
+  // Something was still selected: the selection stands, flagged partial, without a failure code on the result.
+  const some = mockJudge({ s05: 0.95 }, { behave: async (index, state) => {
+    if (state.skills.some(x => x.name === 's00')) throw Object.assign(new Error('JEV_TIMEOUT'), { code: 'JEV_TIMEOUT' });
+  } });
+  const selected = await selectSkills({ task: ENGLISH, catalog, judge: some, scope: 's', config });
+  assert.deepEqual([selected.status, selected.code, selected.partial, selected.failedCode], ['selected', undefined, true, 'JEV_TIMEOUT']);
+
+  // No failure: neither field exists, so results of healthy decisions are unchanged.
+  const clean = await selectSkills({ task: ENGLISH, catalog, judge: mockJudge({}, { need: 0.05 }), scope: 's', config });
+  assert.deepEqual([clean.status, 'code' in clean, 'partial' in clean, 'failedCode' in clean], ['none', false, false, false]);
+});
+
+test('hook: the skills event says when a wide decision was only partly judged', async t => {
+  const f = await nineSkills(t);
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'full', maxJudged: 32, chunk: 4 };
+  const inner = hookJudge({});
+  let n = 0;
+  const judge = { calls: inner.calls, async evaluate(state, questions, scope, limits) {
+    if (Object.hasOwn(questions, 'need') && n++ === 0) throw Object.assign(new Error('JEV_HTTP_503'), { code: 'JEV_HTTP_503' });
+    return inner.evaluate(state, questions, scope, limits);
+  } };
+  await handleHook(koreanEvent(f.project), 'claude', { config: f.config, client: judge });
+  const [logged] = await skillsEvents(f);
+  assert.deepEqual([logged.status, logged.code, logged.partial, logged.failedCode, logged.retrieval.failed], ['none', 'JEV_HTTP_503', true, 'JEV_HTTP_503', 1]);
+  // A fully judged decision carries neither field.
+  const g = await nineSkills(t);
+  await handleHook(koreanEvent(g.project), 'claude', { config: g.config, client: hookJudge({}) });
+  const [plain] = await skillsEvents(g);
+  assert.deepEqual(['partial' in plain, 'failedCode' in plain], [false, false]);
 });

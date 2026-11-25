@@ -4,7 +4,7 @@ import path from 'node:path';
 import { assert, object, within, readJSON } from './util.mjs';
 import { defaultRegistry, validateRegistry, applyModelEnvironment } from './catalog.mjs';
 import { kernelDefaults, mergeKernel, validateKernel, MODES, PROVIDERS } from './kernel/kernel.mjs';
-import { RETRIEVAL_MODES } from './kernel/skills.mjs';
+import { RETRIEVAL_MODES, skillRequests } from './kernel/skills.mjs';
 import { OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './kernel/judges.mjs';
 export function defaults(home) {
   return {
@@ -68,6 +68,10 @@ export function validateConfig(c) {
   assert(Number.isInteger(c.circuit.cooldownMs)&&c.circuit.cooldownMs>=1000&&c.circuit.cooldownMs<=3600000,'INVALID_CIRCUIT_COOLDOWN');
   assert(Number.isInteger(c.circuit.maxRequestsPerSession)&&c.circuit.maxRequestsPerSession>=1&&c.circuit.maxRequestsPerSession<=10000,'INVALID_REQUEST_CAP');
   validateKernel(c.kernel);
+  // A wide skills decision spends several requests of the per-session auxiliary cap at once. With a wide
+  // mode switched on, the cap must leave room for at least four such delegations, so that one delegation
+  // can never use up the budget supervisor.outcome and later delegations depend on.
+  assert(c.kernel.skills.retrieval==='lexical'||skillRequests(c.kernel.skills)*4<=c.circuit.maxRequestsPerSession,'INVALID_KERNEL_SKILLS_FANOUT_CAP');
   return c;
 }
 

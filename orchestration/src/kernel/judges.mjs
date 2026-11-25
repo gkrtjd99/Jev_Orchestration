@@ -159,7 +159,9 @@ export class OpenAIDecisionsClient extends JevClient {
    */
   async evaluate(state, questions, scope, limits = {}) {
     const allowance = Number.isFinite(limits.timeoutMs) ? Math.min(this.timeoutMs, limits.timeoutMs) : this.timeoutMs;
-    return super.evaluate(state, questions, scope, { ...limits, deadlineAt: performance.now() + allowance });
+    // A caller's own deadline (the shared allowance of a wide skills decision) can only shorten this one.
+    const own = performance.now() + allowance;
+    return super.evaluate(state, questions, scope, { ...limits, deadlineAt: Number.isFinite(limits.deadlineAt) ? Math.min(own, limits.deadlineAt) : own });
   }
 
   async request(state, questions, { timeoutMs = this.timeoutMs, deadlineAt = Infinity } = {}) {

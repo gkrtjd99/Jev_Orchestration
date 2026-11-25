@@ -4,6 +4,8 @@
 import fs from 'node:fs/promises';
 import { constants as FS } from 'node:fs';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import { assert, hash, object, redact, within } from '../util.mjs';
 
 export const SKILLS_POINT = 'delegation.skills';
@@ -14,9 +16,18 @@ export const RETRIEVAL_MODES = Object.freeze(['lexical', 'adaptive', 'full']);
 //                'full'     the judge sees the whole catalog, up to maxJudged skills, in requests of at most `chunk` skills
 //                'adaptive' lexical while lexicalCoverage(task, catalog) >= minCoverage, otherwise as 'full'
 //   minCoverage  0.25 means "fewer than one in four of the task's distinct tokens occur anywhere in the catalog".
-//                It is a round initial value, not a fitted optimum. Raising it can only add tasks to the wide path,
-//                and the wide path judges a superset of the lexical candidates (maxJudged >= maxCandidates is enforced).
+//                It is NOT a general low-signal detector and NOT data-independent: coverage rises with the
+//                catalog's vocabulary and falls with task length, and 0.25 is simply the smallest round value
+//                that sent every Korean task of the 40-skill development set wide (see docs/KERNEL.ko.md).
+//                Raising it can only add tasks to the wide path, and the wide path judges a superset of the
+//                lexical candidates (maxJudged >= maxCandidates is enforced).
 export const DEFAULT_RETRIEVAL = Object.freeze({ retrieval: 'lexical', minCoverage: 0.25, maxJudged: 64, chunk: 32 });
+// The most judge requests one delegation may send. Every request counts against the per-session
+// auxiliary request cap that supervisor.outcome shares, and request starts are serialized by the
+// request-control lock, so the fan-out is bounded here and in validateKernel (ceil(maxJudged / chunk)).
+export const MAX_SKILL_REQUESTS = 8;
+/** Judge requests a wide decision can send with these settings. */
+export const skillRequests = ({ maxJudged, chunk }) => Math.ceil(maxJudged / chunk);
 export const DEFAULT_SKILLS_CONFIG = Object.freeze({
   maxCandidates: 12, need: 0.5, autoLoad: 0.8, suggest: 0.5, maxLoaded: 2, maxSuggested: 3, ...DEFAULT_RETRIEVAL,
 });
@@ -290,13 +301,22 @@ const failureCode = e => (typeof e?.code === 'string' ? e.code : 'SKILL_JUDGE_FA
 /**
  * One judge request per chunk of ranked skills. Each request carries its own `need` question and one
  * noul per skill, with indexes local to the chunk (skillQuestions is unchanged).
- * More than one request means they run concurrently inside the single allowance the caller gave
+ * More than one request means they are issued together inside the single allowance the caller gave
  * (limits.timeoutMs): every request receives the same limits, and none is awaited past that allowance.
+ * A fan-out also hands the judge two things a single request never gets:
+ *   deadlineAt    the shared allowance as an absolute time (performance.now() clock). A remote client
+ *                 neither counts nor sends a request whose turn comes after it, and aborts one in flight at it.
+ *   failureGroup  one id for all requests of this decision, so that a slow judge counts as ONE circuit
+ *                 failure for the delegation instead of one per chunk.
  * There is no retry. Returns one { answers, decisionId, cached } or { code } per chunk.
  */
 async function judgeChunks({ chunks, ranked, task, judge, scope, limits }) {
   const text = redact(task, 6000);
   let timer = null;
+  if (chunks.length > 1) {
+    limits = { ...limits, failureGroup: randomUUID() };
+    if (Number.isFinite(limits.timeoutMs)) limits.deadlineAt = performance.now() + Math.max(0, limits.timeoutMs);
+  }
   const fanOut = chunks.length > 1 && Number.isFinite(limits.timeoutMs);
   const deadline = fanOut ? new Promise((_, reject) => {
     timer = setTimeout(() => reject(Object.assign(new Error('SKILLS_DEADLINE'), { code: 'SKILLS_DEADLINE' })), Math.max(0, limits.timeoutMs));
@@ -343,7 +363,9 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
   if (!hasTask || !ranked.length) return base;
 
   retrieval.wide = settings.retrieval === 'full' || (settings.retrieval === 'adaptive' && retrieval.lexicalSignal < settings.minCoverage);
-  const count = Math.min(ranked.length, retrieval.wide ? settings.maxJudged : settings.maxCandidates);
+  // Defence in depth for callers that bypass validateKernel: never more than MAX_SKILL_REQUESTS requests.
+  // Whatever that cuts off is reported in retrieval.dropped like any other cap.
+  const count = Math.min(ranked.length, retrieval.wide ? Math.min(settings.maxJudged, MAX_SKILL_REQUESTS * settings.chunk) : settings.maxCandidates);
   // Wide: ceil(count / chunk) requests of equal size (never more than `chunk` skills each), in rank order.
   const requests = retrieval.wide ? Math.ceil(count / settings.chunk) : 1;
   const size = Math.ceil(count / requests);
@@ -354,7 +376,8 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
   base.candidates = count;
   Object.assign(retrieval, { requests, judged: count, dropped: ranked.length - count });
 
-  // limits.lexical lets the no-network resolver abstain on the same statistic; remote judges ignore it.
+  // limits.lexical tells the no-network resolver whether the task has any lexical signal at all
+  // (it abstains only when signal is 0); remote judges ignore it.
   const outcomes = await judgeChunks({
     chunks, ranked, task, judge, scope,
     limits: { pointId: SKILLS_POINT, ...limits, lexical: { signal: retrieval.lexicalSignal, minCoverage: settings.minCoverage } },
@@ -372,6 +395,13 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
   });
   const ok = outcomes.filter(o => o.answers);
   if (!ok.length) return { ...base, status: 'unavailable', code: outcomes[0].code };
+  // Some requests failed and some answered. The answers still count, but the result must not read as a
+  // clean judgment: `partial` and `failedCode` are set, and a result that selects nothing also carries
+  // the failed request's code, so "no skill needed" and "the request holding the best candidates failed"
+  // differ in status/code and not only in retrieval.failed.
+  const failedCode = outcomes.find(o => !o.answers)?.code ?? null;
+  if (failedCode !== null) Object.assign(base, { partial: true, failedCode });
+  const finish = () => (failedCode !== null && base.status === 'none' ? { ...base, code: failedCode } : base);
 
   base.need = Math.max(...ok.map(o => o.answers.need.noul));
   base.decisionIds = ok.map(o => o.decisionId).filter(id => id !== null);
@@ -380,7 +410,7 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
 
   if (base.need < settings.need) {
     for (const i of answered) trace[i].stage = 'need_gate';
-    return base;
+    return finish();
   }
   const entry = i => ({ name: ranked[i].skill.name, path: ranked[i].skill.path, relPath: ranked[i].skill.relPath, probability: trace[i].probability });
   const order = answered.sort((x, y) => trace[y].probability - trace[x].probability || x - y);
@@ -395,7 +425,7 @@ export async function selectSkills({ task, catalog, judge, scope, config, limits
     } else trace[i].stage = 'below_threshold';
   }
   if (base.load.length || base.suggest.length) base.status = 'selected';
-  return base;
+  return finish();
 }
 
 const REASONS = {
@@ -455,20 +485,22 @@ export function skillContext(result, { maxChars = 900 } = {}) {
 // No-network resolver for point 'delegation.skills'.
 // p = s / (s + 4) squashes a BM25 score into 0..1. It is a lexical heuristic, NOT a calibrated probability:
 // it only preserves the BM25 ordering and must never be mixed with calibrated judge outputs.
-// It abstains (returns null, so LocalJudge throws LOCAL_ABSTAIN and a chain moves on) when it has no
-// usable lexical signal: the signal is 0 (every BM25 score is 0) or below minCoverage. The signal is
-// the catalog-level lexicalCoverage selectSkills passes in limits.lexical; a caller that passes none
-// gets lexicalCoverage of the task against the skills in `state`. "No word in common" is not evidence
-// that no skill is needed, so it must not be reported as need = 0 with full confidence.
-export function localSkillResolver({ minCoverage = DEFAULT_RETRIEVAL.minCoverage } = {}) {
-  assert(unit(minCoverage), 'INVALID_SKILLS_CONFIG');
+// It abstains (returns null, so LocalJudge throws LOCAL_ABSTAIN and a chain moves on) only when the
+// signal is 0, i.e. every BM25 score is 0: "no word in common" is not evidence that no skill is needed,
+// so it must not be reported as need = 0 with full confidence. The signal is the catalog-level
+// lexicalCoverage selectSkills passes in limits.lexical; a caller that passes none gets lexicalCoverage
+// of the task against the skills in `state`.
+// It does NOT abstain below minCoverage. Coverage falls with task length and with a small catalog, so a
+// same-language task with a clear BM25 hit routinely sits below 0.25 (a one-line task inside a
+// delegation brief, a 3-10 skill catalog); abstaining there made a local-only setup answer almost nothing.
+export function localSkillResolver() {
   return (state, questions, limits = {}) => {
     const skills = Array.isArray(state?.skills) ? state.skills.filter(object) : [];
     const docs = skills.map(s => ({ name: String(s.name ?? ''), description: String(s.description ?? ''), index: s.index }));
     const task = String(state?.task ?? '');
     const given = object(limits?.lexical) ? limits.lexical : {};
     const signal = unit(given.signal) ? given.signal : lexicalCoverage(task, docs);
-    if (signal <= 0 || signal < (unit(given.minCoverage) ? given.minCoverage : minCoverage)) return null;
+    if (signal <= 0) return null;
     const byIndex = new Map();
     for (const { skill, score } of bm25Rank(task, docs)) byIndex.set(skill.index, score / (score + 4));
     const need = Math.max(0, ...byIndex.values());

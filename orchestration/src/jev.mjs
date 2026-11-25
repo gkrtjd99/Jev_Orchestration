@@ -14,11 +14,13 @@ export class JevClient{
   constructor(config,apiKey,{fetchImpl=fetch}={}){this.config=config;this.key=apiKey;this.fetch=fetchImpl;}
   /** Code used when limits.deadlineAt has passed before a request was counted. Only subclasses set a deadline. */
   get deadlineCode(){return 'JEV_TIMEOUT';}
-  async request(state,questions,{timeoutMs=this.config.timeoutMs}={}){
+  async request(state,questions,{timeoutMs=this.config.timeoutMs,deadlineAt=Infinity}={}){
     assert(this.config.safety?.allowEgress===true,'EGRESS_NOT_APPROVED');validateSafety(this.config);
     assert(this.key,'MISSING_TYPESAFE_API_KEY');
     assert(!secretLike(JSON.stringify(state),this.key),'SECRET_GUARD');
-    const c=this.config;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),Math.min(c.timeoutMs,timeoutMs));
+    const c=this.config;const controller=new AbortController();
+    // deadlineAt (performance.now() clock) is set only for the requests of a wide skills decision: none of them outlives the shared allowance.
+    const timer=setTimeout(()=>controller.abort(),Math.min(c.timeoutMs,timeoutMs,Number.isFinite(deadlineAt)?Math.max(0,deadlineAt-performance.now()):Infinity));
     try{
       const base=c.endpoint.replace(/\/$/,'');
       const payload=JSON.stringify({model:c.model,state,questions});assert(Buffer.byteLength(payload)<=524288,'JEV_REQUEST_TOO_LARGE');
@@ -43,7 +45,8 @@ export class JevClient{
     const file=path.join(c.stateDir,'cache',key+'.json');
     const get=async()=>{const a=await readJSON(file,null);return a?.expires>Date.now()?validateAnswers(a.response,questions):null;};
     const cache=await get();if(cache)return {response:cache,cached:true,latencyMs:performance.now()-start};
-    // limits.deadlineAt (performance.now() clock) is optional and absent for Jev: then nothing below changes.
+    // limits.deadlineAt (performance.now() clock) is optional. Jev gets one only for the requests of a wide
+    // skills decision (kernel/skills.mjs judgeChunks); without it nothing below changes.
     // With it, the lock waits before the request never run past the deadline, and a call whose deadline
     // has already passed is neither counted against the request cap nor recorded as a circuit failure.
     const left=()=>Number.isFinite(limits.deadlineAt)?limits.deadlineAt-performance.now():Infinity;
@@ -65,7 +68,12 @@ export class JevClient{
         response=await this.request(state,questions,limits);
         await withLock(controlFile+'.lock',async()=>{const info=await readJSON(controlFile);info.failures=0;await writeJSON(controlFile,info);});
       } catch(error) {
-        await withLock(controlFile+'.lock',async()=>{const info=await readJSON(controlFile);info.failures++;if(info.failures>=c.circuit.failureThreshold)info.openUntil=Date.now()+c.circuit.cooldownMs;await writeJSON(controlFile,info);});
+        await withLock(controlFile+'.lock',async()=>{const info=await readJSON(controlFile);
+          // The requests of one wide skills decision share limits.failureGroup and count as one failure, not one
+          // per chunk: a single slow delegation must not open the circuit that supervisor.outcome shares.
+          const group=typeof limits.failureGroup==='string'&&limits.failureGroup?limits.failureGroup:null;
+          if(!group||info.failureGroup!==group){info.failures++;if(group)info.failureGroup=group;}
+          if(info.failures>=c.circuit.failureThreshold)info.openUntil=Date.now()+c.circuit.cooldownMs;await writeJSON(controlFile,info);});
         throw error;
       }
       await writeJSON(file,{expires:Date.now()+c.cacheTtlMs,response});
