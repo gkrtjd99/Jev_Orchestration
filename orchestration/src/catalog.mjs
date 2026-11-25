@@ -40,8 +40,6 @@ export function validateRegistry(r) {
   assert(object(r) && r.schema===1 && typeof r.revision==='string','INVALID_REGISTRY');
   assert(Array.isArray(r.models)&&r.models.length>0&&r.models.length<=24,'INVALID_MODEL_CATALOG');
   const ids=new Set();
-  // Declared id -> the backend of the entry that declared it, per runtime.
-  const declared={claude:new Map(),codex:new Map()};
   for (const m of r.models) {
     assert(object(m)&&typeof m.id==='string'&&/^[a-z0-9-]{1,48}$/.test(m.id)&&!ids.has(m.id),'INVALID_OR_DUPLICATE_MODEL_ID'); ids.add(m.id);
     assert(['claude','codex'].includes(m.runtime)&&SLOTS.includes(m.slot),'INVALID_MODEL_SLOT');
@@ -64,17 +62,20 @@ export function validateRegistry(r) {
       const list=m.resolvesTo;
       assert(Array.isArray(list)&&list.length>=1&&list.length<=MAX_RESOLVED_IDS&&list.every(x=>typeof x==='string'&&RESOLVED_MODEL_ID.test(x)),'INVALID_RESOLVES_TO');
       assert(new Set(list).size===list.length,'DUPLICATE_RESOLVED_MODEL_ID');
-      // One concrete id under two entries with DIFFERENT backends would say that one model is two models, and
-      // evidence from a run of one could then be accepted for a profile of the other. Two entries with the same
-      // backend (the same model in two slots) may share it. An id equal to the entry's own backend is redundant
-      // and harmless.
-      for(const id of list) {
-        const owner=declared[m.runtime].get(id);
-        assert(owner===undefined||owner===m.backend,'RESOLVED_MODEL_ID_DECLARED_FOR_ANOTHER_BACKEND');
-        declared[m.runtime].set(id,m.backend);
-      }
     }
   }
+  // Second pass, after every entry is known, so the result does not depend on entry order.
+  // A model id belongs to a backend when an entry with that backend IS it (its backend or its model name) or
+  // declares it. One id under two DIFFERENT backends of a runtime would say that one model is two models, and a
+  // run of one could then be accepted as evidence for a profile of the other - the most direct form being an
+  // entry that declares another entry's backend. Two entries with the same backend (one model in two slots) may
+  // share an id; an id equal to the entry's own backend is redundant and harmless. Ids are compared as exact
+  // strings, as everywhere else: 'X1' and 'x1' are two ids.
+  const owners={claude:new Map(),codex:new Map()};
+  const own=(runtime,id,backend)=>{const set=owners[runtime].get(id)??new Set();set.add(backend);owners[runtime].set(id,set);};
+  for(const m of r.models){own(m.runtime,m.backend,m.backend);own(m.runtime,m.model,m.backend);for(const id of m.resolvesTo??[])own(m.runtime,id,m.backend);}
+  for(const m of r.models)for(const id of m.resolvesTo??[])
+    assert([...owners[m.runtime].get(id)].every(backend=>backend===m.backend),'RESOLVED_MODEL_ID_DECLARED_FOR_ANOTHER_BACKEND');
   return r;
 }
 export const registryFingerprint = r => hash(r);

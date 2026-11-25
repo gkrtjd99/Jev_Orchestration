@@ -75,7 +75,10 @@ export function summarizeEvidence(rows,profiles,{context,projectHash,classKey,no
     const key=hash([r.context,r.projectHash,r.taskId,p.profileId]);if(seen.has(key))continue;seen.add(key);
     const g=groups.get(p.profileId)||[];g.push(r);groups.set(p.profileId,g);
   }
-  return Object.fromEntries([...groups].map(([id,rs])=>{
+  // One profile is one model. Several declared ids under one entry (or the backend plus a declared id) must not
+  // be pooled into one sample: if the rows of a profile in this group name more than one effective model, the
+  // profile is left unmeasured here, not summarised over a mix. evidenceReport shows such profiles.
+  return Object.fromEntries([...groups].filter(([,rs])=>new Set(rs.map(r=>r.effective.model)).size===1).map(([id,rs])=>{
     const successes=rs.filter(r=>r.verification.passed).length;
     const costs=rs.map(r=>r.costUsd);const times=rs.map(r=>r.durationMs);
     const fullCosts=costs.every(x=>typeof x==='number'&&Number.isFinite(x)&&x>=0);
@@ -83,7 +86,7 @@ export function summarizeEvidence(rows,profiles,{context,projectHash,classKey,no
     return [id,{n:rs.length,successes,successRate:successes/rs.length,successLower:wilsonLower(successes,rs.length),
       meanCostUsd:fullCosts?costs.reduce((a,b)=>a+b,0)/rs.length:null,
       meanDurationMs:fullTimes?times.reduce((a,b)=>a+b,0)/rs.length:null,
-      cohortHash:hash(rs.map(r=>r.taskId).sort()),source:'independent-validator-observations'}];
+      cohortHash:hash(rs.map(r=>r.taskId).sort()),effectiveModel:rs[0].effective.model,source:'independent-validator-observations'}];
   }));
 }
 export function optimizeCandidates(candidates,evidence,policy) {

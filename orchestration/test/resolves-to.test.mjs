@@ -88,6 +88,49 @@ test('one id cannot be declared for two different backends of a runtime; the sam
   validateRegistry(across);
 });
 
+test('an id that IS another entry\'s backend or model cannot be declared, whatever the entry order', () => {
+  const reversed = r => ({ ...r, models: [...r.models].reverse() });
+  const refused = r => { for (const x of [r, reversed(r)]) assert.throws(() => validateRegistry(x), code('RESOLVED_MODEL_ID_DECLARED_FOR_ANOTHER_BACKEND')); };
+  const accepted = r => { for (const x of [r, reversed(r)]) validateRegistry(x); };
+  // The shipped registry names concrete ids: the standard (opus) entry declaring the light entry's backend.
+  refused(registryWith(['claude-sonnet-5'], { entry: 'claude-standard' }));
+  refused(registryWith(['claude-opus-5-5'], { entry: 'claude-light' }));
+  refused(registryWith([ALIAS_ID, 'claude-fable-5-1'], { entry: 'claude-light' }));
+  // A disabled entry's backend counts as well.
+  refused(registryWith(['haiku'], { entry: 'claude-standard' }));
+  // An alias registry: 'sonnet' under the opus entry and the reverse.
+  const alias = declare => {
+    const r = registryWith(undefined);
+    for (const [id, name] of [['claude-light', 'sonnet'], ['claude-standard', 'opus']]) Object.assign(r.models.find(m => m.id === id), { model: name, backend: name });
+    for (const [id, list] of Object.entries(declare)) r.models.find(m => m.id === id).resolvesTo = list;
+    return r;
+  };
+  refused(alias({ 'claude-standard': ['sonnet'] }));
+  refused(alias({ 'claude-light': ['opus'] }));
+  accepted(alias({ 'claude-light': ['claude-sonnet-5-5'], 'claude-standard': ['claude-opus-5-5'] }));
+  // The model NAME of another entry (where it differs from that entry's backend) is that entry's too.
+  const named = registryWith(undefined);
+  Object.assign(named.models.find(m => m.id === 'claude-light'), { model: 'fixture-alias', backend: 'fixture-backend-1' });
+  named.models.find(m => m.id === 'claude-standard').resolvesTo = ['fixture-alias'];
+  refused(named);
+  // Still allowed: the entry's own backend or model name, and one backend in two slots sharing a declaration.
+  accepted(registryWith(['claude-sonnet-5', ALIAS_ID]));
+  const ownName = registryWith(undefined);
+  Object.assign(ownName.models.find(m => m.id === 'claude-light'), { model: 'fixture-alias', backend: 'fixture-backend-1', resolvesTo: ['fixture-alias', 'fixture-backend-1'] });
+  accepted(ownName);
+  const twoSlots = registryWith([ALIAS_ID, 'claude-sonnet-5']);
+  Object.assign(twoSlots.models.find(m => m.id === 'claude-standard'), { model: 'claude-sonnet-5', backend: 'claude-sonnet-5', resolvesTo: [ALIAS_ID] });
+  accepted(twoSlots);
+  // Another runtime's backend is another host's name.
+  accepted(registryWith(['gpt-6-luna']));
+  // With the declaration refused, the row it would have let through is not accepted either.
+  const c = configWith(undefined);
+  const standard = eligibleProfiles(c.registry, 'claude', { ...features, complexity: 'broad' }, c).candidates.find(p => p.modelKey === 'claude-standard');
+  assert.throws(() => validateEvaluation(row(c, standard, { model: 'claude-sonnet-5' }), c), code('EFFECTIVE_SETTING_MISMATCH'));
+  // Ids are exact strings: a case variant is a different id (documented), not a match for the other entry.
+  accepted(registryWith(['CLAUDE-OPUS-5-5']));
+});
+
 test('the shipped example registry shows the field as a marked placeholder on a disabled entry and changes no profile', async () => {
   const example = JSON.parse(await fs.readFile(new URL('../config/registry.example.json', import.meta.url), 'utf8'));
   validateRegistry(example);
@@ -237,7 +280,8 @@ test('imported rows record how the model matched; a re-import is a duplicate; ro
   assert.equal((await readEvidence(f.config)).rows.length, 2);
 
   assert.deepEqual(await evidenceReport(f.config), { schema: 1, rows: 2, current: 2, stale: 0, byMatch: { exact: 1, declared: 1, unrecorded: 0 },
-    byProfile: { [p.profileId]: { current: 2, stale: 0, byMatch: { exact: 1, declared: 1, unrecorded: 0 } } } });
+    byProfile: { [p.profileId]: { current: 2, stale: 0, byMatch: { exact: 1, declared: 1, unrecorded: 0 }, currentEffectiveModels: { [p.backend]: 1, [ALIAS_ID]: 1 } } },
+    mixedModelProfiles: [p.profileId] });
 
   // A store written before the stamp existed: the same row is still recognised as a duplicate, and reported as unrecorded.
   await writeJSON(evidenceFile(f.config), { schema: 1, rows: [exact] });
@@ -252,7 +296,8 @@ test('evidence accepted through a declared id counts while the declaration stand
   f.config.registry = registryWith([ALIAS_ID]);
   f.config.optimization.evaluationContext = CONTEXT;
   const p = lightProfile(f.config);
-  const rows = Array.from({ length: 40 }, (_, i) => row(f.config, p, { i, model: i % 2 ? ALIAS_ID : p.backend }));
+  // One model throughout: rows of two different effective models are not pooled (see the test below).
+  const rows = Array.from({ length: 40 }, (_, i) => row(f.config, p, { i, model: ALIAS_ID }));
   await importEvaluations(f.config, rows, { acceptEvidence: true });
   const stored = (await readEvidence(f.config)).rows;
   const summarize = config => {
@@ -278,6 +323,77 @@ test('evidence accepted through a declared id counts while the declaration stand
   assert.equal(summarizeEvidence(forged, candidates, { context: CONTEXT, projectHash: hash('/fixture'), classKey: taskClass(features) })[p.profileId].n, 35);
   // And never anything under the default context.
   assert.deepEqual(summarizeEvidence(stored, candidates, { context: 'native-default-unvalidated', projectHash: hash('/fixture'), classKey: taskClass(features) }), {});
+});
+
+test('rows of two effective models under one profile are not pooled: the profile stays unmeasured and the store report names it', async t => {
+  const f = await fixture(t);
+  f.config.registry = registryWith([ALIAS_ID, OTHER_ID]);
+  f.config.optimization.evaluationContext = CONTEXT;
+  const p = lightProfile(f.config);
+  const options = { context: CONTEXT, projectHash: hash('/fixture'), classKey: taskClass(features) };
+  const candidates = eligibleProfiles(f.config.registry, 'claude', features, f.config).candidates;
+  // 15 runs of each declared id, same fingerprint: every row is valid, but 15 + 15 is not a sample of 30.
+  const mixed = Array.from({ length: 30 }, (_, i) => row(f.config, p, { i, model: i < 15 ? ALIAS_ID : OTHER_ID }));
+  for (const r of mixed) validateEvaluation(r, f.config);
+  assert.deepEqual(summarizeEvidence(mixed, candidates, options), {});
+  assert.equal(optimizeCandidates(candidates, summarizeEvidence(mixed, candidates, options), f.config.optimization).basis, 'policy_prior_not_measured');
+  // The backend itself next to a declared id is two models as well; a single stray row is enough.
+  const stray = Array.from({ length: 31 }, (_, i) => row(f.config, p, { i, model: i === 30 ? p.backend : ALIAS_ID }));
+  assert.deepEqual(summarizeEvidence(stray, candidates, options), {});
+  // One model: counted, and the summary says which.
+  const single = summarizeEvidence(mixed.slice(0, 15), candidates, options)[p.profileId];
+  assert.deepEqual([single.n, single.effectiveModel], [15, ALIAS_ID]);
+  const all = Array.from({ length: 30 }, (_, i) => row(f.config, p, { i, model: OTHER_ID }));
+  assert.deepEqual([summarizeEvidence(all, candidates, options)[p.profileId].n, summarizeEvidence(all, candidates, options)[p.profileId].effectiveModel], [30, OTHER_ID]);
+  // A row of the second model that is too old to count does not block the first.
+  const expired = [...mixed.slice(0, 15), { ...mixed[20], createdAt: Date.now() - 40 * 86400000 }];
+  assert.equal(summarizeEvidence(expired, candidates, options)[p.profileId].n, 15);
+  // The other profiles are unaffected by one mixed profile.
+  const other = candidates.find(c => c.profileId !== p.profileId);
+  if (other) {
+    const otherRows = Array.from({ length: 3 }, (_, i) => row(f.config, other, { i }));
+    assert.deepEqual(Object.keys(summarizeEvidence([...mixed, ...otherRows], candidates, options)), [other.profileId]);
+  }
+
+  await importEvaluations(f.config, mixed, { acceptEvidence: true });
+  const report = await evidenceReport(f.config);
+  assert.deepEqual([report.byProfile[p.profileId].currentEffectiveModels, report.mixedModelProfiles], [{ [ALIAS_ID]: 15, [OTHER_ID]: 15 }, [p.profileId]]);
+});
+
+test('after a declaration changes, the same tasks can be imported again; the old rows stay stale and uncounted', async t => {
+  const f = await fixture(t);
+  f.config.registry = registryWith([ALIAS_ID]);
+  f.config.optimization.evaluationContext = CONTEXT;
+  const before = lightProfile(f.config);
+  const oldRows = Array.from({ length: 30 }, (_, i) => row(f.config, before, { i, model: ALIAS_ID }));
+  assert.equal((await importEvaluations(f.config, oldRows, { acceptEvidence: true })).added, 30);
+
+  // The host starts resolving the alias to another id: the user replaces the declaration. Same profile id, new fingerprint.
+  const changed = { ...f.config, registry: registryWith([OTHER_ID]) };
+  const after = lightProfile(changed);
+  assert.equal(after.profileId, before.profileId);
+  assert.notEqual(after.fingerprint, before.fingerprint);
+  const newRows = Array.from({ length: 30 }, (_, i) => row(changed, after, { i, model: OTHER_ID }));
+  assert.deepEqual(await importEvaluations(changed, newRows, { acceptEvidence: true }).then(r => [r.added, r.duplicate, r.total]), [30, 0, 60]);
+  assert.deepEqual(await importEvaluations(changed, newRows, { acceptEvidence: true }).then(r => [r.added, r.duplicate, r.total]), [0, 30, 60]);
+  // Within the current definition a different row for the same task is still a conflict, and nothing is written.
+  await assert.rejects(importEvaluations(changed, [{ ...newRows[0], costUsd: 9 }], { acceptEvidence: true }), code('CONFLICTING_EVALUATION_UNIT'));
+  await assert.rejects(importEvaluations(changed, [{ ...newRows[0], verification: { ...newRows[0].verification, passed: false } }], { acceptEvidence: true }), code('CONFLICTING_EVALUATION_UNIT'));
+  // The old rows cannot come back in under the new definition, with either fingerprint.
+  await assert.rejects(importEvaluations(changed, [oldRows[0]], { acceptEvidence: true }), code('STALE_EVIDENCE_PROFILE'));
+  await assert.rejects(importEvaluations(changed, [{ ...oldRows[0], profileFingerprint: after.fingerprint }], { acceptEvidence: true }), code('EFFECTIVE_SETTING_MISMATCH'));
+
+  const stored = (await readEvidence(changed)).rows;
+  assert.equal(stored.length, 60);
+  const report = await evidenceReport(changed);
+  assert.deepEqual([report.current, report.stale, report.byProfile[after.profileId].currentEffectiveModels, report.mixedModelProfiles], [30, 30, { [OTHER_ID]: 30 }, []]);
+  const candidates = eligibleProfiles(changed.registry, 'claude', features, changed).candidates;
+  const stats = summarizeEvidence(stored, candidates, { context: CONTEXT, projectHash: hash('/fixture'), classKey: taskClass(features) });
+  assert.deepEqual([stats[after.profileId].n, stats[after.profileId].effectiveModel], [30, OTHER_ID]);
+  // Under the old declaration only the old rows count: the two definitions never mix.
+  const oldCandidates = eligibleProfiles(f.config.registry, 'claude', features, f.config).candidates;
+  const oldStats = summarizeEvidence(stored, oldCandidates, { context: CONTEXT, projectHash: hash('/fixture'), classKey: taskClass(features) });
+  assert.deepEqual([oldStats[before.profileId].n, oldStats[before.profileId].effectiveModel], [30, ALIAS_ID]);
 });
 
 // ---------------------------------------------------------------- tooling
