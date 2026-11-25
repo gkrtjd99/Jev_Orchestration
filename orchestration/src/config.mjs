@@ -71,7 +71,10 @@ export function validateConfig(c) {
   // A wide skills decision spends several requests of the per-session auxiliary cap at once. With a wide
   // mode switched on, the cap must leave room for at least four such delegations, so that one delegation
   // can never use up the budget supervisor.outcome and later delegations depend on.
-  assert(c.kernel.skills.retrieval==='lexical'||skillRequests(c.kernel.skills)*4<=c.circuit.maxRequestsPerSession,'INVALID_KERNEL_SKILLS_FANOUT_CAP');
+  // 'full' is the shipped default, so the check applies only while delegation.skills is not off: an
+  // install that never routes skills keeps loading with any request cap, as it did before the default changed.
+  // JEV_SKILLS_MODE and JEV_SKILLS_RETRIEVAL are applied before this runs, so env overrides are covered.
+  assert(c.kernel.points['delegation.skills'].mode==='off'||c.kernel.skills.retrieval==='lexical'||skillRequests(c.kernel.skills)*4<=c.circuit.maxRequestsPerSession,'INVALID_KERNEL_SKILLS_FANOUT_CAP');
   return c;
 }
 

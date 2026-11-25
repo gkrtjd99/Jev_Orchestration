@@ -11,7 +11,7 @@ import { handleHook } from '../src/hooks.mjs';
 import { SessionStore } from '../src/state.mjs';
 import { loadConfig } from '../src/config.mjs';
 import { hash, readJSON, sleep, writeJSON } from '../src/util.mjs';
-import { createKernel, kernelDefaults } from '../src/kernel/kernel.mjs';
+import { createKernel, kernelDefaults, mergeKernel } from '../src/kernel/kernel.mjs';
 import { LocalJudge } from '../src/kernel/judges.mjs';
 import { DecisionLog, decisionLogDir, isDecisionRecord } from '../src/kernel/log.mjs';
 import {
@@ -99,20 +99,32 @@ test('lexicalCoverage is 0 exactly when every BM25 score is 0', () => {
 
 // ---------------------------------------------------------------- mode selection
 
-test('retrieval defaults to lexical and a config without the new settings behaves as before', async () => {
+test('retrieval defaults to full: a config without the retrieval settings shows the judge the whole catalog', async () => {
   assert.deepEqual(RETRIEVAL_MODES, ['lexical', 'adaptive', 'full']);
-  assert.deepEqual(DEFAULT_RETRIEVAL, { retrieval: 'lexical', minCoverage: 0.25, maxJudged: 64, chunk: 32 });
-  assert.equal(kernelDefaults().skills.retrieval, 'lexical');
-  assert.equal(DEFAULT_SKILLS_CONFIG.retrieval, 'lexical');
+  assert.deepEqual(DEFAULT_RETRIEVAL, { retrieval: 'full', minCoverage: 0.25, maxJudged: 64, chunk: 32 });
+  assert.equal(kernelDefaults().skills.retrieval, 'full');
+  assert.equal(mergeKernel({ skills: { maxCandidates: 4 } }).skills.retrieval, 'full');
+  assert.equal(DEFAULT_SKILLS_CONFIG.retrieval, 'full');
   const catalog = many(10);
   const judge = mockJudge({ s00: 0.95 });
   const result = await selectSkills({ task: ENGLISH, catalog, judge, scope: 's', config: BASE }); // no retrieval keys at all
   assert.equal(judge.calls.length, 1);
+  assert.equal(judge.calls[0].state.skills.length, 10);
+  assert.deepEqual(judge.calls[0].state.skills.slice(0, 3).map(s => s.name), ['s00', 's01', 's02']);
+  assert.deepEqual(result.retrieval, { mode: 'full', wide: true, lexicalSignal: 1, requests: 1, failed: 0, judged: 10, dropped: 0 });
+  assert.equal(result.candidates, 10);
+  assert.deepEqual(result.decisionIds, ['d'.repeat(63) + '0']);
+  assert.equal(result.decisionId, result.decisionIds[0]);
+});
+
+test('an explicit lexical setting keeps the BM25 cut that was the default before', async () => {
+  const catalog = many(10);
+  const judge = mockJudge({ s00: 0.95 });
+  const result = await selectSkills({ task: ENGLISH, catalog, judge, scope: 's', config: { ...BASE, retrieval: 'lexical' } });
+  assert.equal(judge.calls.length, 1);
   assert.deepEqual(judge.calls[0].state.skills.map(s => s.name), ['s00', 's01', 's02']);
   assert.deepEqual(result.retrieval, { mode: 'lexical', wide: false, lexicalSignal: 1, requests: 1, failed: 0, judged: 3, dropped: 7 });
   assert.equal(result.candidates, 3);
-  assert.deepEqual(result.decisionIds, ['d'.repeat(63) + '0']);
-  assert.equal(result.decisionId, result.decisionIds[0]);
 });
 
 test('lexical mode with no lexical signal keeps the old candidates and says the signal is 0', async () => {
@@ -555,8 +567,22 @@ async function nineSkills(t) {
   return f;
 }
 
-test('hook: the default retrieval is lexical, so a Korean task still sends one request with the first candidates', async t => {
+test('hook: the default retrieval is full, so a Korean task reaches the judge with the whole catalog in one request', async t => {
   const f = await nineSkills(t);
+  const judge = hookJudge({ 'notification-toggle': 0.95 });
+  await handleHook(koreanEvent(f.project), 'claude', { config: f.config, client: judge });
+  const sent = skillCalls(judge);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].state.skills.length, 9);
+  const [logged] = await skillsEvents(f);
+  assert.deepEqual(logged.retrieval, { mode: 'full', wide: true, lexicalSignal: 0, requests: 1, failed: 0, judged: 9, dropped: 0 });
+  assert.equal(logged.decisionIds.length, 1);
+  assert.equal(logged.decisionId, logged.decisionIds[0]);
+});
+
+test('hook: an explicit lexical setting still sends a Korean task as one request with the first candidates', async t => {
+  const f = await nineSkills(t);
+  f.config.kernel.skills = { ...f.config.kernel.skills, retrieval: 'lexical' };
   const judge = hookJudge({ 'notification-toggle': 0.95 });
   await handleHook(koreanEvent(f.project), 'claude', { config: f.config, client: judge });
   const sent = skillCalls(judge);
@@ -564,16 +590,14 @@ test('hook: the default retrieval is lexical, so a Korean task still sends one r
   assert.equal(sent[0].state.skills.length, 8);
   const [logged] = await skillsEvents(f);
   assert.deepEqual(logged.retrieval, { mode: 'lexical', wide: false, lexicalSignal: 0, requests: 1, failed: 0, judged: 8, dropped: 1 });
-  assert.equal(logged.decisionIds.length, 1);
-  assert.equal(logged.decisionId, logged.decisionIds[0]);
 });
 
-test('hook: a config written before the retrieval settings existed produces byte-identical output and judge calls', async t => {
+test('hook: a config written before the retrieval settings existed behaves exactly like an explicit full config', async t => {
   const outputs = [];
   for (const variant of ['older', 'explicit']) {
     const f = await nineSkills(t);
     const { retrieval, minCoverage, maxJudged, chunk, ...older } = f.config.kernel.skills;
-    f.config.kernel.skills = variant === 'older' ? older : { ...older, retrieval: 'lexical', minCoverage, maxJudged, chunk };
+    f.config.kernel.skills = variant === 'older' ? older : { ...older, retrieval: 'full', minCoverage, maxJudged, chunk };
     const judge = hookJudge({ 'notification-toggle': 0.95 });
     const steps = [];
     for (const raw of [event(f.project), event(f.project), koreanEvent(f.project, 'tool-2')]) {
@@ -725,7 +749,11 @@ test('skills CLI: --retrieval, and the local judge abstaining on a task it canno
   for (let i = 0; i < 13; i++) await addSkill(f.project, `zz-other-${String(i).padStart(2, '0')}`, `Unrelated procedure number ${i}.`);
   const run = (...args) => child(process.execPath, [SCRIPT, '--project', f.project, ...args]);
 
-  const lexical = JSON.parse((await run('--task', 'merge pdf documents into one pdf file')).stdout);
+  const byDefault = JSON.parse((await run('--task', 'merge pdf documents into one pdf file')).stdout);
+  assert.deepEqual(byDefault.retrieval, { mode: 'full', wide: true, lexicalSignal: 1, requests: 1, failed: 0, judged: 14, dropped: 0 });
+  assert.equal(byDefault.trace[0].name, 'pdf-merge');
+
+  const lexical = JSON.parse((await run('--task', 'merge pdf documents into one pdf file', '--retrieval', 'lexical')).stdout);
   assert.deepEqual(lexical.retrieval, { mode: 'lexical', wide: false, lexicalSignal: 1, requests: 1, failed: 0, judged: 12, dropped: 2 });
   assert.equal(lexical.trace[0].name, 'pdf-merge');
 
@@ -791,23 +819,34 @@ test('a wide mode is refused when one delegation could use more than a quarter o
   const f = await fixture(t);
   const dir = path.join(f.home, '.config', 'jev-hooks');
   const file = path.join(dir, 'config.json');
-  const write = async (skills, cap) => {
+  const write = async (skills, cap, mode = 'off') => {
     const c = structuredClone(f.config);
     c.kernel.skills = { ...c.kernel.skills, ...skills };
+    c.kernel.points[SKILLS_POINT].mode = mode;
     c.circuit.maxRequestsPerSession = cap;
     await writeJSON(file, c);
   };
   // 8 requests per delegation: needs a cap of at least 32.
-  await write({ retrieval: 'full', maxJudged: 64, chunk: 8 }, 31);
+  await write({ retrieval: 'full', maxJudged: 64, chunk: 8 }, 31, 'active');
   await assert.rejects(loadConfig(file, {}), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
-  await write({ retrieval: 'adaptive', maxJudged: 64, chunk: 8 }, 31);
+  await write({ retrieval: 'adaptive', maxJudged: 64, chunk: 8 }, 31, 'shadow');
   await assert.rejects(loadConfig(file, {}), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
-  await write({ retrieval: 'full', maxJudged: 64, chunk: 8 }, 32);
+  await write({ retrieval: 'full', maxJudged: 64, chunk: 8 }, 32, 'active');
   assert.equal((await loadConfig(file, {})).config.kernel.skills.retrieval, 'full');
-  // The default (lexical, one request) keeps working with any cap, and switching the mode by env is checked too.
+  // The check applies only while delegation.skills is on. The shipped default is 'full' with the point off,
+  // so an install that never routes skills loads with any cap, exactly as before the default changed.
   await write({}, 1);
-  assert.equal((await loadConfig(file, {})).config.kernel.skills.retrieval, 'lexical');
-  await assert.rejects(loadConfig(file, { JEV_SKILLS_RETRIEVAL: 'full' }), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
+  assert.equal((await loadConfig(file, {})).config.kernel.skills.retrieval, 'full');
+  assert.equal((await loadConfig(file, { JEV_SKILLS_RETRIEVAL: 'adaptive' })).config.kernel.points[SKILLS_POINT].mode, 'off');
+  // Turning the point on (config or env) with the default 'full' needs room for four delegations of two requests.
+  for (const mode of ['shadow', 'active']) await assert.rejects(loadConfig(file, { JEV_SKILLS_MODE: mode }), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'), mode);
+  await write({}, 7);
+  await assert.rejects(loadConfig(file, { JEV_SKILLS_MODE: 'active' }), code('INVALID_KERNEL_SKILLS_FANOUT_CAP'));
+  await write({}, 8);
+  assert.equal((await loadConfig(file, { JEV_SKILLS_MODE: 'active' })).config.kernel.skills.retrieval, 'full');
+  // lexical sends one request per delegation and keeps working with any cap.
+  await write({}, 1);
+  assert.equal((await loadConfig(file, { JEV_SKILLS_MODE: 'active', JEV_SKILLS_RETRIEVAL: 'lexical' })).config.kernel.skills.retrieval, 'lexical');
 });
 
 test('one wide delegation leaves the auxiliary budget usable: later delegations still get their requests', async t => {

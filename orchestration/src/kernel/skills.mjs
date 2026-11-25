@@ -13,7 +13,7 @@ export const SKILL_NAME = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 export const RETRIEVAL_MODES = Object.freeze(['lexical', 'adaptive', 'full']);
 // Candidate retrieval settings (kernel.skills.*). They complete any config that predates them.
 //   retrieval    'lexical'  the judge sees the BM25 top maxCandidates (the behaviour before these settings existed)
-//                'full'     the judge sees the whole catalog, up to maxJudged skills, in requests of at most `chunk` skills
+//                'full'     (default) the judge sees the whole catalog, up to maxJudged skills, in requests of at most `chunk` skills
 //                'adaptive' lexical while lexicalCoverage(task, catalog) >= minCoverage, otherwise as 'full'
 //   minCoverage  0.25 means "fewer than one in four of the task's distinct tokens occur anywhere in the catalog".
 //                It is NOT a general low-signal detector and NOT data-independent: coverage rises with the
@@ -21,7 +21,9 @@ export const RETRIEVAL_MODES = Object.freeze(['lexical', 'adaptive', 'full']);
 //                that sent every Korean task of the 40-skill development set wide (see docs/KERNEL.ko.md).
 //                Raising it can only add tasks to the wide path, and the wide path judges a superset of the
 //                lexical candidates (maxJudged >= maxCandidates is enforced).
-export const DEFAULT_RETRIEVAL = Object.freeze({ retrieval: 'lexical', minCoverage: 0.25, maxJudged: 64, chunk: 32 });
+// 'full' is the default since the pre-registered rule (qa/kernel/DECISION_RULE.md) was applied to the
+// deciding development run dev-retrieval-decision-1; docs/KERNEL.ko.md records the inputs.
+export const DEFAULT_RETRIEVAL = Object.freeze({ retrieval: 'full', minCoverage: 0.25, maxJudged: 64, chunk: 32 });
 // The most judge requests one delegation may send. Every request counts against the per-session
 // auxiliary request cap that supervisor.outcome shares, and request starts are serialized by the
 // request-control lock, so the fan-out is bounded here and in validateKernel (ceil(maxJudged / chunk)).

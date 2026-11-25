@@ -25,7 +25,7 @@ export function kernelDefaults() {
       'failure.classify': point('active'),
       'read.advice': point('active'),
     },
-    // retrieval stays 'lexical': the wide modes are opt-in until a live comparison picks a default.
+    // retrieval defaults to 'full' (DEFAULT_RETRIEVAL): chosen by the pre-registered rule on the deciding development run.
     skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3, ...DEFAULT_RETRIEVAL },
     supervisor: { maxReportChars: 1600, confidence: 0.65 },
   };

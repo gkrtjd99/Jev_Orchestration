@@ -19,7 +19,7 @@ node qa/kernel/run-eval.mjs --run-id other --suite skills --arms jev --data-dir 
 |---|---|---|
 | `--run-id <id>` | 필수 | 결과 폴더 이름. 이미 있으면 `QA_RUN_ID_EXISTS`로 거부. `--force`는 오프라인·주입 전송 결과만 지우고 다시 돌립니다. **live 원격 실행의 결과가 든 폴더는 `--force`로도 지우지 않습니다**(`QA_RUN_ID_HAS_LIVE_RESULT`, 새 run id를 쓰세요) |
 | `--arms` | `jev,openai,local,chain` | 실행할 arm |
-| `--retrieval` | 없음 | `lexical`, `adaptive`, `full` 중 쉼표로 나열. skill arm마다 나열한 방식을 **교차**해 `<arm>-<방식>`이라는 arm으로 돌립니다(조합마다 별도 `stateDir`·decision log·rows 파일). 주지 않으면 arm 이름 그대로 제품 기본 방식(`lexical`)으로 한 번만 돕니다. `minCoverage`·`maxJudged`·`chunk`는 항상 제품 기본값입니다. supervisor에는 영향이 없습니다 |
+| `--retrieval` | 없음 | `lexical`, `adaptive`, `full` 중 쉼표로 나열. skill arm마다 나열한 방식을 **교차**해 `<arm>-<방식>`이라는 arm으로 돌립니다(조합마다 별도 `stateDir`·decision log·rows 파일). 주지 않으면 arm 이름 그대로 제품 기본 방식(`full`, `dev-retrieval-decision-1` 뒤에 `lexical`에서 바뀜)으로 한 번만 돕니다. `minCoverage`·`maxJudged`·`chunk`는 항상 제품 기본값입니다. supervisor에는 영향이 없습니다 |
 | `--data-dir <dir>` | `qa/kernel/data` | 데이터 세트 폴더. 그 안의 `skills/`가 카탈로그입니다. `--data`는 같은 뜻의 예전 이름 |
 | `--gold` | consensus가 있으면 `consensus`, 없으면 `author` | 대표(headline) gold. 요약에서 먼저 나오고 제품 decision log 라벨에 쓰입니다. **어느 쪽을 고르든 consensus 부분집합과 author gold 전체 수치가 둘 다 나옵니다.** `consensus`를 명시했는데 두 번째 라벨 파일이 없으면 `QA_NO_CONSENSUS`로 거부 |
 | `--labels <A,B>` | `skill-tasks.gold.jsonl`과, 있으면 `relabel/skill-tasks.blind2.jsonl`, 없으면 `skill-tasks.blind.jsonl` | consensus를 계산할 skill 라벨 파일 두 개(데이터 폴더 기준 상대 경로, 폴더 밖은 거부). 명시한 파일이 없으면 `DATA_FILE_MISSING` |

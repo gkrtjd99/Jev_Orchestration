@@ -55,7 +55,7 @@ test('constants and defaults match the shared contract', () => {
     points: { 'delegation.classify': on, 'delegation.profile': on, 'delegation.skills': off, 'supervisor.outcome': off, 'failure.classify': on, 'read.advice': on },
     skills: {
       dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3,
-      retrieval: 'lexical', minCoverage: 0.25, maxJudged: 64, chunk: 32,
+      retrieval: 'full', minCoverage: 0.25, maxJudged: 64, chunk: 32,
     },
     supervisor: { maxReportChars: 1600, confidence: 0.65 },
   });
@@ -163,7 +163,7 @@ test('validateKernel rejects every malformed field with a typed code', () => {
   }
   // A config written before these settings existed is completed by mergeKernel, not rejected.
   const older = mergeKernel({ skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3 } });
-  assert.deepEqual([older.skills.retrieval, older.skills.minCoverage, older.skills.maxJudged, older.skills.chunk], ['lexical', 0.25, 64, 32]);
+  assert.deepEqual([older.skills.retrieval, older.skills.minCoverage, older.skills.maxJudged, older.skills.chunk], ['full', 0.25, 64, 32]);
   validateKernel(older);
   ok.points['read.advice'] = { mode: 'shadow', judges: ['local', 'openai', 'jev'], escalateBelow: 1 };
   assert.equal(validateKernel(ok), ok);

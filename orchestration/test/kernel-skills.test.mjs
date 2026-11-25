@@ -10,7 +10,9 @@ import {
 } from '../src/kernel/skills.mjs';
 
 const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'skills.mjs');
-const CONFIG = { maxCandidates: 4, need: 0.5, autoLoad: 0.8, suggest: 0.5, maxLoaded: 2, maxSuggested: 1 };
+// These tests cover the BM25 cut, thresholds and tracing, so they pin the lexical mode. The shipped
+// default ('full') and the wide path are covered in kernel-skills-retrieval.test.mjs.
+const CONFIG = { maxCandidates: 4, need: 0.5, autoLoad: 0.8, suggest: 0.5, maxLoaded: 2, maxSuggested: 1, retrieval: 'lexical' };
 
 async function project(t) {
   const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'jev-skills-test-')));

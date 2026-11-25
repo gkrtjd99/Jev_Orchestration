@@ -300,7 +300,7 @@ test('without --retrieval the arms keep their plain names and the product defaul
   try {
     const { metrics } = await run(fx, ['--run-id', 'plain', '--arms', 'jev,local']);
     assert.deepEqual(Object.keys(metrics.skills), ['jev', 'local']);
-    assert.equal(metrics.skills.jev.retrievalMode, 'lexical');
+    assert.equal(metrics.skills.jev.retrievalMode, 'full'); // the product default since dev-retrieval-decision-1
     assert.equal(metrics.options.retrieval, null);
   } finally { await fx.cleanup(); }
 });
@@ -500,7 +500,7 @@ test('a spent held-out run writes the ledger line before the first request and o
     const again = await run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'second look', '--respend-holdout', 'first run died'], { fetchImpl: mockFetch({ calls }) });
     assert.equal(again.metrics.holdout.runsRecordedBefore, 1);
     assert.deepEqual((await readLedger(fx.data)).map(e => [e.runId, e.reason, e.respendReason ?? null, e.retrievalModes[0]]),
-      [['holdout-1', 'score the chosen mode once', null, 'lexical'], ['holdout-2', 'second look', 'first run died', 'product default (lexical)']]);
+      [['holdout-1', 'score the chosen mode once', null, 'lexical'], ['holdout-2', 'second look', 'first run died', 'product default (full)']]);
     const runLedger = await readRunLedger(fx.out);
     assert.deepEqual(runLedger.map(e => [e.runId, e.holdout.runsRecordedBefore, e.holdout.respendReason]), [['holdout-1', 0, null], ['holdout-2', 1, 'first run died']]);
     assert.equal(runLedger[0].holdout.manifestSha256, await sha256File(path.join(fx.data, HOLDOUT_FILE)));

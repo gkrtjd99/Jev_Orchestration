@@ -127,7 +127,7 @@
       "read.advice":         { "mode": "active", "judges": ["jev"], "escalateBelow": 0 }
     },
     "skills": { "dirs": [], "maxCandidates": 8, "need": 0.5, "autoLoad": 0.9, "suggest": 0.5, "maxLoaded": 3, "maxSuggested": 3,
-                "retrieval": "lexical", "minCoverage": 0.25, "maxJudged": 64, "chunk": 32 },
+                "retrieval": "full", "minCoverage": 0.25, "maxJudged": 64, "chunk": 32 },
     "supervisor": { "maxReportChars": 1600, "confidence": 0.65 }
   }
 }
@@ -172,7 +172,7 @@ skill을 Main에게 "이걸 써 보세요"라고 추천하면 두 가지 문제�
 | 단계 | 하는 일 |
 |---|---|
 | 카탈로그 | 프로젝트 `.claude/skills/<폴더>/SKILL.md`와 `JEV_SKILL_DIRS`를 읽음. frontmatter의 `name`, `description`만 사용 |
-| 후보 검색 | 작업 문장과 이름(가중치 3)·설명의 어휘 일치(BM25)로 순위를 매김. 한글·한자·가나는 글자 bigram도 사용. 기본(`retrieval: lexical`)은 상위 `maxCandidates`(8)개만 judge에게 보냄. 다른 방식은 [후보 검색 방식](#후보-검색-방식) |
+| 후보 검색 | 작업 문장과 이름(가중치 3)·설명의 어휘 일치(BM25)로 순위를 매김. 한글·한자·가나는 글자 bigram도 사용. 기본(`retrieval: full`)은 카탈로그 전체(최대 `maxJudged` 64개)를 이 순위대로 judge에게 보냄. `lexical`은 상위 `maxCandidates`(8)개만 보냄. [후보 검색 방식](#후보-검색-방식) |
 | judge | 요청 하나마다 `need`(skill이 필요한 작업인가) 1문항 + 그 요청에 든 skill별 `skill_N`(직접 적용 가능한가) 문항. 모두 `noul` |
 | 임계값 | `need < 0.5`이면 아무것도 고르지 않음. 그 외에는 확률이 높은 순서로 ≥ `autoLoad`(0.9) → **load**(최대 3), ≥ `suggest`(0.5) → **consider**(최대 3). `autoLoad`를 넘었지만 load 자리가 없는 skill은 consider로 내려감 |
 
@@ -201,11 +201,11 @@ skill 설명은 대개 영어인데 작업 문장은 한국어일 수 있습니�
 
 | `kernel.skills.retrieval` | judge에게 가는 것 |
 |---|---|
-| `lexical` (**기본**, 이전과 같은 동작) | BM25 상위 `maxCandidates`개. 요청 1개 |
-| `full` | 카탈로그 전체. `maxJudged`(기본 64)개를 넘으면 BM25 상위 `maxJudged`개 |
+| `lexical` (이 설정이 생기기 전의 동작) | BM25 상위 `maxCandidates`개. 요청 1개 |
+| `full` (**기본**) | 카탈로그 전체. `maxJudged`(기본 64)개를 넘으면 BM25 상위 `maxJudged`개 |
 | `adaptive` | 작업의 어휘 신호가 `minCoverage` **이상**이면 `lexical`과 같고, **미만**이면 `full`과 같음 |
 
-기본값은 `lexical` 그대로입니다. `adaptive`·`full`은 실제 judge로 비교한 뒤에 기본값으로 삼을지 정할 선택 기능입니다.
+기본값은 `full`입니다. 사전 등록한 규칙을 실제 judge로 돌린 개발 세트 실행에 적용해 정했습니다([결정 기록](#결정-기록)). `kernel.skills`에 `retrieval`이 없는 이전 config도 `full`로 채워집니다. 이전 동작이 필요하면 `"retrieval": "lexical"` 또는 `JEV_SKILLS_RETRIEVAL=lexical`로 고정하세요. `delegation.skills` 지점은 기본 `off`이므로, 지점을 켜지 않은 설치에서는 이 변경으로 달라지는 hook 동작이 없습니다(달라지는 것은 kernel 설정이 들어가는 정책 지문뿐이라, 업그레이드 시점에 대기 중이던 호출은 한 번 `POLICY_CHANGED_DURING_PENDING_CALL`이 됩니다).
 
 **`adaptive`는 "작업과 카탈로그의 문자 체계가 다를 때의 대비책"입니다. 일반적인 "어휘 신호가 약한 작업" 판별기가 아닙니다.** 개발용 데이터에서 `adaptive`가 올린 도달 비율은 전부 한국어 작업에서 나왔습니다. 영어 작업은 15건이 넓게 갔지만 그중 14건은 skill이 필요 없는 작업이고, 새로 도달한 gold skill은 0개입니다. 영어에서 `lexical`이 놓친 gold 6개(신호 0.25~0.65)는 `adaptive`로도 그대로 놓칩니다. 넓게 간 영어 작업은 오주입 가능성만 늘립니다.
 
@@ -222,7 +222,7 @@ lexicalSignal = |T ∩ V| / |T|        (T가 비면 0)
 - **카탈로그에 따라 달라집니다.** V는 카탈로그 전체의 어휘이므로 skill이 많을수록 신호가 올라갑니다. 같은 영어 작업 96건이 0.25 미만인 건수는 카탈로그의 처음 3개 skill만 쓰면 89건, 5개 87건, 10개 71건, 20개 48건, 40개(전체) 15건입니다. 작업과 같은 언어로 설명한 skill이 하나만 있어도 값이 달라집니다.
 - **작업 길이에 따라 달라집니다.** token이 많은 긴 위임 지시문은 카탈로그와 관련이 있어도 신호가 낮습니다.
 
-그래서 0.25는 skill 40개·한 문장짜리 작업인 개발용 데이터에만 맞춘 값이고, 다른 카탈로그나 긴 지시문에서는 같은 값이 전혀 다른 비율의 작업을 넓게 보냅니다. 작은 카탈로그에서는 영어 작업도 대부분 넓게 가서 `adaptive`가 사실상 `full`이 됩니다(넓은 쪽이 항상 포함 관계라 틀린 결과가 되지는 않고 비용만 늡니다). 기본값을 바꾸기 전에 작은 카탈로그와 긴 지시문에서 확인해야 하며, 아직 하지 않았습니다. 조정한 비율이 필요 없는 대안인 "신호가 0일 때만 넓게"는 [오프라인 분석](#후보-검색의-오프라인-분석)에 함께 실었습니다.
+그래서 0.25는 skill 40개·한 문장짜리 작업인 개발용 데이터에만 맞춘 값이고, 다른 카탈로그나 긴 지시문에서는 같은 값이 전혀 다른 비율의 작업을 넓게 보냅니다. 작은 카탈로그에서는 영어 작업도 대부분 넓게 가서 `adaptive`가 사실상 `full`이 됩니다(넓은 쪽이 항상 포함 관계라 틀린 결과가 되지는 않고 비용만 늡니다). `adaptive`의 이 값은 작은 카탈로그와 긴 지시문에서 확인하지 않았습니다(기본값 `full`은 `minCoverage`를 쓰지 않습니다). 조정한 비율이 필요 없는 대안인 "신호가 0일 때만 넓게"는 [오프라인 분석](#후보-검색의-오프라인-분석)에 함께 실었습니다.
 
 다음 두 성질은 값과 무관하게 성립합니다.
 
@@ -239,7 +239,7 @@ lexicalSignal = |T ∩ V| / |T|        (T가 비면 0)
 
 - 판정할 skill(순위순)을 요청당 `chunk`(기본 32)개 이하로 나눕니다. 요청 수는 `ceil(판정할 수 / chunk)`이고, 요청끼리 크기가 같도록 고르게 나눕니다(40개, `chunk` 32 → 20개씩 2요청). 요청 수는 `ceil(maxJudged / chunk)`를 넘지 않습니다.
 - **위임 하나의 요청 수는 최대 8개입니다.** `ceil(maxJudged / chunk)`가 8을 넘는 설정은 검증에서 `INVALID_KERNEL_SKILLS_FANOUT`으로 거부됩니다(검색 방식이 `lexical`이어도 거부합니다. 환경 변수로 방식만 바꿀 수 있기 때문입니다). `maxJudged` 400은 `chunk` 50 이상, `chunk` 4는 `maxJudged` 32 이하와만 함께 쓸 수 있습니다. 검증을 거치지 않고 `selectSkills`를 직접 부르는 경우에도 8개까지만 보내고, 잘린 skill 수는 `retrieval.dropped`에 나옵니다. 예전에는 400/4, 곧 위임 하나에 요청 100개인 설정이 통과했고, 그 설정은 위임 한 번으로 세션의 선택 지점 요청 상한(기본 100)을 다 써서 그 뒤의 skill 판단과 supervisor가 세션이 끝날 때까지 `JEV_REQUEST_CAP`으로 멈췄습니다.
-- 넓은 방식(`adaptive`·`full`)을 켠 설정은 `ceil(maxJudged / chunk) × 4`가 `circuit.maxRequestsPerSession` 이하여야 합니다(아니면 `INVALID_KERNEL_SKILLS_FANOUT_CAP`). 위임 하나가 세션 요청 상한의 4분의 1을 넘게 쓰지 못합니다.
+- `delegation.skills` 지점이 `off`가 아니고 방식이 넓은 방식(`adaptive`·`full`)이면 `ceil(maxJudged / chunk) × 4`가 `circuit.maxRequestsPerSession` 이하여야 합니다(아니면 `INVALID_KERNEL_SKILLS_FANOUT_CAP`). 위임 하나가 세션 요청 상한의 4분의 1을 넘게 쓰지 못합니다. 기본값(`full`, 64/32 = 요청 2개)에서는 상한이 8 이상이어야 지점을 켤 수 있습니다. 지점이 `off`이면 이 검사를 하지 않습니다. 기본값이 `full`이 된 뒤에도 skill 라우팅을 쓰지 않는 설치가 요청 상한과 무관하게 그대로 읽히도록 하기 위해서입니다(모드와 방식을 env로 바꿔도 검사는 env 적용 뒤에 합니다).
 - 각 요청은 **평소와 똑같은 skill 질문**입니다. 그 요청에 든 skill에 대한 `need` 1문항과 skill별 문항이고, 문구는 바뀌지 않았습니다. index는 요청 안에서 0부터 셉니다.
 - 요청은 **함께** 나가고 **같은 예산 하나**를 받습니다. 요청이 하나일 때 받던 체인 예산(`limits.timeoutMs`)을 그대로 각 요청이 받습니다. 요청이 둘 이상이면 그 시간이 지났을 때 아직 안 온 요청을 기다리지 않고 버립니다(`SKILLS_DEADLINE`). 요청이 하나면 이전처럼 judge 자신의 timeout에 맡깁니다. 추가 시간도 재시도도 없습니다.
 - 요청이 둘 이상이면 그 예산의 끝을 절대 시각(`limits.deadlineAt`)으로도 judge에게 넘깁니다. 실제 client(Jev, OpenAI)는 그 시각이 지난 뒤에 차례가 온 요청을 **보내지도 세지도 않고**, 보내 둔 요청은 그 시각에 끊습니다. 결과를 돌려준 뒤에 요청이 나가거나 요청 수에 더해지는 일이 없습니다. 요청이 하나인 경우(`lexical`)에는 이 값을 넘기지 않으므로 동작이 이전과 같습니다.
@@ -273,7 +273,7 @@ lexicalSignal = |T ∩ V| / |T|        (T가 비면 0)
 
 `partial`과 `failedCode`는 일부 요청만 실패했을 때에만 붙습니다(위 설명).
 
-**알아둘 한계.** `maxJudged` 64는 개발용 카탈로그(40개)로는 시험되지 않습니다. 카탈로그가 `maxJudged`보다 크고 어휘 신호가 0이면 BM25 순위가 이름순이 되어, 어떤 skill이 잘리는지는 이름에 달립니다(리뷰에서 120개 카탈로그로 확인: 채움용 skill의 이름에 따라 신호 0인 작업의 gold 도달이 2/25 또는 25/25). 넓게 판정하면 judge가 한 요청에서 skill 20~32개를 한꺼번에 봅니다. 그때 judge가 얼마나 정확한지(오선택, `need` 판단, 지연, 토큰)는 **아직 재지 않았습니다.** 오프라인 분석은 gold skill이 judge에게 도달하는지만 봅니다.
+**알아둘 한계.** `maxJudged` 64는 개발용 카탈로그(40개)로는 시험되지 않습니다. 카탈로그가 `maxJudged`보다 크고 어휘 신호가 0이면 BM25 순위가 이름순이 되어, 어떤 skill이 잘리는지는 이름에 달립니다(리뷰에서 120개 카탈로그로 확인: 채움용 skill의 이름에 따라 신호 0인 작업의 gold 도달이 2/25 또는 25/25). 넓게 판정하면 judge가 한 요청에서 skill 20~32개를 한꺼번에 봅니다. 그때의 judge 정확도·지연·토큰은 개발 세트(skill 40개, 요청당 20개)에서 Jev로 **한 번** 쟀습니다([결정 기록](#결정-기록)). 40개보다 큰 카탈로그, 요청당 32개, 다른 judge, held-out 세트에서는 재지 않았습니다.
 
 ### 주입되는 블록
 
@@ -335,9 +335,9 @@ node orchestration/scripts/skills.mjs --project /abs/project --task "..." \
 ```
 
 - `--dirs`로 추가 skill 디렉터리를 줄 수 있습니다(경로 구분자로 나눈 절대 경로).
-- `--retrieval lexical|adaptive|full`로 후보 검색 방식을 그 실행에만 바꿀 수 있습니다. 출력의 `retrieval`에서 어휘 신호와 요청 수를 볼 수 있습니다.
+- `--retrieval lexical|adaptive|full`로 후보 검색 방식을 그 실행에만 바꿀 수 있습니다. 주지 않으면 제품 기본값(`full`)입니다. 출력의 `retrieval`에서 어휘 신호와 요청 수를 볼 수 있습니다.
 - 기본 `--judge local`은 어휘 규칙이라서, 카탈로그와 겹치는 단어가 하나도 없는 작업(예: 영어 설명뿐인 카탈로그에 한국어 작업)에는 답하지 않고 `status: unavailable`, `code: LOCAL_ABSTAIN`을 냅니다. 위 예시의 한국어 작업이 그렇게 나오면 `--judge config`로 실제 judge 체인을 쓰세요.
-- 기본 `--judge local`은 CLI 전용 임계값(후보 12, `autoLoad` 0.8, load 최대 2)을 씁니다. hook의 값과 다르므로, hook과 같은 결과를 보려면 `--judge config`를 쓰세요.
+- 기본 `--judge local`은 CLI 전용 임계값(`autoLoad` 0.8, load 최대 2, `--retrieval lexical`일 때의 후보 12)을 씁니다. hook의 값과 다르므로, hook과 같은 결과를 보려면 `--judge config`를 쓰세요.
 - `--judge config`에서 지점이 `off`이면 `status: unavailable`, `code: KERNEL_POINT_OFF`가 나옵니다.
 
 ## Supervisor (`supervisor.outcome`)
@@ -446,7 +446,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 | `JEV_SKILLS_ESCALATE_BELOW` | `0` | skill 지점의 `escalateBelow`. 0~1의 소수(`0.6` 형식, 지수 표기 불가). 답의 확신이 이 값 미만이면 체인의 다음 judge로 넘김 |
 | `JEV_SUPERVISOR_ESCALATE_BELOW` | `0` | supervisor 지점의 `escalateBelow` |
 | `JEV_DECISION_ESCALATE_BELOW` | `0` | 위 네 지점의 `escalateBelow` |
-| `JEV_SKILLS_RETRIEVAL` | `lexical` | 후보 검색 방식 (`lexical`/`adaptive`/`full`). [후보 검색 방식](#후보-검색-방식) |
+| `JEV_SKILLS_RETRIEVAL` | `full` | 후보 검색 방식 (`lexical`/`adaptive`/`full`). [후보 검색 방식](#후보-검색-방식), [결정 기록](#결정-기록) |
 | `JEV_SKILLS_MIN_COVERAGE` | `0.25` | `adaptive`가 넓게 가는 기준. 0~1의 소수(`0.25` 형식, 지수 표기 불가). `local` judge의 기권과는 무관함(신호가 0일 때만 기권) |
 | `JEV_SKILLS_MAX_JUDGED` | `64` | 넓은 판정에서 judge에게 보내는 skill 수의 상한. 정수 1~400이고 `maxCandidates` 이상이어야 함(아니면 `INVALID_KERNEL_SKILLS_MAX_JUDGED`). `ceil(maxJudged / chunk)`가 8을 넘으면 `INVALID_KERNEL_SKILLS_FANOUT` |
 | `JEV_SKILLS_CHUNK` | `32` | 넓은 판정에서 judge 요청 하나에 넣는 skill 수의 상한. 정수 4~64. 위와 같은 요청 수 제한을 받음 |
@@ -486,7 +486,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 - OpenAI judge의 잠금 대기가 마감과 무관하던 것 → 요청 전 대기를 마감에서 끊고, 마감이 지난 호출은 요청 수·circuit에 세지 않음
 - env만으로는 체인이 escalation되지 않던 것 → `JEV_*_ESCALATE_BELOW` 추가
 
-각각 회귀 테스트가 있고, 수정 전 소스에서 실패하는 것을 확인했습니다. 평가가 드러낸 두 약점(한국어 작업의 BM25 후보 검색, `local` judge의 need 0이 확신 1로 계산되어 chain에서 escalation되지 않는 것)은 그 뒤에 다뤘습니다. 아래 [후보 검색의 오프라인 분석](#후보-검색의-오프라인-분석)을 보세요. 전자는 **선택 기능으로만** 들어갔고 기본 동작은 그대로입니다.
+각각 회귀 테스트가 있고, 수정 전 소스에서 실패하는 것을 확인했습니다. 평가가 드러낸 두 약점(한국어 작업의 BM25 후보 검색, `local` judge의 need 0이 확신 1로 계산되어 chain에서 escalation되지 않는 것)은 그 뒤에 다뤘습니다. 아래 [후보 검색의 오프라인 분석](#후보-검색의-오프라인-분석)을 보세요. 전자는 처음에 선택 기능으로 들어갔고, 그 뒤 실제 judge 비교를 거쳐 기본값이 `full`로 바뀌었습니다([결정 기록](#결정-기록)).
 
 ### 후보 검색의 오프라인 분석
 
@@ -494,7 +494,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 
 | 방식 | 넓게 판정한 작업 (전체 / en / ko) | gold skill이 judge에게 도달한 비율 (전체 / en / ko) | 작업당 판정 skill 수 | 작업당 요청 수 |
 |---|---|---|---|---|
-| `lexical` (기본) | 0 / 0 / 0 | 0.708 (85/120) / 0.915 (65/71) / 0.408 (20/49) | 8 | 1 |
+| `lexical` | 0 / 0 / 0 | 0.708 (85/120) / 0.915 (65/71) / 0.408 (20/49) | 8 | 1 |
 | `adaptive`, 신호가 0일 때만 넓게 (`minCoverage` 0.000001) | 37 / 1 / 36 | 0.892 (107/120) / 0.915 / 0.857 (42/49) | 15.4 | 1.23 |
 | `adaptive` 0.05 | 58 / 1 / 57 | 0.950 (114/120) / 0.915 / 1.000 (49/49) | 19.6 | 1.36 |
 | `adaptive` 0.1 | 64 / 3 / 61 | 0.950 / 0.915 / 1.000 | 20.8 | 1.40 |
@@ -504,7 +504,7 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 | `adaptive` 0.4 | 107 / 43 / 64 | 0.975 (117/120) / 0.958 (68/71) / 1.000 | 29.4 | 1.67 |
 | `adaptive` 0.5 | 127 / 63 / 64 | 0.983 (118/120) / 0.972 (69/71) / 1.000 | 33.4 | 1.79 |
 | `adaptive` 0.75 | 158 / 94 / 64 | 1.000 / 1.000 / 1.000 | 39.6 | 1.99 |
-| `full` | 160 / 96 / 64 | 1.000 (120/120) / 1.000 / 1.000 | 40 | 2 |
+| `full` (기본) | 160 / 96 / 64 | 1.000 (120/120) / 1.000 / 1.000 | 40 | 2 |
 
 - 어휘 신호의 분포: 한국어는 64건 중 36건이 0이고 중앙값 0, 90분위 0.04, 최댓값 0.231입니다. 영어는 96건 중 1건이 0이고 중앙값 0.42, 10분위 0.20입니다. **두 분포는 겹칩니다.** 영어 작업 15건이 0.25 미만이고 그중 14건은 한국어 최댓값보다도 낮습니다(이전 판의 "두 분포 사이가 비어 있다"는 설명은 틀렸습니다). 이 데이터에서는 `minCoverage`가 0.05~0.25 어디에 있든 도달 비율이 같고(0.950) 요청 수만 1.36에서 1.49로 늡니다. 0.25는 한국어 64건을 전부 넓게 보내는 가장 작은 어림수입니다.
 - `adaptive` 0.25가 넓게 보낸 작업의 구성: 한국어 64건(skill 불필요 22, 필요 42, `lexical` 대비 새로 도달한 gold skill 29개), 영어 15건(skill 불필요 14, 필요 1, 새로 도달한 gold skill **0개**). 이 데이터에서 `adaptive`는 사실상 한국어 판별기이고, 넓게 간 영어 작업은 이득 없이 오주입 가능성만 늘립니다.
@@ -516,7 +516,25 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 - `chunk`는 같은 skill을 몇 요청으로 나누는지만 바꿉니다(`full`에서 16 → 3요청, 32 → 2요청, 64 → 1요청). `maxJudged`를 카탈로그보다 작게 두면(16, 24, 32) 도달 비율은 0.792, 0.867, 0.958로 내려갑니다.
 - `local` judge 단독(`lexical`)은 신호가 0인 37건(영어 1, 한국어 36)에만 기권합니다. 그중 21건이 실제로 skill이 필요한 작업입니다. 예전에는 이 작업들에 need 0을 확신 1로 답했습니다. 한때 `minCoverage` 0.25 미만인 79건 전부에 기권하게 했으나(그중 43건이 skill이 필요한 작업) 리뷰 뒤 되돌렸습니다. 리뷰어가 skill 3~10개짜리 하위 카탈로그와 약 90단어 지시문으로 잰 값으로는, 그 규칙에서 영어 단일 gold 작업 53건 중 `local`이 답하지 못한 것이 카탈로그 3개에서 29건, 5개에서 25건, 10개에서 17건이었고 지시문 안에 넣으면 카탈로그 5개에서 53건 전부였습니다. 이 수치는 리뷰어의 스크래치 스크립트로 잰 것이며 저장소에는 그 결함의 회귀 테스트만 넣었습니다.
 
-**이 분석이 말해 주지 않는 것.** 도달 비율은 judge가 낼 수 있는 recall의 **상한**입니다. judge가 skill 20~40개를 볼 때의 precision, `need` 정확도, calibration, 지연, 토큰은 재지 않았습니다(전부 null). 넓게 보여 주면 오선택이 늘 수 있고, 그 여부는 실제 judge로 개발용 세트를 돌려야 알 수 있습니다. 그래서 기본값을 `lexical`로 남겼습니다.
+**이 분석이 말해 주지 않는 것.** 도달 비율은 judge가 낼 수 있는 recall의 **상한**입니다. 이 오프라인 분석은 judge가 skill 20~40개를 볼 때의 precision, `need` 정확도, calibration, 지연, 토큰을 재지 않습니다(전부 null). 넓게 보여 주면 오선택이 늘 수 있고, 그 여부는 실제 judge로 개발용 세트를 돌려야 알 수 있습니다. 그래서 이 분석 시점에는 기본값을 `lexical`로 남겼고, 그 뒤 실제 실행으로 정했습니다. 아래 결정 기록을 보세요.
+
+### 결정 기록
+
+기본 후보 검색 방식(`kernel.skills.retrieval`)을 `lexical`에서 `full`로 바꾼 근거입니다. 규칙은 실제 실행 전에 commit한 `qa/kernel/DECISION_RULE.md`이고, 입력은 결정 실행 하나입니다.
+
+- 결정 실행: run id `dev-retrieval-decision-1`, `qa/kernel/results/dev-retrieval-decision-1/metrics.json`. 실제 Jev(`live: true`), 개발 세트 160건 중 consensus 부분집합 159건, 요청 719건(`lexical` 160 + `adaptive` 239 + `full` 320, 실패 0). 제품 commit `b487e2d3`, `dirty: false`.
+
+| 방식 | 오주입률 (skill 불필요 작업, 한도 0.02) | 작업당 지연 p95 (한도 1500 ms) | 자격 | load F1 (consensus) | 작업당 요청 수 |
+|---|---|---|---|---|---|
+| `lexical` | 0 | 251 ms | 있음 | 0.8020 | 1.00 |
+| `adaptive` | 0 | 512 ms | 있음 | 0.9422 | 1.49 |
+| `full` | 0 | 540 ms | 있음 | 0.9697 | 2.00 |
+
+- 규칙 적용: 세 방식 모두 자격이 있습니다. load F1이 가장 높은 것은 `full`이고, 2위 `adaptive`와의 차이 0.0275는 동률 기준 0.01보다 큽니다. 동률이 아니므로 요청 수 비교 없이 `full`을 고릅니다.
+- 함께 본 수치(결정에 쓰지 않음): 같은 실행에서 `full`의 load precision 0.991 / recall 0.949(한국어 F1 0.958, 영어 0.978), 작업당 입력 토큰 6551(`lexical` 1519), 작업당 지연 p50 220 ms.
+- **held-out 세트는 아직 채점하지 않았습니다.** 위 수치는 전부 개발 세트(작성자 gold와 두 번째 라벨의 일치 부분집합, 합성 작업, skill 40개 카탈로그, 실행 1회)의 값입니다. 이 결정이 다른 카탈로그에서도 성립하는지는 held-out 세트를 한 번 채점해야 알 수 있고, 그 전까지 이 기본값은 개발 세트에 맞춘 선택입니다.
+- 이 변경으로 달라지지 않는 것: `delegation.skills` 지점은 계속 기본 `off`입니다. `npm run compare:default`는 변경 뒤에도 차이 0입니다(아래 [기본 동작 비교](#기본-동작-비교)).
+- 이 변경으로 달라지는 것: 지점을 켠 설치는 위임마다 judge 요청이 `ceil(카탈로그 크기와 maxJudged 중 작은 값 / chunk)`개(카탈로그 32개 이하면 1개, 33~64개면 2개) 나가고, 요청 하나에 든 skill 수와 입력 토큰이 늡니다. 요청은 선택 지점의 세션 요청 상한에 각각 세어집니다.
 
 **오프라인 테스트로 확인한 것** (`bash scripts/test-all.sh` 종료 코드 0, Node 542/542, 구문 65개 모듈, Python 검증 72건 OK, 2026-11-25, Node v24.19.0. `orchestration`에서 `npm test`만 돌려도 542/542. `qa/kernel/test`는 25/25)
 
@@ -562,7 +580,7 @@ cd orchestration && npm run compare:default      # 또는 node scripts/compare-d
 | end-to-end 효과 (작업 품질, 시간, 비용) | 미측정 |
 | 실제 Claude Code 세션에서 skill이 주입된 서브에이전트 실행 | 미검증 (BLOCKED: 로그인 자격 없음) |
 | skill 선택 정확도 | 합성 160건·작성자 gold·1회 실행으로만 측정. 사람 라벨 검토 없음, 실제 skill 폴더 미측정 |
-| `adaptive`/`full` 후보 검색에서의 judge 정확도·지연·토큰 | 미측정. 오프라인으로 gold 도달 비율(상한)만 계산. held-out 세트 미채점 |
+| `adaptive`/`full` 후보 검색에서의 judge 정확도·지연·토큰 | 개발 세트에서 실제 Jev로 1회 측정(`dev-retrieval-decision-1`, [결정 기록](#결정-기록)). **held-out 세트 미채점.** 40개보다 큰 카탈로그·실제 skill 폴더·OpenAI judge에서는 미측정 |
 | 실제 트래픽에서의 calibration (Brier, ECE) | 미측정. 실제 세션의 라벨이 한 건도 없음. 합성 데이터의 값은 `qa/kernel/REPORT.ko.md` |
 | supervisor 조언의 유용성 | 미측정. 합성 120건의 outcome 일치도만 있음 |
 | 실제 API 비용 | 미계산. 토큰 수만 기록 |
