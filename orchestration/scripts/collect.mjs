@@ -3,7 +3,8 @@
 // and a candidate evaluation file. It never imports evaluations and never contacts anything.
 //   node scripts/collect.mjs (--config <config.json> | --state-dir <dir>) --transcripts <dir>
 //        [--verification <file.json>] [--out <dir>] [--dry-run] [--evaluation-context <name>] [--project <dir>]
-//   node scripts/collect.mjs (--config <config.json> | --state-dir <dir>) --report      observations report
+//   node scripts/collect.mjs (--config <config.json> | --state-dir <dir>) --report      observations report (delegations by
+//        model match kind: exact | declared | alias-undeclared | mismatch); with --config also the evidence store by match kind
 //   node scripts/collect.mjs --task-hash <file>                                       task hash of a task text file
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -12,6 +13,7 @@ import { loadConfig } from '../src/config.mjs';
 import { collect, parseVerification, taskHash, skillFoldersOf, MAX_VERIFICATION_BYTES } from '../src/collector.mjs';
 import { ObservationLog, observationReport } from '../src/kernel/observations.mjs';
 import { loadSkillCatalog } from '../src/kernel/skills.mjs';
+import { evidenceReport } from '../src/feedback.mjs';
 
 const KNOWN = ['config', 'state-dir', 'transcripts', 'verification', 'out', 'dry-run', 'evaluation-context', 'project', 'report', 'task-hash'];
 const USAGE = 'Use (--config /absolute/config.json | --state-dir /absolute/dir) --transcripts /absolute/dir [--verification file.json] '
@@ -45,7 +47,9 @@ try {
     if (args.report !== undefined) {
       assert(args.report === true && Object.keys(args).length === 2, USAGE);
       const { observations, corruptLines } = await new ObservationLog(path.join(stateDir, 'observations-log')).read();
-      console.log(JSON.stringify({ ...observationReport(observations), records: observations.length, corruptLines }, null, 2));
+      // With a config the report also says what stands in the evidence store, by how each row's model was accepted.
+      const evidenceStore = config ? await evidenceReport(config) : null;
+      console.log(JSON.stringify({ ...observationReport(observations), records: observations.length, corruptLines, evidenceStore }, null, 2));
     } else {
       for (const key of ['transcripts', 'out', 'project']) assert(args[key] === undefined || (string(args[key]) && path.isAbsolute(args[key])), `ABSOLUTE_${key.toUpperCase()}_REQUIRED`);
       assert(args['dry-run'] === undefined || args['dry-run'] === true, USAGE);

@@ -9,7 +9,7 @@ import { routeQuestions, failureQuestions, readQuestions, QUESTION_VERSION } fro
 import { routeContext, policyFingerprint, splitRoutingTail } from './policy.mjs';
 import { routeTask } from './router.mjs';
 import { assertInstalledProfile } from './profiles.mjs';
-import { profileCatalog } from './catalog.mjs';
+import { profileCatalog, isModelId } from './catalog.mjs';
 import { createKernel } from './kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from './kernel/log.mjs';
 import { loadSkillCatalog, selectSkills, skillContext, localSkillResolver, SKILLS_POINT } from './kernel/skills.mjs';
@@ -495,7 +495,11 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       const failed=failedResponse(e);
       const response=object(e.tool_response)?e.tool_response:{};
       const agentId=response.agent_id||response.agentId||null;
-      await store.record('spawn_observed',{taskId:e.tool_use_id||'unknown',failed,agentId,taskName:typeof response.task_name==='string'?response.task_name:null},e.tool_use_id||null);
+      // The model id the host says it resolved for the launch (Claude Code's Agent result carries `resolvedModel`).
+      // Stored only when it is a plain model id, for the outcome collector to cross-check against the transcript.
+      // It is recorded, never acted on: no hook output depends on it.
+      const resolved=isModelId(response.resolvedModel)?{resolvedModel:response.resolvedModel}:{};
+      await store.record('spawn_observed',{taskId:e.tool_use_id||'unknown',failed,agentId,taskName:typeof response.task_name==='string'?response.task_name:null,...resolved},e.tool_use_id||null);
       if(failed&&cfg.classifyFailures&&cfg.safety.allowEgress&&kernel().point('failure.classify').mode!=='off'){
         const evidence=redact(e.error||JSON.stringify(e.tool_response||{}),1600);
         const decision=await kernel().forPoint('failure.classify').evaluate({failure:evidence},failureQuestions(),scope);

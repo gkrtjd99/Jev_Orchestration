@@ -16,7 +16,8 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { assert, object, hash, atomicWrite } from './util.mjs';
 import { splitRoutingTail } from './policy.mjs';
-import { validateEvaluation } from './feedback.mjs';
+import { validateEvaluation, effectiveModelMatch } from './feedback.mjs';
+import { profileCatalog } from './catalog.mjs';
 import { DecisionLog } from './kernel/log.mjs';
 import { ObservationLog, observationId, latestObservations, isObservationRecord, IDENTIFIER, SKILL_ID } from './kernel/observations.mjs';
 import { SKILLS_POINT } from './kernel/skills.mjs';
@@ -24,7 +25,7 @@ import { SUPERVISOR_POINT } from './kernel/supervisor.mjs';
 import { RETRACTION_SUFFIX } from './kernel/calibration.mjs';
 import { classifySkillAccess } from './collector-access.mjs';
 
-export const COLLECTOR_VERSION = 'outcome-collector-2';
+export const COLLECTOR_VERSION = 'outcome-collector-3';
 // Label sources. Each says what kind of evidence the label is (kernel/calibration.mjs LABEL_SOURCES).
 // The "-after-injection" sources are used when the subagent's prompt carried the skills block of the very
 // decision being labelled: the block tells the subagent what to load, so the label is partly caused by the
@@ -175,7 +176,7 @@ export function parseMain(rows, warnings = new Warnings()) {
         const detail = object(row.toolUseResult) ? row.toolUseResult : {};
         const decision = object(row.permissionDecision) ? row.permissionDecision : {};
         results.set(item.tool_use_id, { isError: item.is_error === true, rejected: decision.decision === 'reject',
-          agentId: str(detail.agentId), status: ident(detail.status), time: stampOf(row) });
+          agentId: str(detail.agentId), status: ident(detail.status), resolvedModel: ident(detail.resolvedModel), time: stampOf(row) });
       }
     }
   }
@@ -395,16 +396,26 @@ export function parseVerification(value) {
 
 // ---------------------------------------------------------------- the join (pure)
 
-const modelMatch = (effective, route) => {
+/**
+ * How the model id the host recorded compares with what the route asked for.
+ *   exact             string-equal to the route's backend: accepted by the evidence importer
+ *   declared          one of the ids the user declared for the profile's registry entry (`resolvesTo`): accepted
+ *   alias-undeclared  not accepted. The route names the model by an alias that appears as a whole word of the
+ *                     recorded id ("opus" in "claude-opus-5-5") and the registry declares no such id. This word
+ *                     test only chooses between this label and 'mismatch' and decides what the summary suggests
+ *                     the user look at; it never makes a row acceptable.
+ *   mismatch          not accepted: anything else
+ * `declared` is the list of the profile as the given registry defines it now (empty without a config).
+ */
+export function modelMatch(effective, route, declared = []) {
   if (!effective || !route) return null;
-  const wanted = [route.backend, route.model].filter(x => typeof x === 'string' && x);
-  if (!wanted.length) return null;
-  if (wanted.includes(effective)) return 'exact';
-  // A registry may name a model by a family alias that the host resolves ("opus" -> a dated or versioned id).
-  // That is reported as 'alias', never as 'exact': the evidence importer requires string equality.
-  const parts = effective.split(/[-.:/]/);
-  return wanted.some(w => parts.includes(w)) ? 'alias' : 'mismatch';
-};
+  const backend = str(route.backend) ?? str(route.model);
+  if (!backend) return null;
+  const accepted = effectiveModelMatch({ backend, resolvesTo: declared }, effective);
+  if (accepted) return accepted;
+  const parts = effective.split(/[-.:/@]/);
+  return [route.backend, route.model].some(w => str(w) && parts.includes(w)) ? 'alias-undeclared' : 'mismatch';
+}
 
 /**
  * Joins one session. Inputs are plain data (already read); output is plain data (nothing written).
@@ -424,6 +435,20 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
   const routes = byTask('route'), deferred = byTask('route_deferred'), reissued = byTask('delegation_reissued'), repeated = byTask('delegation_repeated');
   const spawns = byTask('spawn_observed'), skillsEvents = byTask('skills');
   const supervisorEvents = events.filter(e => e.type === 'supervisor' && typeof e.taskId === 'string');
+  // Declared resolved ids come from the registry of the given config and from nowhere else. A profile id
+  // contains a hash of its model and backend, so a profile found by id is the one the route named.
+  let catalog = [];
+  if (config && runtime === 'claude') { try { catalog = profileCatalog(config.registry, 'claude'); } catch { warnings.add('registry_unreadable_for_declared_ids'); } }
+  const profileOf = route => catalog.find(p => p.profileId === route?.profile && p.backend === route.backend) ?? null;
+  const entryOf = route => {
+    const profile = profileOf(route);
+    if (profile) return profile.modelKey;
+    const same = (config?.registry?.models ?? []).filter(m => m.runtime === 'claude' && m.backend === route.backend && m.model === route.model);
+    return same.length === 1 && ident(same[0].id) ? same[0].id : null;
+  };
+  const matchCounts = { exact: 0, declared: 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 };
+  const undeclared = new Map();
+  const resolvedCheck = { hookEvent: { agreed: 0, disagreed: 0, absent: 0 }, hostResult: { agreed: 0, disagreed: 0, absent: 0 } };
   // Agents the hooks saw end (SubagentStop, or the hand-back tool call).
   const ended = new Set(events.filter(e => (e.type === 'agent_stopped' || e.type === 'handback_observed') && typeof e.agentId === 'string').map(e => e.agentId));
   // Profile ids this session's routes named. Any other agent type is an inventory of the owner's environment
@@ -590,6 +615,28 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     const endToEndMs = g.startTime !== null && s.lastTime !== null && s.lastTime >= g.startTime ? s.lastTime - g.startTime : null;
     // The subagent's first prompt is the call as issued, or (a rewrite applied in place) the issued text plus the appended tail.
     if (s.firstPrompt !== null && main.calls.get(g.id).prompt !== null && !s.firstPrompt.startsWith(main.calls.get(g.id).prompt)) warnings.add('subagent_prompt_differs_from_issued_call');
+    const matchKind = modelMatch(effectiveModel, g.route, profileOf(g.route)?.resolvesTo ?? []);
+    if (g.route) {
+      bump(matchCounts, matchKind ?? 'notCompared');
+      if (matchKind === 'alias-undeclared') {
+        const entry = entryOf(g.route);
+        const key = `${entry}\n${g.route.backend}\n${effectiveModel}`;
+        const item = undeclared.get(key) ?? { registryEntry: entry, backend: ident(g.route.backend), observedModel: effectiveModel, delegations: 0 };
+        item.delegations++;
+        undeclared.set(key, item);
+      }
+    }
+    // The host states the model it resolved for a launch in two more places: the Agent result the PostToolUse
+    // hook saw (spawn_observed.resolvedModel, recorded by hooks from this version on) and the same result as
+    // Main's transcript keeps it. Where one is present it must name the model the subagent's own rows name.
+    g.resolvedDisagrees = false;
+    if (effectiveModel !== null) {
+      for (const [where, value] of [['hookEvent', ident(spawns.get(g.id)?.resolvedModel)], ['hostResult', main.results.get(g.id)?.resolvedModel ?? null]]) {
+        if (value === null) resolvedCheck[where].absent++;
+        else if (value === effectiveModel) resolvedCheck[where].agreed++;
+        else { resolvedCheck[where].disagreed++; g.resolvedDisagrees = true; }
+      }
+    }
     const content = {
       schema: 1, delegationId: hash(['jev-collector-delegation', scope, g.id]), sessionScope: scope, taskHash: g.taskHash, runtime: 'claude', routed: Boolean(g.route),
       host: { version: [...main.host.versions].sort().at(-1) ?? null, entrypoint: [...main.host.entrypoints].sort()[0] ?? null,
@@ -599,7 +646,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
       requested: { profile: ident(g.route?.profile), model: ident(g.route?.model), backend: ident(g.route?.backend), effort: ident(g.route?.effort),
         role: ident(g.route?.role), tier: ident(g.route?.tier), taskClass: ident(g.route?.taskClass), routeSource: g.routeSource },
       effective: { agentType: g.agentType === null ? null : sessionProfiles.has(g.agentType) ? g.agentType : 'other', model: effectiveModel, effort: s.effort, source: effectiveModel !== null || s.effort !== null ? 'native-transcript' : null,
-        profileMatch: g.route && g.agentType ? g.agentType === g.route.profile : null, modelMatch: modelMatch(effectiveModel, g.route),
+        profileMatch: g.route && g.agentType ? g.agentType === g.route.profile : null, modelMatch: matchKind,
         effortMatch: g.route && s.effort !== null && typeof g.route.effort === 'string' ? s.effort === g.route.effort : null },
       skills: { mode: ['shadow', 'active'].includes(governingSkills?.mode) ? governingSkills.mode : null, status: ident(governingSkills?.status),
         need: finite(governingSkills?.need) !== null && governingSkills.need >= 0 && governingSkills.need <= 1 ? governingSkills.need : null,
@@ -703,6 +750,14 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     // and never applied) and the host must have recorded that profile's agent as the one that ran.
     for (const g of all) {
       if (!g.route) continue;
+      // A row is evidence for the evaluation context the session actually ran under. A route recorded under
+      // the default (unvalidated) context, or under another name, is not relabelled by naming a context later.
+      if (context && context !== UNVALIDATED_CONTEXT) {
+        const recorded = str(g.route.evaluationContext);
+        if (recorded === null) reasons.add('route_evaluation_context_unknown');
+        else if (recorded === UNVALIDATED_CONTEXT) reasons.add('session_ran_under_default_evaluation_context');
+        else if (recorded !== context) reasons.add('session_ran_under_another_evaluation_context');
+      }
       if (g.routeMode !== 'active') reasons.add(g.routeMode === null ? 'route_mode_unknown' : 'route_not_applied');
       if (g.observation && g.agentType === null) reasons.add('agent_type_unknown');
       else if (g.observation && g.agentType !== g.route.profile) reasons.add('agent_type_differs_from_profile');
@@ -710,14 +765,19 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     const routesUsed = ran.map(g => g.route).filter(Boolean);
     const route = routesUsed[0] ?? null;
     if (new Set(routesUsed.map(r => r.profile)).size > 1) reasons.add('task_ran_under_several_profiles');
+    // The row states one effective model; attempts on two different accepted ids are not folded into one.
+    if (new Set(ran.map(g => g.observation.effective.model)).size > 1) reasons.add('task_ran_on_several_models');
     if (route && !(ident(route.profile) && hex(route.profileFingerprint) && hex(route.projectHash) && typeof route.taskClass === 'string' && route.taskClass)) reasons.add('route_fields_missing');
     for (const g of ran) {
       const e = g.observation.effective;
       if (e.model === null || e.effort === null) reasons.add('effective_setting_not_recorded_by_host');
       else if (g.route) {
-        if (e.model !== g.route.backend) reasons.add('effective_model_differs_from_profile_backend');
+        // Only an exact backend match or an id the user declared is accepted; an alias match is not.
+        if (e.modelMatch === 'alias-undeclared') reasons.add('effective_model_alias_undeclared');
+        else if (e.modelMatch !== 'exact' && e.modelMatch !== 'declared') reasons.add('effective_model_mismatch');
         if (e.effort !== g.route.effort) reasons.add('effective_effort_differs_from_profile');
       }
+      if (g.resolvedDisagrees) reasons.add('resolved_model_disagrees_with_transcript');
       if (g.observation.usage.endToEndMs === null || g.observation.usage.endToEndMs <= 0) reasons.add('duration_not_measured');
       // Judge time after the subagent ended (the report check) is added from the decision log; without the record it is unknown.
       if (g.supervisorJudged.some(e2 => finite(decisionsById.get(e2.decisionId)?.latencyMs) === null)) reasons.add('supervisor_judge_time_unknown');
@@ -729,7 +789,8 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
         schema: 1, kind: 'live-evaluation', taskId: key, taskClass: route.taskClass, context, projectHash: route.projectHash,
         profileId: route.profile, profileFingerprint: route.profileFingerprint, runtime: 'claude',
         createdAt: Math.round(Math.max(...ran.map(g => g.sub.parsed.lastTime))),
-        effective: { confirmed: true, model: ran[0].observation.effective.model, effort: ran[0].observation.effective.effort, source: 'native-transcript' },
+        effective: { confirmed: true, model: ran[0].observation.effective.model, effort: ran[0].observation.effective.effort, source: 'native-transcript',
+          modelMatch: ran[0].observation.effective.modelMatch },
         verification: { source: 'independent-validator', passed: verified.passed, artifactSha256: verified.artifactSha256, validatorVersion: verified.validator },
         // End-to-end: from Main issuing the first call (so the routing hook, a refused call and the re-issue
         // round are inside) to the subagent's last row, summed over the task's delegations, plus report-check judge time.
@@ -756,6 +817,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
   return {
     groups: groups.length, calls: ordered.length, index, observations, labels, settled, unlabelled, accessReasons, mapping, evaluations,
     evaluationsWithheld: { tasks: withheldTasks, reasons: withheld }, evaluationContext: context ?? null,
+    modelMatch: { delegations: matchCounts, undeclared: [...undeclared.values()], resolvedModelCheck: resolvedCheck },
     counts: { seen: groups.length, routed: groups.filter(g => g.route).length, joined: groups.filter(g => g.observation).length, unjoined, unrouted,
       refusedAndReissued: groups.filter(g => g.link?.kind === 'reissue').length, reroutedAfterRefusal: groups.filter(g => g.link?.kind === 'refused-call').length,
       repeated: groups.filter(g => g.link?.kind === 'repeat').length },
@@ -891,7 +953,12 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     skillQuestionMapping: { decisions: 0, mapped: 0, asked: 0, derived: 0, unmapped: {}, answersCheckedAgainstLog: 0 },
     labels: { written: {}, alreadyPresent: 0, retracted: {}, unlabelled: {}, indeterminateAccess: {} },
     observations: { written: 0, alreadyPresent: 0, keptVerified: 0 },
-    evaluations: { produced: 0, withheldTasks: 0, withheld: {}, context: null, files: [], imported: false },
+    evaluations: { produced: 0, producedByModelMatch: { exact: 0, declared: 0 }, withheldTasks: 0, withheld: {}, context: null, files: [], imported: false },
+    // Routed, joined delegations by how the recorded model id compares with the route (see modelMatch()).
+    // `undeclared` lists what a user would have to declare for the alias matches to be accepted. Nothing is
+    // added to any registry by the collector.
+    modelMatch: { delegations: { exact: 0, declared: 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, declarationsKnown: Boolean(config), undeclared: [],
+      resolvedModelCheck: { hookEvent: { agreed: 0, disagreed: 0, absent: 0 }, hostResult: { agreed: 0, disagreed: 0, absent: 0 } }, note: null },
     verification: { entries: verification.length, matched: 0, unmatched: 0 },
     supervisor: { judged: 0 },
     delegationIndex: [],
@@ -976,6 +1043,14 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
       summary.observations.written++;
     }
     summary.evaluations.produced += joined.evaluations.length;
+    for (const row of joined.evaluations) bump(summary.evaluations.producedByModelMatch, row.effective.modelMatch);
+    for (const [k, n] of Object.entries(joined.modelMatch.delegations)) bump(summary.modelMatch.delegations, k, n);
+    for (const where of ['hookEvent', 'hostResult']) for (const [k, n] of Object.entries(joined.modelMatch.resolvedModelCheck[where])) bump(summary.modelMatch.resolvedModelCheck[where], k, n);
+    for (const item of joined.modelMatch.undeclared) {
+      const prior = summary.modelMatch.undeclared.find(u => u.registryEntry === item.registryEntry && u.backend === item.backend && u.observedModel === item.observedModel);
+      if (prior) prior.delegations += item.delegations;
+      else summary.modelMatch.undeclared.push({ ...item, wouldNeed: { registryEntry: item.registryEntry, resolvesTo: [item.observedModel] } });
+    }
     summary.evaluations.withheldTasks += joined.evaluationsWithheld.tasks;
     summary.evaluations.context = joined.evaluationContext;
     for (const [k, n] of Object.entries(joined.evaluationsWithheld.reasons)) bump(summary.evaluations.withheld, k, n);
@@ -985,6 +1060,12 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
       await atomicWrite(path.join(dir, name), joined.evaluations.map(row => JSON.stringify(row)).join('\n') + '\n');
       summary.evaluations.files.push(name);
     }
+  }
+  if (summary.modelMatch.undeclared.length) {
+    summary.modelMatch.note = 'NOT ADDED. For each item, the host recorded `observedModel` for a route whose registry entry names `backend`. '
+      + 'To have such runs accepted as evidence, the user adds the id to `resolvesTo` of that registry entry after checking that it is the model the entry means, '
+      + 'reinstalls, and runs new sessions: a declaration changes the profile fingerprint, so sessions recorded before it stay unimportable.'
+      + (config ? '' : ' No config was given, so declared ids are unknown to this run and registryEntry is null.');
   }
   summary.verification.unmatched = verification.length - Math.min(verification.length, summary.verification.matched);
   summary.warnings = Object.fromEntries(Object.entries(warnings.counts).sort(([a], [b]) => (a < b ? -1 : 1)));

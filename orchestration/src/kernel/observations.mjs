@@ -45,7 +45,9 @@ const REQUESTED = {
 };
 const EFFECTIVE = {
   agentType: nullable(id), model: nullable(id), effort: nullable(id), source: nullable(oneOf('native-transcript')),
-  profileMatch: nullable(bool), modelMatch: nullable(oneOf('exact', 'alias', 'mismatch')), effortMatch: nullable(bool),
+  // modelMatch: exact | declared | alias-undeclared | mismatch (src/collector.mjs). 'alias' is what records
+  // written before the registry could declare resolved ids call 'alias-undeclared'; it is still read.
+  profileMatch: nullable(bool), modelMatch: nullable(oneOf('exact', 'declared', 'alias-undeclared', 'alias', 'mismatch')), effortMatch: nullable(bool),
 };
 const LOADED = { name: x => typeof x === 'string' && SKILL_ID.test(x), via: oneOf('Skill', 'Read', 'Shell'), beforeFirstWrite: nullable(bool) };
 const SKILLS = {
@@ -242,8 +244,12 @@ export function observationReport(observations) {
     routed: rows.filter(r => r.routed).length,
     requestedVsEffective: {
       profile: compared('profileMatch', x => x === true),
-      model: { compared: model.length, exact: byKind('exact'), alias: byKind('alias'), mismatch: byKind('mismatch'),
-        exactRate: ratio(byKind('exact'), model.length), exactOrAliasRate: ratio(byKind('exact') + byKind('alias'), model.length) },
+      // exact + declared are the two kinds the evidence importer accepts. `alias` counts the undeclared alias
+      // matches under both their names ('alias-undeclared', and 'alias' in records from before that name).
+      model: { compared: model.length, exact: byKind('exact'), declared: byKind('declared'), aliasUndeclared: byKind('alias-undeclared') + byKind('alias'),
+        alias: byKind('alias-undeclared') + byKind('alias'), mismatch: byKind('mismatch'),
+        exactRate: ratio(byKind('exact'), model.length), acceptedRate: ratio(byKind('exact') + byKind('declared'), model.length),
+        exactOrAliasRate: ratio(model.length - byKind('mismatch'), model.length) },
       effort: compared('effortMatch', x => x === true),
     },
     byProfile: [...profiles.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([profile, members]) => ({ profile, ...describe(members) })),
