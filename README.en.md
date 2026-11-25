@@ -44,7 +44,7 @@ Jev Orchestration does model routing for subagents through a Claude Code `PreToo
 | Model and effort selection | Judges the nature of the delegated task and selects one confirmed profile, or abstains | Allow sending + models marked `confirmed` in the registry |
 | Skill routing | Selects, by probability, the project skills this task needs | `JEV_SKILLS_MODE=active` (default `off`) |
 | Report review | Classifies the subagent report as complete / retry / replan / escalate and advises | `JEV_SUPERVISOR_MODE=active` (default `off`) |
-| Outcome collection (optional) | After a session, reads the local records and sets out per delegation how the judgments turned out. Sends nothing and does not change routing by itself | Run by hand: `node orchestration/scripts/collect.mjs` ([outcome collector](docs/KERNEL.ko.md#결과-수집기), Korean) |
+| Outcome collection (optional) | After a session, reads the local records and writes per-delegation observations, outcome labels for logged judgments (each with a source saying how strong the evidence is; weak without external verification) and candidate evaluation rows. Sends nothing, imports nothing automatically and does not change routing by itself | Run by hand: `node orchestration/scripts/collect.mjs` ([outcome collector](docs/KERNEL.ko.md#결과-수집기), Korean) |
 
 `JEV_MODE` is the overall ceiling, and the individual settings switch features on and off inside it. A fresh install uses `JEV_MODE=shadow` and `JEV_ALLOW_EGRESS=false`. Until you set `JEV_ALLOW_EGRESS=true`, no feature calls a judge; until you set `JEV_MODE` to `advisory` or `active`, Main sees nothing and no delegation is changed.
 

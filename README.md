@@ -44,7 +44,7 @@ Jev Orchestration은 Claude Code의 `PreToolUse` hook(훅)에서 서브에이전
 | 모델·effort 선택 | 위임 작업의 성격을 판단하고, 확인된 프로필 중 하나를 고르거나 보류 | 외부 전송 허용 + registry에서 `confirmed`로 표시한 모델 |
 | skill 라우팅 | 프로젝트 skill 중 이 작업에 필요한 것을 확률로 선택 | `JEV_SKILLS_MODE=active` (기본 `off`) |
 | 보고 검토 | subagent 보고를 complete / retry / replan / escalate로 분류해 조언 | `JEV_SUPERVISOR_MODE=active` (기본 `off`) |
-| 결과 수집 (선택) | 세션이 끝난 뒤 로컬 기록을 읽어, 판단이 실제로 어떻게 됐는지 위임별로 정리. 아무것도 전송하지 않고 그 자체로는 라우팅을 바꾸지 않음 | 직접 실행: `node orchestration/scripts/collect.mjs` ([결과 수집기](docs/KERNEL.ko.md#결과-수집기)) |
+| 결과 수집 (선택) | 세션이 끝난 뒤 로컬 기록을 읽어 위임별 관찰 기록, 기록된 판단의 결과 라벨(근거 강도를 말하는 출처가 붙음. 외부 검증 없이는 약한 라벨), 평가 행 후보를 씀. 아무것도 전송하지 않고 자동으로 가져오지 않으며 그 자체로는 라우팅을 바꾸지 않음 | 직접 실행: `node orchestration/scripts/collect.mjs` ([결과 수집기](docs/KERNEL.ko.md#결과-수집기)) |
 
 `JEV_MODE`가 전체 상한이고, 개별 설정은 그 안에서 기능을 켜고 끕니다. 새로 설치하면 `JEV_MODE=shadow`, `JEV_ALLOW_EGRESS=false`입니다. `JEV_ALLOW_EGRESS=true`로 바꾸기 전에는 어떤 기능도 judge를 부르지 않고, `JEV_MODE`를 `advisory`나 `active`로 바꾸기 전에는 Main에게 아무것도 보이지 않으며 위임도 바뀌지 않습니다.
 
