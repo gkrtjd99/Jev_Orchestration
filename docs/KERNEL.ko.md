@@ -359,4 +359,4 @@ private `.env` 또는 프로세스 환경에서 읽습니다. 설치 시점과 �
 
 따라서 이 문서는 "어떻게 동작하는가"를 설명할 뿐이며, skill 라우팅이나 supervisor가 결과를 개선한다는 근거는 아직 없습니다. 임계값(0.9, 0.5, 0.65)은 측정으로 정한 값이 아닌 초기값입니다.
 
-참고로 `orchestration`에서 `npm test`를 직접 돌리면 macOS 기본 `TMPDIR`(심볼릭 링크 경로) 때문에 수십 건이 실패할 수 있습니다. kernel 변경 전부터 있던 문제이며, `scripts/test-all.sh`는 정규 경로의 `TMPDIR`을 써서 통과합니다.
+`orchestration`에서 `npm test`를 직접 돌려도 통과합니다. 예전에는 macOS 기본 `TMPDIR`(`/var/folders/...`, `/private/var/...`의 심볼릭 링크) 아래에 만든 fixture 경로가 정규화되지 않아 31건이 실패했습니다. 제품 코드는 프로젝트 경로를 `realpath`로 비교하므로 fixture(`test/helpers.mjs`)가 임시 디렉터리를 `realpath`로 정규화하도록 고쳤고, 제품의 심볼릭 링크 검사는 바꾸지 않았습니다. `test/fixture-paths.test.mjs`가 심볼릭 링크 `TMPDIR`을 직접 만들어 이 경우를 모든 플랫폼에서 재현합니다.
