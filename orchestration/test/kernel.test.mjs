@@ -53,7 +53,10 @@ test('constants and defaults match the shared contract', () => {
     log: true,
     providers: { openai: { endpoint: 'https://api.openai.com', model: 'gpt-6-luna', approved: false, timeoutMs: 2500 } },
     points: { 'delegation.classify': on, 'delegation.profile': on, 'delegation.skills': off, 'supervisor.outcome': off, 'failure.classify': on, 'read.advice': on },
-    skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3 },
+    skills: {
+      dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3,
+      retrieval: 'lexical', minCoverage: 0.25, maxJudged: 64, chunk: 32,
+    },
     supervisor: { maxReportChars: 1600, confidence: 0.65 },
   });
   assert.equal(validateKernel(kernelDefaults()).log, true);
@@ -140,7 +143,28 @@ test('validateKernel rejects every malformed field with a typed code', () => {
   bad(k => { k.supervisor.maxReportChars = 6001; }, 'INVALID_KERNEL_SUPERVISOR_REPORT');
   bad(k => { k.supervisor.confidence = 2; }, 'INVALID_KERNEL_SUPERVISOR_CONFIDENCE');
   const ok = kernelDefaults();
-  ok.skills = { dirs: ['/a', '/b'], maxCandidates: 32, need: 0, autoLoad: 1, suggest: 1, maxLoaded: 0, maxSuggested: 8 };
+  bad(k => { k.skills.retrieval = 'semantic'; }, 'INVALID_KERNEL_SKILLS_RETRIEVAL');
+  bad(k => { delete k.skills.retrieval; }, 'INVALID_KERNEL_SKILLS_RETRIEVAL');
+  bad(k => { k.skills.minCoverage = 1.01; }, 'INVALID_KERNEL_SKILLS_MIN_COVERAGE');
+  bad(k => { k.skills.minCoverage = '0.2'; }, 'INVALID_KERNEL_SKILLS_MIN_COVERAGE');
+  bad(k => { k.skills.maxJudged = 0; }, 'INVALID_KERNEL_SKILLS_MAX_JUDGED');
+  bad(k => { k.skills.maxJudged = 401; }, 'INVALID_KERNEL_SKILLS_MAX_JUDGED');
+  // The wide path must judge at least what the lexical path would.
+  bad(k => { k.skills.maxCandidates = 8; k.skills.maxJudged = 7; }, 'INVALID_KERNEL_SKILLS_MAX_JUDGED');
+  bad(k => { k.skills.chunk = 3; }, 'INVALID_KERNEL_SKILLS_CHUNK');
+  bad(k => { k.skills.chunk = 65; }, 'INVALID_KERNEL_SKILLS_CHUNK');
+  bad(k => { k.skills.chunk = 8.5; }, 'INVALID_KERNEL_SKILLS_CHUNK');
+  ok.skills = {
+    dirs: ['/a', '/b'], maxCandidates: 32, need: 0, autoLoad: 1, suggest: 1, maxLoaded: 0, maxSuggested: 8,
+    retrieval: 'adaptive', minCoverage: 1, maxJudged: 400, chunk: 64,
+  };
+  for (const [retrieval, minCoverage, maxJudged, chunk] of [['full', 0, 32, 4], ['lexical', 0.5, 64, 32]]) {
+    validateKernel({ ...ok, skills: { ...ok.skills, retrieval, minCoverage, maxJudged, chunk } });
+  }
+  // A config written before these settings existed is completed by mergeKernel, not rejected.
+  const older = mergeKernel({ skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3 } });
+  assert.deepEqual([older.skills.retrieval, older.skills.minCoverage, older.skills.maxJudged, older.skills.chunk], ['lexical', 0.25, 64, 32]);
+  validateKernel(older);
   ok.points['read.advice'] = { mode: 'shadow', judges: ['local', 'openai', 'jev'], escalateBelow: 1 };
   assert.equal(validateKernel(ok), ok);
   assert.throws(() => new DecisionKernel({ kernel: { log: 1 } }), code('INVALID_KERNEL_LOG'));

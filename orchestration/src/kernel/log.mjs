@@ -10,7 +10,8 @@ export const MAX_FILE_BYTES = 33554432;
 export const MAX_DIR_FILES = 240;
 export const MAX_STRING = 512;
 const MAX_SHORT = 128;
-const MAX_ANSWERS = 64;
+// One wide skills request carries a `need` answer plus up to 64 skill answers (kernel.skills.chunk).
+const MAX_ANSWERS = 65;
 const MAX_OPTIONS = 64;
 const MAX_TRAIL = 16;
 

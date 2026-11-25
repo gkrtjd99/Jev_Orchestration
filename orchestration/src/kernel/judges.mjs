@@ -213,7 +213,7 @@ export class OpenAIDecisionsClient extends JevClient {
   }
 }
 
-/** Deterministic in-process rules. A resolver may abstain by returning null/undefined. */
+/** Deterministic in-process rules. A resolver gets (state, questions, limits) and may abstain by returning null/undefined. */
 export class LocalJudge {
   constructor(resolvers = {}) {
     this.resolvers = resolvers;
@@ -223,7 +223,7 @@ export class LocalJudge {
     const start = performance.now();
     const resolver = Object.hasOwn(this.resolvers, limits.pointId ?? '') ? this.resolvers[limits.pointId] : null;
     assert(typeof resolver === 'function', 'LOCAL_ABSTAIN');
-    const answers = await resolver(state, questions);
+    const answers = await resolver(state, questions, limits);
     assert(answers != null, 'LOCAL_ABSTAIN');
     const response = validateAnswers({ model: 'local-rules', answers, usage: { input_tokens: 0, output_tokens: 0 } }, questions);
     return { response, cached: false, latencyMs: performance.now() - start };

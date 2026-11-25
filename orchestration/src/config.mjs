@@ -4,6 +4,7 @@ import path from 'node:path';
 import { assert, object, within, readJSON } from './util.mjs';
 import { defaultRegistry, validateRegistry, applyModelEnvironment } from './catalog.mjs';
 import { kernelDefaults, mergeKernel, validateKernel, MODES, PROVIDERS } from './kernel/kernel.mjs';
+import { RETRIEVAL_MODES } from './kernel/skills.mjs';
 import { OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './kernel/judges.mjs';
 export function defaults(home) {
   return {
@@ -121,6 +122,25 @@ export function applyKernelEnvironment(c, get) {
     const list = dirs.split(path.delimiter).map(x => x.trim()).filter(Boolean);
     assert(list.length >= 1 && list.length <= 8 && list.every(d => path.isAbsolute(d)), 'INVALID_JEV_SKILL_DIRS');
     k.skills.dirs = list;
+  }
+  // Candidate retrieval for delegation.skills. Format and range are checked here so a bad value fails
+  // with the variable's own name; validateKernel still checks the combined config afterwards.
+  const retrieval = read('JEV_SKILLS_RETRIEVAL');
+  if (retrieval !== null) {
+    assert(RETRIEVAL_MODES.includes(retrieval), 'INVALID_JEV_SKILLS_RETRIEVAL');
+    if (object(k.skills)) k.skills.retrieval = retrieval;
+  }
+  const coverage = read('JEV_SKILLS_MIN_COVERAGE');
+  if (coverage !== null) {
+    assert(/^(?:0(?:\.\d{1,6})?|1(?:\.0{1,6})?)$/.test(coverage), 'INVALID_JEV_SKILLS_MIN_COVERAGE');
+    if (object(k.skills)) k.skills.minCoverage = Number(coverage);
+  }
+  for (const [key, field, min, max] of [['JEV_SKILLS_MAX_JUDGED', 'maxJudged', 1, 400], ['JEV_SKILLS_CHUNK', 'chunk', 4, 64]]) {
+    const v = read(key);
+    if (v === null) continue;
+    // Digits only: Number('') or Number('1e2') must not slip through.
+    assert(/^\d{1,3}$/.test(v) && Number(v) >= min && Number(v) <= max, 'INVALID_' + key);
+    if (object(k.skills)) k.skills[field] = Number(v);
   }
   const openai = object(k.providers?.openai) ? k.providers.openai : null;
   const approved = flag('JEV_OPENAI_DECISIONS_APPROVED');

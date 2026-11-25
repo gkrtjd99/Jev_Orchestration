@@ -24,7 +24,8 @@ function warning(event,code){
     return contextOutput(event,`Jev hooks: ${code}. No worker was started by this extension. The native runtime retains control.`);
   return {};
 }
-const SKILL_EVENT_TRACE=32;
+// Covers the default kernel.skills.maxJudged; when more skills were judged, retrieval.judged still gives the total.
+const SKILL_EVENT_TRACE=64;
 /** Skill selection for one delegation. Never rejects and never outlives the route deadline. */
 async function routeSkills(kernel,cfg,project,task,scope){
   const settings=kernel.kernel.skills;
@@ -41,7 +42,7 @@ async function routeSkills(kernel,cfg,project,task,scope){
 function skillsEvent(taskId,mode,result,injected){
   const slim=list=>(Array.isArray(list)?list:[]).map(s=>({name:s.name,probability:s.probability}));
   return {taskId,mode,status:result.status,code:result.code||null,need:result.need??null,candidates:result.candidates??0,
-    decisionId:result.decisionId??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
+    decisionId:result.decisionId??null,decisionIds:Array.isArray(result.decisionIds)?result.decisionIds:[],retrieval:result.retrieval??null,cached:result.cached===true,catalog:result.catalogFingerprint??null,injected,
     load:slim(result.load),suggest:slim(result.suggest),
     trace:(result.trace||[]).filter(t=>t.stage!=='retrieval').slice(0,SKILL_EVENT_TRACE).map(t=>({name:t.name,stage:t.stage,probability:t.probability}))};
 }

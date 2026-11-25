@@ -302,7 +302,10 @@ test('selectSkills: judge failure or invalid answers yield unavailable without t
 test('selectSkills does not call the judge for an empty catalog or empty task', async () => {
   const judge = mockJudge({});
   const empty = await selectSkills({ task: 'do something', catalog: { skills: [], fingerprint: 'e' }, judge, scope: 's', config: CONFIG });
-  assert.deepEqual(empty, { status: 'none', need: null, load: [], suggest: [], trace: [], candidates: 0, catalogFingerprint: 'e', decisionId: null, cached: false });
+  assert.deepEqual(empty, {
+    status: 'none', need: null, load: [], suggest: [], trace: [], candidates: 0, catalogFingerprint: 'e', decisionId: null, decisionIds: [], cached: false,
+    retrieval: { mode: 'lexical', wide: false, lexicalSignal: 0, requests: 0, failed: 0, judged: 0, dropped: 0 },
+  });
   const catalog = catalogOf([['a', 'x'], ['b', 'y']]);
   for (const task of ['', '  \n\t', undefined]) {
     const r = await selectSkills({ task, catalog, judge, scope: 's', config: CONFIG });
@@ -563,8 +566,11 @@ test('localSkillResolver returns valid noul answers and ranks the obvious match 
   assert.ok(answers.skill_1.noul > Math.max(answers.skill_0.noul, answers.skill_2.noul, answers.skill_3.noul));
   assert.equal(answers.need.noul, answers.skill_1.noul);
   assert.equal(answers.skill_2.noul, 0);
-  assert.deepEqual(resolver({ task: 'x', skills: [] }, { need: questions.need }), { need: { type: 'noul', noul: 0 } });
-  assert.deepEqual(resolver({}, { need: questions.need, skill_7: questions.skill_0 }), { need: { type: 'noul', noul: 0 }, skill_7: { type: 'noul', noul: 0 } });
+  // Nothing to match against is no lexical signal: the resolver abstains instead of answering need 0.
+  assert.equal(resolver({ task: 'x', skills: [] }, { need: questions.need }), null);
+  assert.equal(resolver({}, { need: questions.need, skill_7: questions.skill_0 }), null);
+  // A question about an index the state does not hold is answered 0, never left out.
+  assert.deepEqual(resolver(state, { need: questions.need, skill_7: questions.skill_0 }).skill_7, { type: 'noul', noul: 0 });
 
   // End to end as a judge: the match is the top-probability trace entry.
   const judge = { evaluate: async (s, q) => ({ response: { model: 'local-rules', answers: resolver(s, q) }, cached: false, latencyMs: 0 }) };

@@ -1,12 +1,15 @@
 // Inspection helper only; it never starts a worker.
-// Default (--judge local): offline lexical resolver, no network.
+// Default (--judge local): offline lexical resolver, no network. It abstains (status 'unavailable',
+// code LOCAL_ABSTAIN) when the task shares too few tokens with the catalog to say anything.
+// --retrieval lexical|adaptive|full overrides which skills reach the judge (see kernel.skills.retrieval).
 // --judge config --config <abs path>: the configured 'delegation.skills' judge chain and decision log,
 // which may call a network judge only when that config has consented to it.
 import path from 'node:path';
 import { assert, options } from '../src/util.mjs';
 import {
-  DEFAULT_SKILLS_CONFIG, SKILLS_POINT, loadSkillCatalog, localSkillResolver, selectSkills, whyNot,
+  DEFAULT_SKILLS_CONFIG, RETRIEVAL_MODES, SKILLS_POINT, loadSkillCatalog, localSkillResolver, selectSkills, whyNot,
 } from '../src/kernel/skills.mjs';
+import { LocalJudge } from '../src/kernel/judges.mjs';
 import { loadConfig } from '../src/config.mjs';
 import { createKernel } from '../src/kernel/kernel.mjs';
 import { DecisionLog, decisionLogDir } from '../src/kernel/log.mjs';
@@ -16,9 +19,11 @@ const NOTE = 'Probabilities are a lexical BM25 heuristic, not calibrated judgmen
 
 try {
   const args = options(process.argv.slice(2));
-  for (const key of Object.keys(args)) assert(['project', 'task', 'dirs', 'why-not', 'list', 'judge', 'config'].includes(key), 'UNKNOWN_OPTION');
+  for (const key of Object.keys(args)) assert(['project', 'task', 'dirs', 'why-not', 'list', 'judge', 'config', 'retrieval'].includes(key), 'UNKNOWN_OPTION');
   const judgeMode = args.judge ?? 'local';
   assert(judgeMode === 'local' || judgeMode === 'config', 'INVALID_JUDGE');
+  assert(args.retrieval === undefined || RETRIEVAL_MODES.includes(args.retrieval), 'INVALID_RETRIEVAL');
+  const override = args.retrieval === undefined ? {} : { retrieval: args.retrieval };
   assert(judgeMode === 'config' ? typeof args.config === 'string' && path.isAbsolute(args.config) : args.config === undefined, 'CONFIG_NOT_ABSOLUTE');
   // The configured chain is built once; a bad config fails here before any catalog work.
   let configured = null;
@@ -50,15 +55,12 @@ try {
     if (configured) {
       const { kernel, point, settings } = configured;
       // A point that is off yields status 'unavailable' with code KERNEL_POINT_OFF: nothing is judged.
-      result = await selectSkills({ task: args.task, catalog, judge: kernel.forPoint(SKILLS_POINT), scope: 'cli', config: settings });
+      result = await selectSkills({ task: args.task, catalog, judge: kernel.forPoint(SKILLS_POINT), scope: 'cli', config: { ...settings, ...override } });
       head = { judge: 'config', point: SKILLS_POINT, mode: point.mode, judges: [...point.judges] };
       if (point.judges.includes('local')) head.note = 'Answers from the local judge are a lexical BM25 heuristic, not calibrated judgments.';
     } else {
-      const resolver = localSkillResolver();
-      const judge = {
-        evaluate: async (state, questions) => ({ response: { model: 'local-rules', answers: resolver(state, questions) }, cached: false, latencyMs: 0 }),
-      };
-      result = await selectSkills({ task: args.task, catalog, judge, scope: 'cli', config: { ...DEFAULT_SKILLS_CONFIG } });
+      const judge = new LocalJudge({ [SKILLS_POINT]: localSkillResolver() });
+      result = await selectSkills({ task: args.task, catalog, judge, scope: 'cli', config: { ...DEFAULT_SKILLS_CONFIG, ...override } });
       head = { judge: JUDGE, note: NOTE };
     }
     out = args['why-not'] ? { ...head, whyNot: whyNot(result, args['why-not']) } : { ...head, ...result };

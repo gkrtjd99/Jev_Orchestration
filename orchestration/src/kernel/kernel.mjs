@@ -4,6 +4,7 @@ import { performance } from 'node:perf_hooks';
 import { assert, object, hash } from '../util.mjs';
 import { JevClient } from '../jev.mjs';
 import { minConfidence } from './answers.mjs';
+import { DEFAULT_RETRIEVAL, RETRIEVAL_MODES } from './skills.mjs';
 import { OpenAIDecisionsClient, LocalJudge, OPENAI_TIMEOUT_DEFAULT_MS, OPENAI_TIMEOUT_MIN_MS, OPENAI_TIMEOUT_MAX_MS } from './judges.mjs';
 
 export const POINTS = ['delegation.classify', 'delegation.profile', 'delegation.skills', 'supervisor.outcome', 'failure.classify', 'read.advice'];
@@ -24,7 +25,8 @@ export function kernelDefaults() {
       'failure.classify': point('active'),
       'read.advice': point('active'),
     },
-    skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3 },
+    // retrieval stays 'lexical': the wide modes are opt-in until a live comparison picks a default.
+    skills: { dirs: [], maxCandidates: 8, need: 0.5, autoLoad: 0.9, suggest: 0.5, maxLoaded: 3, maxSuggested: 3, ...DEFAULT_RETRIEVAL },
     supervisor: { maxReportChars: 1600, confidence: 0.65 },
   };
 }
@@ -95,6 +97,12 @@ export function validateKernel(k) {
   assert(unit(s.suggest) && s.suggest <= s.autoLoad, 'INVALID_KERNEL_SKILLS_SUGGEST');
   assert(intIn(s.maxLoaded, 0, 8), 'INVALID_KERNEL_SKILLS_MAX_LOADED');
   assert(intIn(s.maxSuggested, 0, 8), 'INVALID_KERNEL_SKILLS_MAX_SUGGESTED');
+  assert(RETRIEVAL_MODES.includes(s.retrieval), 'INVALID_KERNEL_SKILLS_RETRIEVAL');
+  assert(unit(s.minCoverage), 'INVALID_KERNEL_SKILLS_MIN_COVERAGE');
+  // At least maxCandidates, so the wide path always judges a superset of the lexical candidates.
+  assert(intIn(s.maxJudged, 1, 400) && s.maxJudged >= s.maxCandidates, 'INVALID_KERNEL_SKILLS_MAX_JUDGED');
+  // 64 skills plus the need question is the most one decision-log record holds.
+  assert(intIn(s.chunk, 4, 64), 'INVALID_KERNEL_SKILLS_CHUNK');
 
   const v = k.supervisor;
   assert(object(v), 'INVALID_KERNEL_SUPERVISOR');
