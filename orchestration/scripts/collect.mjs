@@ -54,7 +54,7 @@ try {
       for (const key of ['transcripts', 'out', 'project']) assert(args[key] === undefined || (string(args[key]) && path.isAbsolute(args[key])), `ABSOLUTE_${key.toUpperCase()}_REQUIRED`);
       assert(args['dry-run'] === undefined || args['dry-run'] === true, USAGE);
       assert(args['evaluation-context'] === undefined || string(args['evaluation-context']), 'INVALID_EVALUATION_CONTEXT');
-      let verification = [];
+      let verification = null;
       if (args.verification !== undefined) {
         assert(string(args.verification), USAGE);
         let parsed;

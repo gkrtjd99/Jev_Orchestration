@@ -25,7 +25,7 @@ import { SUPERVISOR_POINT } from './kernel/supervisor.mjs';
 import { RETRACTION_SUFFIX } from './kernel/calibration.mjs';
 import { classifySkillAccess } from './collector-access.mjs';
 
-export const COLLECTOR_VERSION = 'outcome-collector-4';
+export const COLLECTOR_VERSION = 'outcome-collector-5';
 // Label sources. Each says what kind of evidence the label is (kernel/calibration.mjs LABEL_SOURCES).
 // The "-after-injection" sources are used when the subagent's prompt carried the skills block of the very
 // decision being labelled: the block tells the subagent what to load, so the label is partly caused by the
@@ -430,7 +430,10 @@ export function modelMatch(effective, route, declared = []) {
  *   decisionsById Map(decisionId -> decision log record)
  */
 export function joinSession({ scope, runtime, events, tasks = new Map(), main = null, subagents = new Map(), decisionsById = new Map(),
-  verification = [], evaluationContext = null, config = null }, warnings = new Warnings()) {
+  verification = null, evaluationContext = null, config = null }, warnings = new Warnings()) {
+  // null: no verification file was given. An array, empty included: one was given, so rows were asked for.
+  const verificationGiven = verification !== null;
+  verification = verification ?? [];
   const byTask = type => {
     const map = new Map();
     for (const e of events) if (e.type === type && typeof e.taskId === 'string') map.set(e.taskId, e);
@@ -741,9 +744,14 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
   let withheldTasks = 0;
   const context = str(evaluationContext) ?? str(config?.optimization?.evaluationContext);
   const tasksSeen = new Map();
+  // Every delegated task text (a delegation without a readable task text counts on its own). A task with no
+  // verification entry cannot become a row; it is counted, not dropped: always in `tasks.withoutVerification`,
+  // and as withheld (reason no_verification_entry) when a verification file was given, i.e. when rows were asked for.
+  const allTasks = new Set(), unverifiedTasks = new Set();
   for (const g of groups) {
-    if (!verificationFor.has(g.id)) continue;
     const key = g.taskHash ?? `call:${g.id}`;
+    allTasks.add(key);
+    if (!verificationFor.has(g.id)) { unverifiedTasks.add(key); continue; }
     if (!tasksSeen.has(key)) tasksSeen.set(key, []);
     tasksSeen.get(key).push(g);
   }
@@ -824,6 +832,9 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
     if (row) evaluations.push(row);
     else { withheldTasks++; for (const reason of reasons.size ? reasons : ['no_joined_attempt']) bump(withheld, reason); }
   }
+  // A task some of whose delegations matched an entry (by call id) is already in tasksSeen and is not counted twice.
+  for (const key of tasksSeen.keys()) unverifiedTasks.delete(key);
+  if (verificationGiven) { withheldTasks += unverifiedTasks.size; if (unverifiedTasks.size) bump(withheld, 'no_verification_entry', unverifiedTasks.size); }
 
   const unjoined = {}, unrouted = {};
   for (const g of groups) {
@@ -833,6 +844,7 @@ export function joinSession({ scope, runtime, events, tasks = new Map(), main = 
   return {
     groups: groups.length, calls: ordered.length, index, observations, labels, settled, unlabelled, accessReasons, mapping, evaluations,
     evaluationsWithheld: { tasks: withheldTasks, reasons: withheld }, evaluationContext: context ?? null,
+    taskCounts: { seen: allTasks.size, withoutVerification: unverifiedTasks.size },
     modelMatch: { delegations: matchCounts, undeclared: [...undeclared.values()], resolvedModelCheck: resolvedCheck },
     counts: { seen: groups.length, routed: groups.filter(g => g.route).length, joined: groups.filter(g => g.observation).length, unjoined, unrouted,
       refusedAndReissued: groups.filter(g => g.link?.kind === 'reissue').length, reroutedAfterRefusal: groups.filter(g => g.link?.kind === 'refused-call').length,
@@ -934,14 +946,19 @@ const candidateFileName = scope => `evaluations-${scope.slice(0, 16)}.candidate.
  *   verification    parsed verification entries (parseVerification)
  *   skillFolders    Map(folder -> skill name) of project skills, for sessions whose state names none (skills point off)
  *   config          loaded config; when given, candidate rows also pass the importer's own validation
- * Returns the summary. With dryRun nothing is written anywhere.
+ * Returns the summary. With dryRun nothing is written anywhere: `labels.written`, `labels.retracted` and
+ * `observations.written` then stay empty, and what a real run would write is reported under `labels.wouldWrite`,
+ * `labels.wouldRetract` and `observations.wouldWrite` (present only in a dry run).
  */
-export async function collect({ stateDir, transcriptsDir = null, verification = [], outDir = null, dryRun = false, evaluationContext = null,
+export async function collect({ stateDir, transcriptsDir = null, verification: verificationInput = null, outDir = null, dryRun = false, evaluationContext = null,
   config = null, skillFolders = new Map(), now = Date.now } = {}) {
   assert(typeof stateDir === 'string' && path.isAbsolute(stateDir), 'ABSOLUTE_STATE_REQUIRED');
   assert(transcriptsDir === null || (typeof transcriptsDir === 'string' && path.isAbsolute(transcriptsDir)), 'ABSOLUTE_TRANSCRIPTS_REQUIRED');
   assert(outDir === null || (typeof outDir === 'string' && path.isAbsolute(outDir)), 'ABSOLUTE_OUT_REQUIRED');
   assert(evaluationContext === null || (typeof evaluationContext === 'string' && IDENTIFIER.test(evaluationContext) && evaluationContext.length <= 200), 'INVALID_EVALUATION_CONTEXT');
+  // null (or left out): no verification file. An array, empty included: a file was given (see joinSession).
+  assert(verificationInput === null || Array.isArray(verificationInput), 'INVALID_VERIFICATION');
+  const verification = verificationInput ?? [];
   const warnings = new Warnings();
   const stat = await fs.lstat(stateDir).catch(() => null);
   assert(stat && !stat.isSymbolicLink() && stat.isDirectory(), stat?.isSymbolicLink() ? 'SYMLINK_SOURCE' : 'STATE_DIR_NOT_FOUND');
@@ -967,15 +984,19 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     sessions: { inState: sessions.length, selected: selected.length },
     delegations: { seen: 0, routed: 0, joined: 0, unjoined: {}, unrouted: {}, refusedAndReissued: 0, reroutedAfterRefusal: 0, repeated: 0, agentCalls: 0 },
     skillQuestionMapping: { decisions: 0, mapped: 0, asked: 0, derived: 0, unmapped: {}, answersCheckedAgainstLog: 0 },
-    labels: { written: {}, alreadyPresent: 0, retracted: {}, unlabelled: {}, indeterminateAccess: {} },
-    observations: { written: 0, alreadyPresent: 0, keptVerified: 0 },
-    evaluations: { produced: 0, producedByModelMatch: { exact: 0, declared: 0 }, withheldTasks: 0, withheld: {}, context: null, files: [], imported: false },
+    labels: { written: {}, alreadyPresent: 0, retracted: {}, unlabelled: {}, indeterminateAccess: {}, ...(dryRun ? { wouldWrite: {}, wouldRetract: {} } : {}) },
+    observations: { written: 0, alreadyPresent: 0, keptVerified: 0, ...(dryRun ? { wouldWrite: 0 } : {}) },
+    // tasks: distinct delegated task texts, and how many of them had no verification entry. produced + withheldTasks
+    // equals tasks.seen when a verification file was given (an empty one included); without one no row is attempted
+    // and withheldTasks stays 0. Like delegations.seen, these are summed per selected session: when one transcript's
+    // calls are found in several sessions (warning transcript_calls_found_in_several_sessions) they multiply.
+    evaluations: { produced: 0, producedByModelMatch: { exact: 0, declared: 0 }, withheldTasks: 0, withheld: {}, tasks: { seen: 0, withoutVerification: 0 }, context: null, files: [], imported: false },
     // Routed, joined delegations by how the recorded model id compares with the route (see modelMatch()).
     // `undeclared` lists what was observed for the alias matches (entry, backend, recorded id). Nothing is
     // added to any registry by the collector.
     modelMatch: { delegations: { exact: 0, declared: 0, 'declared-not-in-force': 0, 'alias-undeclared': 0, mismatch: 0, notCompared: 0 }, declarationsKnown: Boolean(config), undeclared: [],
       resolvedModelCheck: { hookEvent: { agreed: 0, disagreed: 0, absent: 0 }, hostResult: { agreed: 0, disagreed: 0, absent: 0 } }, note: null },
-    verification: { entries: verification.length, matched: 0, unmatched: 0 },
+    verification: { given: verificationInput !== null, entries: verification.length, matched: 0, unmatched: 0 },
     supervisor: { judged: 0 },
     delegationIndex: [],
     warnings: {},
@@ -1006,7 +1027,7 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
     const subagents = transcripts && runtime === 'claude' ? await loadSubagents(transcripts.files, known, warnings) : new Map();
     const ids = new Set([...taskIds(session), ...(main ? main.calls.keys() : [])]);
     const tasks = await readTasks(session, ids, warnings);
-    const joined = joinSession({ scope: session.scope, runtime, events: session.events, tasks, main, subagents, decisionsById, verification, evaluationContext, config }, warnings);
+    const joined = joinSession({ scope: session.scope, runtime, events: session.events, tasks, main, subagents, decisionsById, verification: verificationInput, evaluationContext, config }, warnings);
 
     const d = summary.delegations;
     d.seen += joined.counts.seen; d.routed += joined.counts.routed; d.joined += joined.counts.joined; d.agentCalls += joined.calls;
@@ -1029,8 +1050,9 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
       if (standing.has(key) && standing.get(key) === l.outcome) { summary.labels.alreadyPresent++; continue; }
       standing.set(key, l.outcome);
       if (!dryRun) await log.label(l.decisionId, { questionId: l.questionId, outcome: l.outcome, source: l.source });
-      summary.labels.written[l.point] ??= {};
-      bump(summary.labels.written[l.point], l.source);
+      const wrote = dryRun ? summary.labels.wouldWrite : summary.labels.written;
+      wrote[l.point] ??= {};
+      bump(wrote[l.point], l.source);
     }
     // Retraction: a label of a collector source that stands for a decision this run settled, and that this run
     // does not derive (a corrected verification result, a transcript now read as indeterminate, a changed
@@ -1042,8 +1064,9 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
           if (!standing.has(key) || derived.has(key)) continue;
           if (!dryRun) await log.label(entry.decisionId, { questionId, outcome: standing.get(key), source: source + RETRACTION_SUFFIX });
           standing.delete(key);
-          summary.labels.retracted[entry.point] ??= {};
-          bump(summary.labels.retracted[entry.point], source);
+          const took = dryRun ? summary.labels.wouldRetract : summary.labels.retracted;
+          took[entry.point] ??= {};
+          bump(took[entry.point], source);
         }
       }
     }
@@ -1055,8 +1078,8 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
       // standing one. Re-run with the verification file to refresh it.
       if (current && current.verification !== null && content.verification === null) { summary.observations.keptVerified++; continue; }
       standingObservation.set(content.delegationId, { ...content, observationId: key });
-      if (!dryRun) await store.append(content);
-      summary.observations.written++;
+      if (dryRun) summary.observations.wouldWrite++;
+      else { await store.append(content); summary.observations.written++; }
     }
     summary.evaluations.produced += joined.evaluations.length;
     for (const row of joined.evaluations) bump(summary.evaluations.producedByModelMatch, row.effective.modelMatch);
@@ -1068,6 +1091,8 @@ export async function collect({ stateDir, transcriptsDir = null, verification = 
       else summary.modelMatch.undeclared.push({ ...item });
     }
     summary.evaluations.withheldTasks += joined.evaluationsWithheld.tasks;
+    summary.evaluations.tasks.seen += joined.taskCounts.seen;
+    summary.evaluations.tasks.withoutVerification += joined.taskCounts.withoutVerification;
     summary.evaluations.context = joined.evaluationContext;
     for (const [k, n] of Object.entries(joined.evaluationsWithheld.reasons)) bump(summary.evaluations.withheld, k, n);
     if (joined.evaluations.length && !dryRun) {

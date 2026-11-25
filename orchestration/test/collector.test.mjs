@@ -227,7 +227,15 @@ test('a refused and re-issued delegation is joined from hook state through Main 
   await assert.rejects(fs.lstat(path.join(f.stateDir, 'collector')), code('ENOENT'));
 
   const summary = await run(f, { verification, config });
-  assert.deepEqual({ ...summary.labels, ...summary.observations }, { ...dry.labels, ...dry.observations });
+  // A dry run writes nothing and says so: its `written` counts are empty and the same numbers are under would*.
+  assert.deepEqual([dry.labels.written, dry.labels.retracted, dry.observations.written], [{}, {}, 0]);
+  assert.deepEqual([dry.labels.wouldWrite, dry.labels.wouldRetract, dry.observations.wouldWrite], [summary.labels.written, summary.labels.retracted, summary.observations.written]);
+  assert.ok(Object.keys(summary.labels.written).length > 0 && summary.observations.written === 1);
+  assert.ok(!('wouldWrite' in summary.labels) && !('wouldRetract' in summary.labels) && !('wouldWrite' in summary.observations));
+  const { written: _lw, retracted: _lr, wouldWrite: _ww, wouldRetract: _wr, ...dryLabelsRest } = dry.labels;
+  const { written: _slw, retracted: _slr, ...labelsRest } = summary.labels;
+  assert.deepEqual(labelsRest, dryLabelsRest);
+  assert.deepEqual([summary.observations.alreadyPresent, summary.observations.keptVerified], [dry.observations.alreadyPresent, dry.observations.keptVerified]);
   assert.deepEqual(summary.delegations, { seen: 1, routed: 1, joined: 1, unjoined: {}, unrouted: {}, refusedAndReissued: 1, reroutedAfterRefusal: 0, repeated: 0, agentCalls: 2 });
   assert.deepEqual(summary.warnings, {});
   assert.deepEqual(summary.host.versions, ['2.1.330']);
@@ -337,7 +345,7 @@ test('a rewrite applied in place (no refusal) joins on the one call; the inline 
   });
   const none = await run(f, { dryRun: true });
   assert.deepEqual(none.labels.unlabelled, { supervisor_no_external_verification: 1 });
-  assert.deepEqual(Object.keys(none.labels.written), ['delegation.skills']);
+  assert.deepEqual([Object.keys(none.labels.wouldWrite), none.labels.written], [['delegation.skills'], {}]);
 
   // A failed external check: the report-check decision stays unlabelled (a failure does not tell retry from replan
   // from escalate), no with-load label is written, and the evaluation row carries passed: false.
@@ -538,7 +546,7 @@ test('a verification entry can name a call id; unmatched entries are counted; a 
   const byCall = parseVerification({ schema: 1, results: [{ toolUseId: A, passed: true, validator: VALIDATOR, artifactSha256: ARTIFACT, costUsd: 0.25 },
     { taskHash: 'cd'.repeat(32), passed: true, validator: VALIDATOR, artifactSha256: ARTIFACT }] });
   const summary = await run(f, { verification: byCall, evaluationContext: 'ctx-fixture-1' });
-  assert.deepEqual(summary.verification, { entries: 2, matched: 1, unmatched: 1 });
+  assert.deepEqual(summary.verification, { given: true, entries: 2, matched: 1, unmatched: 1 });
   // No convention result was supplied: the outcome label is written, the with-load label is not.
   assert.deepEqual(summary.labels.written, { 'delegation.skills': { 'observed-load-after-injection': 4 }, 'supervisor.outcome': { 'external-verification': 1 } });
   const [row] = (await fs.readFile(path.join(f.stateDir, 'collector', summary.evaluations.files[0]), 'utf8')).trim().split('\n').map(JSON.parse);
@@ -669,7 +677,9 @@ test('the default configuration records no skill names; a deferred, unrouted del
   const summary = await run(f, { verification: parseVerification([{ toolUseId: B, passed: true, validator: VALIDATOR, artifactSha256: ARTIFACT }]), evaluationContext: 'ctx-fixture-1' });
   assert.deepEqual([summary.delegations.seen, summary.delegations.routed, summary.delegations.joined, summary.delegations.unrouted], [2, 1, 2, { no_route_recorded: 1 }]);
   assert.deepEqual([summary.labels.written, summary.warnings], [{}, { project_skill_names_unknown: 1 }]);
-  assert.deepEqual(summary.evaluations.withheld, { delegation_not_routed: 1 });
+  // Two task texts were delegated; only B has a verification entry. A is counted as withheld, not dropped.
+  assert.deepEqual(summary.evaluations.withheld, { delegation_not_routed: 1, no_verification_entry: 1 });
+  assert.deepEqual([summary.evaluations.produced, summary.evaluations.withheldTasks, summary.evaluations.tasks], [0, 2, { seen: 2, withoutVerification: 1 }]);
   const { observations } = await new ObservationLog(observationLogDir(f.config)).read();
   const unrouted = observations.find(o => !o.routed);
   assert.deepEqual([unrouted.requested.profile, unrouted.effective.agentType, unrouted.effective.model, unrouted.effective.profileMatch, unrouted.judge.routerRequests],
@@ -764,7 +774,7 @@ test('CLI: collect (dry run, real run, report, task hash) and the decisions repo
   const shared = ['--state-dir', f.stateDir, '--transcripts', f.transcripts, '--verification', verification, '--evaluation-context', 'ctx-fixture-1'];
   let r = await cli(...shared, '--dry-run');
   assert.equal(r.code, 0, r.stderr);
-  assert.deepEqual([JSON.parse(r.stdout).dryRun, JSON.parse(r.stdout).observations.written], [true, 1]);
+  assert.deepEqual([JSON.parse(r.stdout).dryRun, JSON.parse(r.stdout).observations.written, JSON.parse(r.stdout).observations.wouldWrite], [true, 0, 1]);
   await assert.rejects(fs.lstat(observationLogDir(f.config)), code('ENOENT'));
   const out = path.join(f.root, 'out');
   r = await cli(...shared, '--out', out);
@@ -922,7 +932,7 @@ test('a verification by task hash is carried by the last attempt only; an abando
   }
   await writeTranscripts(f, { main: mainRows(calls), subs });
   const summary = await run(f, { verification: verificationFor(TASK), evaluationContext: 'ctx-fixture-1' });
-  assert.deepEqual([summary.delegations.seen, summary.delegations.joined, summary.verification], [2, 2, { entries: 1, matched: 1, unmatched: 0 }]);
+  assert.deepEqual([summary.delegations.seen, summary.delegations.joined, summary.verification], [2, 2, { given: true, entries: 1, matched: 1, unmatched: 0 }]);
   assert.deepEqual(summary.delegationIndex.map(d => [d.verified, d.supersededAttempt]), [[null, true], [true, false]]);
   const { observations } = await new ObservationLog(observationLogDir(f.config)).read();
   assert.deepEqual(observations.map(o => o.verification?.passed ?? null), [null, true]);
@@ -1184,7 +1194,13 @@ test('end to end: named context + declared id + external verification -> candida
 
   // Without verification there is no verdict and so no row; nothing reaches the evidence store by itself.
   const unverified = await run(f, { config, dryRun: true });
-  assert.deepEqual([unverified.evaluations.produced, unverified.evaluations.withheldTasks], [0, 0]);
+  // A verification file with no entries is still a file: the task is withheld by name, not dropped.
+  const empty = await run(f, { config, verification: parseVerification([]), dryRun: true });
+  assert.deepEqual([empty.evaluations.produced, empty.evaluations.withheldTasks, empty.evaluations.withheld, empty.evaluations.tasks, empty.verification.given],
+    [0, 1, { no_verification_entry: 1 }, { seen: 1, withoutVerification: 1 }, true]);
+  // No verification file: no row is attempted, so nothing is "withheld", but the unverified task is still counted.
+  assert.equal(unverified.verification.given, false);
+  assert.deepEqual([unverified.evaluations.produced, unverified.evaluations.withheldTasks, unverified.evaluations.withheld, unverified.evaluations.tasks], [0, 0, {}, { seen: 1, withoutVerification: 1 }]);
   const summary = await run(f, { verification: verificationFor(TASK), config });
   assert.deepEqual([summary.evaluations.produced, summary.evaluations.producedByModelMatch, summary.evaluations.imported], [1, { exact: 0, declared: 1 }, false]);
   assert.deepEqual((await readEvidence(config)).rows, []);
