@@ -111,7 +111,8 @@ export async function install({home,project,runtime='both',yes=false,envFile=nul
   };
   // Copy only the small hook runtime. No old engine, worker runner, Skills, or MCP server is installed.
   for(const dir of ['src','bin']){
-    for(const name of await fs.readdir(path.join(root,dir))){if(!name.endsWith('.mjs'))continue;
+    // Recursive so src/kernel/*.mjs ships with the modules that import it.
+    for(const name of (await fs.readdir(path.join(root,dir),{recursive:true})).sort()){if(!name.endsWith('.mjs'))continue;
       const file=path.join(snapshot,dir,name);const content=await fs.readFile(path.join(root,dir,name),'utf8');
       await add(file,content,true);const ix=owned.findIndex(x=>x.path===file);if(ix>=0)owned.splice(ix,1);owned.push({path:file,sha256:hash(content)});
     }
