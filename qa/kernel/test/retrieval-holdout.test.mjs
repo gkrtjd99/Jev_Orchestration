@@ -8,9 +8,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { runEvaluation, parseArgs } from '../run-eval.mjs';
+import { runEvaluation, parseArgs, rowParts, MAX_ROWS_FILE_BYTES } from '../run-eval.mjs';
 import { parseArgs as parseFreezeArgs } from '../freeze-holdout.mjs';
-import { freezeHoldout, readHoldout, readLedger, sha256File, SWEEP_LABEL, HOLDOUT_FILE, LEDGER_FILE } from '../lib/holdout.mjs';
+import { freezeHoldout, readHoldout, readLedger, readRunLedger, sha256File, SWEEP_LABEL, HOLDOUT_FILE, LEDGER_FILE, RUN_LEDGER_FILE } from '../lib/holdout.mjs';
 import { loadSkillSuite, skillAgreement } from '../lib/data.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -116,6 +116,10 @@ test('parseArgs: retrieval modes, gold, labels, data-dir and spend-holdout', () 
   bad(['--data', '/a', '--data-dir', '/b']);
   bad(['--spend-holdout', '   ']);
   bad(['--spend-holdout']);
+  bad(['--spend-holdout', 'first', '--respend-holdout', '  ']);
+  bad(['--respend-holdout', 'second look without the first reason']);
+  assert.equal(parseArgs(['--run-id', 'x', '--spend-holdout', 'a', '--respend-holdout', ' b ']).respendHoldout, 'b');
+  assert.equal(d.respendHoldout, null);
   bad(['--retrieval', 'full', '--retrieval', 'lexical']);
 });
 
@@ -308,6 +312,7 @@ test('a wide task that loses one of its requests is scored on what was answered 
     const a = metrics.skills['jev-full'];
     assert.equal(a.operations.retrieval.failedRequests, 1);
     assert.equal(a.operations.retrieval.tasksWithPartialFailure, 1);
+    assert.equal(a.operations.retrieval.tasksPartialNothingSelected, 0); // the answered request selected the gold skill
     assert.equal(a.operations.failedItems, 0);
     assert.equal(a.operations.retriedTransportErrors, 0);
     assert.equal(a.gold.author.loaded.recall, 1);              // the answered request held the gold skill
@@ -318,6 +323,8 @@ test('a wide task that loses one of its requests is scored on what was answered 
     const row = rows.find(r => r.id === 'QX-ITEM-001');
     assert.deepEqual(row.calls.map(c => c.ok).sort(), [false, true]);
     assert.equal(row.calls.find(c => !c.ok).code, 'JEV_HTTP_400');
+    assert.deepEqual([row.status, row.partial, row.partialCode], ['selected', true, 'JEV_HTTP_400']);
+    assert.ok(rows.filter(r => r.id !== 'QX-ITEM-001').every(r => r.partial === false && r.partialCode === null));
     assert.equal(row.candidates.filter(c => c.stage === 'judge_unavailable').length, 23);
   } finally { await fx.cleanup(); }
 });
@@ -475,15 +482,34 @@ test('a spent held-out run writes the ledger line before the first request and o
     assert.match(summary, /aggregate metrics only/);
     assert.doesNotMatch(summary, /BM25 top-k recall/);
 
-    // The ledger is not one of the frozen files, so the next run still verifies; it appends a second line.
-    const again = await run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'second look'], { fetchImpl: mockFetch({ calls }) });
+    // "Once" is enforced: a set with a recorded run is refused, with no request, no ledger line and no result folder.
+    const before = calls.length;
+    await assert.rejects(run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'second look'], { fetchImpl: mockFetch({ calls }) }),
+      e => e.code === 'QA_HOLDOUT_ALREADY_SPENT');
+    assert.equal(calls.length, before);
+    assert.equal((await readLedger(fx.data)).length, 1);
+    await assert.rejects(fs.access(path.join(fx.out, 'holdout-2')));
+
+    // Deleting the set's own ledger does not reset it: the run ledger of the output directory still knows the manifest.
+    const kept = await fs.readFile(path.join(fx.data, LEDGER_FILE), 'utf8');
+    await fs.rm(path.join(fx.data, LEDGER_FILE));
+    await assert.rejects(run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'second look']), e => e.code === 'QA_HOLDOUT_ALREADY_SPENT');
+    await fs.writeFile(path.join(fx.data, LEDGER_FILE), kept);
+
+    // An explicit second look is possible, is recorded as one, and appends a second line.
+    const again = await run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'second look', '--respend-holdout', 'first run died'], { fetchImpl: mockFetch({ calls }) });
     assert.equal(again.metrics.holdout.runsRecordedBefore, 1);
-    assert.deepEqual((await readLedger(fx.data)).map(e => [e.runId, e.reason, e.retrievalModes[0]]),
-      [['holdout-1', 'score the chosen mode once', 'lexical'], ['holdout-2', 'second look', 'product default (lexical)']]);
+    assert.deepEqual((await readLedger(fx.data)).map(e => [e.runId, e.reason, e.respendReason ?? null, e.retrievalModes[0]]),
+      [['holdout-1', 'score the chosen mode once', null, 'lexical'], ['holdout-2', 'second look', 'first run died', 'product default (lexical)']]);
+    const runLedger = await readRunLedger(fx.out);
+    assert.deepEqual(runLedger.map(e => [e.runId, e.holdout.runsRecordedBefore, e.holdout.respendReason]), [['holdout-1', 0, null], ['holdout-2', 1, 'first run died']]);
+    assert.equal(runLedger[0].holdout.manifestSha256, await sha256File(path.join(fx.data, HOLDOUT_FILE)));
+    assert.equal(entry.manifestSha256, runLedger[0].holdout.manifestSha256);
 
     // A refused run id (already used) is not a look at the set and adds no line.
-    await assert.rejects(run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'third']), e => e.code === 'QA_RUN_ID_EXISTS');
+    await assert.rejects(run(fx, ['--run-id', 'holdout-2', '--arms', 'local', '--spend-holdout', 'third', '--respend-holdout', 'again']), e => e.code === 'QA_RUN_ID_EXISTS');
     assert.equal((await readLedger(fx.data)).length, 2);
+    assert.equal((await readRunLedger(fx.out)).length, 2);
   } finally { await fx.cleanup(); }
 });
 
@@ -530,4 +556,112 @@ test('dev-retrieval-analysis.mjs (a sweep script) refuses a frozen set and label
     assert.match(refused.stderr, /QA_HOLDOUT_NO_SWEEPS/);
     await assert.rejects(fs.access(held));
   } finally { await fx.cleanup(); }
+});
+
+// ---------------------------------------------------------------- pinned inputs, run ledger, file sizes
+
+test('every run records the sha256 of the files it read, in metrics.json and in the append-only run ledger', async () => {
+  const fx = await fixture({ blind2: true });
+  try {
+    const calls = [];
+    let ledgerAtFirstRequest = null;
+    const onRequest = async () => { ledgerAtFirstRequest ??= await readRunLedger(fx.out); };
+    const { metrics, summary } = await run(fx, ['--run-id', 'dev-1', '--arms', 'jev', '--retrieval', 'lexical', '--gold', 'consensus',
+      '--labels', 'skill-tasks.gold.jsonl,relabel/skill-tasks.blind2.jsonl'], { fetchImpl: mockFetch({ calls, onRequest }) });
+    const expected = {};
+    for (const rel of ['relabel/skill-tasks.blind2.jsonl', 'skill-tasks.gold.jsonl', 'skill-tasks.jsonl']) expected[rel] = await sha256File(path.join(fx.data, rel));
+    assert.deepEqual(metrics.inputs.files, expected);
+    assert.match(metrics.inputs.catalogFingerprint, /^[0-9a-f]{64}$/);
+    assert.ok(summary.includes(`sha256 ${expected['relabel/skill-tasks.blind2.jsonl'].slice(0, 12)}`));
+    // Written before the first request, so a run that dies half way is still on record.
+    assert.equal(ledgerAtFirstRequest.length, 1);
+    const [entry] = await readRunLedger(fx.out);
+    assert.deepEqual(entry, metrics.runLedger.entry);
+    assert.deepEqual([entry.runId, entry.transport, entry.remoteArms, entry.replacedExistingResult, entry.holdout], ['dev-1', 'injected', true, false, null]);
+    assert.deepEqual(entry.inputs.files, expected);
+    assert.deepEqual(entry.labels, ['skill-tasks.gold.jsonl', 'relabel/skill-tasks.blind2.jsonl']);
+
+    // A changed label file shows up as a different hash in the next run's record.
+    await fs.appendFile(path.join(fx.data, 'relabel', 'skill-tasks.blind2.jsonl'), '\n');
+    const second = await run(fx, ['--run-id', 'dev-2', '--arms', 'local']);
+    assert.notEqual(second.metrics.inputs.files['relabel/skill-tasks.blind2.jsonl'], expected['relabel/skill-tasks.blind2.jsonl']);
+    assert.equal(second.metrics.inputs.files['skill-tasks.gold.jsonl'], expected['skill-tasks.gold.jsonl']);
+
+    // --force replaces an injected or offline result and says so in the ledger ...
+    await run(fx, ['--run-id', 'dev-2', '--arms', 'local', '--force']);
+    assert.deepEqual((await readRunLedger(fx.out)).map(e => [e.runId, e.replacedExistingResult]), [['dev-1', false], ['dev-2', false], ['dev-2', true]]);
+    // ... but never a result that came from a live API run.
+    const file = path.join(fx.out, 'dev-1', 'metrics.json');
+    await fs.writeFile(file, JSON.stringify({ ...JSON.parse(await fs.readFile(file, 'utf8')), live: true, transport: 'live' }));
+    await assert.rejects(run(fx, ['--run-id', 'dev-1', '--arms', 'jev', '--force']), e => e.code === 'QA_RUN_ID_HAS_LIVE_RESULT');
+    assert.equal(JSON.parse(await fs.readFile(file, 'utf8')).live, true);
+    assert.equal((await readRunLedger(fx.out)).length, 3);
+    assert.equal(RUN_LEDGER_FILE, 'RUN_LEDGER.jsonl');
+  } finally { await fx.cleanup(); }
+});
+
+test('rows files are split so that no result file passes the 1,000,000-byte limit for committed files', async () => {
+  assert.ok(MAX_ROWS_FILE_BYTES < 1000000);
+  const lines = Array.from({ length: 40 }, (_, i) => JSON.stringify({ id: i, pad: '가'.repeat(100) })); // multi-byte: sizes are bytes, not characters
+  const parts = rowParts(lines, 2000);
+  assert.ok(parts.length > 1);
+  for (const part of parts) assert.ok(Buffer.byteLength(part) <= 2000 && part.endsWith('\n'));
+  assert.equal(parts.join(''), lines.map(l => l + '\n').join('')); // lossless and in order
+  assert.deepEqual(rowParts(['a', 'b']), ['a\nb\n']);
+  assert.deepEqual(rowParts(['x'.repeat(50), 'y'], 10), ['x'.repeat(50) + '\n', 'y\n']); // an oversized line stands alone
+  assert.deepEqual(rowParts([]), ['']);
+});
+
+test('a wide run on a larger catalog writes its rows in parts, all listed in metrics.files', async () => {
+  const fx = await fixture();
+  try {
+    // 600 more skills with long descriptions: every row of the 'full' arm lists 64 judged candidates.
+    for (let i = 0; i < 600; i++) {
+      const name = `zz-bulk-${String(i).padStart(3, '0')}`;
+      await fs.mkdir(path.join(fx.data, 'skills', name), { recursive: true });
+      await fs.writeFile(path.join(fx.data, 'skills', name, 'SKILL.md'), `---\nname: ${name}\ndescription: bulk filler procedure ${i} ${'lorem '.repeat(60)}\n---\nbody\n`);
+    }
+    const tasks = Array.from({ length: 150 }, (_, i) => ({ id: `QX-BULK-${i}`, lang: 'ko', category: 'none', task: TASKS[4].task }));
+    await fs.appendFile(path.join(fx.data, 'skill-tasks.jsonl'), jsonl(tasks));
+    await fs.appendFile(path.join(fx.data, 'skill-tasks.gold.jsonl'), jsonl(tasks.map(({ id }) => ({ id, gold: [] }))));
+    const { metrics, resultDir } = await run(fx, ['--run-id', 'big', '--arms', 'local', '--retrieval', 'full']);
+    const parts = metrics.files.filter(f => f.startsWith('rows-skills-local-full'));
+    assert.ok(parts.length > 1, `expected several parts, got ${parts}`);
+    assert.deepEqual(parts.slice(0, 2), ['rows-skills-local-full.jsonl', 'rows-skills-local-full.part2.jsonl']);
+    let rows = 0;
+    for (const name of await fs.readdir(resultDir, { recursive: true })) {
+      const stat = await fs.stat(path.join(resultDir, name));
+      if (!stat.isFile()) continue;
+      assert.ok(stat.size <= 1000000, `${name} is ${stat.size} bytes`);
+      if (parts.includes(name)) rows += (await fs.readFile(path.join(resultDir, name), 'utf8')).trim().split('\n').length;
+    }
+    assert.equal(rows, TASKS.length + 150);
+  } finally { await fx.cleanup(); }
+});
+
+test('no file under qa/kernel/results or qa/kernel/data passes the size limit that bash scripts/test-all.sh enforces on committed files', async () => {
+  const over = [];
+  for (const dir of ['results', 'data']) {
+    const root = path.join(HERE, '..', dir);
+    for (const name of await fs.readdir(root, { recursive: true })) {
+      const stat = await fs.stat(path.join(root, name));
+      if (stat.isFile() && stat.size > 1000000) over.push(`${dir}/${name} (${stat.size} bytes)`);
+    }
+  }
+  assert.deepEqual(over, []);
+});
+
+test('DECISION_RULE.md pins the label files of the deciding run: sha256 and consensus size match the data directory', async () => {
+  const rule = await fs.readFile(path.join(HERE, '..', 'DECISION_RULE.md'), 'utf8');
+  const pins = [...rule.matchAll(/^([0-9a-f]{64}) {2}(\S+)$/gm)].map(m => [m[2], m[1]]);
+  assert.deepEqual(pins.map(p => p[0]).sort(), ['relabel/skill-tasks.blind2.jsonl', 'relabel/skill-tasks.nocategory.jsonl', 'skill-tasks.gold.jsonl', 'skill-tasks.jsonl']);
+  const data = path.join(HERE, '..', 'data');
+  for (const [rel, hash] of pins) assert.equal(await sha256File(path.join(data, rel)), hash, rel);
+  const size = /consensus 부분집합 크기: (\d+) \/ (\d+)/.exec(rule);
+  assert.ok(size, 'the rule states the expected consensus size');
+  const suite = await loadSkillSuite(data, { labels: ['skill-tasks.gold.jsonl', 'relabel/skill-tasks.blind2.jsonl'] });
+  assert.deepEqual([suite.gold.consensus.size, suite.items.length], [Number(size[1]), Number(size[2])]);
+  // The command in the rule names exactly these two label files and a fixed run id.
+  assert.match(rule, /--labels skill-tasks\.gold\.jsonl,relabel\/skill-tasks\.blind2\.jsonl/);
+  assert.match(rule, /--run-id dev-retrieval-decision-1 /);
 });

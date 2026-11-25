@@ -1,11 +1,12 @@
 {
+  "label": "development analysis - not a result",
   "what": "Offline candidate-retrieval analysis on the development set. Upper bound on recall only: the judge is a stub.",
   "notMeasured": [
     "judge precision, need accuracy or calibration when the judge is shown the wide skill list",
     "latency, tokens and cost of the wide requests",
     "anything on a held-out set or a different skill catalog"
   ],
-  "commit": "f036dd8a6027fd798030675d4504eded931ea1ed",
+  "commit": "1003f5b0ddead0fab688f3906ef45453b4a70fae",
   "dataset": {
     "dir": "qa/kernel/data",
     "goldSource": "author (skill-tasks.gold.jsonl)",
@@ -49,6 +50,10 @@
         {
           "minCoverage": 0,
           "tasks": 0
+        },
+        {
+          "minCoverage": 0.000001,
+          "tasks": 37
         },
         {
           "minCoverage": 0.05,
@@ -111,6 +116,10 @@
           "tasks": 0
         },
         {
+          "minCoverage": 0.000001,
+          "tasks": 1
+        },
+        {
           "minCoverage": 0.05,
           "tasks": 1
         },
@@ -169,6 +178,10 @@
         {
           "minCoverage": 0,
           "tasks": 0
+        },
+        {
+          "minCoverage": 0.000001,
+          "tasks": 36
         },
         {
           "minCoverage": 0.05,
@@ -363,6 +376,59 @@
             "meanSkillsJudged": 8,
             "meanRequests": 1,
             "totalRequests": 64,
+            "unavailable": 0,
+            "unavailableWithGold": 0
+          }
+        }
+      },
+      {
+        "minCoverage": 0.000001,
+        "result": {
+          "overall": {
+            "tasks": 160,
+            "wideTasks": 37,
+            "wideShare": 0.23125,
+            "goldSkills": 120,
+            "goldReached": 107,
+            "goldRecallAmongJudged": 0.8916666666666667,
+            "goldTasks": 104,
+            "goldTasksAllReached": 91,
+            "taskAllGoldReachedRate": 0.875,
+            "meanSkillsJudged": 15.4,
+            "meanRequests": 1.23125,
+            "totalRequests": 197,
+            "unavailable": 0,
+            "unavailableWithGold": 0
+          },
+          "en": {
+            "tasks": 96,
+            "wideTasks": 1,
+            "wideShare": 0.010416666666666666,
+            "goldSkills": 71,
+            "goldReached": 65,
+            "goldRecallAmongJudged": 0.9154929577464789,
+            "goldTasks": 62,
+            "goldTasksAllReached": 56,
+            "taskAllGoldReachedRate": 0.9032258064516129,
+            "meanSkillsJudged": 8.333333333333334,
+            "meanRequests": 1.0104166666666667,
+            "totalRequests": 97,
+            "unavailable": 0,
+            "unavailableWithGold": 0
+          },
+          "ko": {
+            "tasks": 64,
+            "wideTasks": 36,
+            "wideShare": 0.5625,
+            "goldSkills": 49,
+            "goldReached": 42,
+            "goldRecallAmongJudged": 0.8571428571428571,
+            "goldTasks": 42,
+            "goldTasksAllReached": 35,
+            "taskAllGoldReachedRate": 0.8333333333333334,
+            "meanSkillsJudged": 26,
+            "meanRequests": 1.5625,
+            "totalRequests": 100,
             "unavailable": 0,
             "unavailableWithGold": 0
           }
@@ -1438,589 +1504,163 @@
       }
     ]
   },
-  "localJudgeAbstention": [
-    {
-      "minCoverage": 0,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 37,
-          "unavailableWithGold": 21
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 1,
-          "unavailableWithGold": 0
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 36,
-          "unavailableWithGold": 21
+  "adaptiveWideBreakdown": {
+    "minCoverage": 0.25,
+    "result": {
+      "en": {
+        "wideTasks": 15,
+        "wideNoSkillTasks": 14,
+        "wideTasksWithGold": 1,
+        "goldSkillsGainedOverLexical": 0,
+        "byCategory": {
+          "none": 14,
+          "confusable": 1
         }
-      }
-    },
-    {
-      "minCoverage": 0.05,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 58,
-          "unavailableWithGold": 40
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 1,
-          "unavailableWithGold": 0
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 57,
-          "unavailableWithGold": 40
-        }
-      }
-    },
-    {
-      "minCoverage": 0.1,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 64,
-          "unavailableWithGold": 42
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 3,
-          "unavailableWithGold": 0
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 61,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.15,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 70,
-          "unavailableWithGold": 42
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 7,
-          "unavailableWithGold": 0
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 63,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.2,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 70,
-          "unavailableWithGold": 42
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 7,
-          "unavailableWithGold": 0
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 63,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.25,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 79,
-          "unavailableWithGold": 43
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 15,
-          "unavailableWithGold": 1
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 64,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.3,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 90,
-          "unavailableWithGold": 50
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 26,
-          "unavailableWithGold": 8
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 64,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.4,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 107,
-          "unavailableWithGold": 60
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 43,
-          "unavailableWithGold": 18
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 64,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.5,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 127,
-          "unavailableWithGold": 78
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 63,
-          "unavailableWithGold": 36
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 64,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 0.75,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 158,
-          "unavailableWithGold": 102
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 94,
-          "unavailableWithGold": 60
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 64,
-          "unavailableWithGold": 42
-        }
-      }
-    },
-    {
-      "minCoverage": 1,
-      "result": {
-        "overall": {
-          "tasks": 160,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 120,
-          "goldReached": 85,
-          "goldRecallAmongJudged": 0.7083333333333334,
-          "goldTasks": 104,
-          "goldTasksAllReached": 72,
-          "taskAllGoldReachedRate": 0.6923076923076923,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 160,
-          "unavailable": 160,
-          "unavailableWithGold": 104
-        },
-        "en": {
-          "tasks": 96,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 71,
-          "goldReached": 65,
-          "goldRecallAmongJudged": 0.9154929577464789,
-          "goldTasks": 62,
-          "goldTasksAllReached": 56,
-          "taskAllGoldReachedRate": 0.9032258064516129,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 96,
-          "unavailable": 96,
-          "unavailableWithGold": 62
-        },
-        "ko": {
-          "tasks": 64,
-          "wideTasks": 0,
-          "wideShare": 0,
-          "goldSkills": 49,
-          "goldReached": 20,
-          "goldRecallAmongJudged": 0.40816326530612246,
-          "goldTasks": 42,
-          "goldTasksAllReached": 16,
-          "taskAllGoldReachedRate": 0.38095238095238093,
-          "meanSkillsJudged": 8,
-          "meanRequests": 1,
-          "totalRequests": 64,
-          "unavailable": 64,
-          "unavailableWithGold": 42
+      },
+      "ko": {
+        "wideTasks": 64,
+        "wideNoSkillTasks": 22,
+        "wideTasksWithGold": 42,
+        "goldSkillsGainedOverLexical": 29,
+        "byCategory": {
+          "multi": 7,
+          "single": 22,
+          "none": 22,
+          "confusable": 13
         }
       }
     }
-  ]
+  },
+  "coverageByCatalogSize": [
+    {
+      "catalogSkills": 3,
+      "minCoverage": 0.25,
+      "result": {
+        "en": {
+          "tasks": 96,
+          "belowMinCoverage": 89,
+          "zero": 43
+        },
+        "ko": {
+          "tasks": 64,
+          "belowMinCoverage": 64,
+          "zero": 59
+        }
+      }
+    },
+    {
+      "catalogSkills": 5,
+      "minCoverage": 0.25,
+      "result": {
+        "en": {
+          "tasks": 96,
+          "belowMinCoverage": 87,
+          "zero": 33
+        },
+        "ko": {
+          "tasks": 64,
+          "belowMinCoverage": 64,
+          "zero": 59
+        }
+      }
+    },
+    {
+      "catalogSkills": 10,
+      "minCoverage": 0.25,
+      "result": {
+        "en": {
+          "tasks": 96,
+          "belowMinCoverage": 71,
+          "zero": 19
+        },
+        "ko": {
+          "tasks": 64,
+          "belowMinCoverage": 64,
+          "zero": 54
+        }
+      }
+    },
+    {
+      "catalogSkills": 20,
+      "minCoverage": 0.25,
+      "result": {
+        "en": {
+          "tasks": 96,
+          "belowMinCoverage": 48,
+          "zero": 7
+        },
+        "ko": {
+          "tasks": 64,
+          "belowMinCoverage": 64,
+          "zero": 48
+        }
+      }
+    },
+    {
+      "catalogSkills": 40,
+      "minCoverage": 0.25,
+      "result": {
+        "en": {
+          "tasks": 96,
+          "belowMinCoverage": 15,
+          "zero": 1
+        },
+        "ko": {
+          "tasks": 64,
+          "belowMinCoverage": 64,
+          "zero": 36
+        }
+      }
+    }
+  ],
+  "localJudgeAbstention": {
+    "overall": {
+      "tasks": 160,
+      "wideTasks": 0,
+      "wideShare": 0,
+      "goldSkills": 120,
+      "goldReached": 85,
+      "goldRecallAmongJudged": 0.7083333333333334,
+      "goldTasks": 104,
+      "goldTasksAllReached": 72,
+      "taskAllGoldReachedRate": 0.6923076923076923,
+      "meanSkillsJudged": 8,
+      "meanRequests": 1,
+      "totalRequests": 160,
+      "unavailable": 37,
+      "unavailableWithGold": 21
+    },
+    "en": {
+      "tasks": 96,
+      "wideTasks": 0,
+      "wideShare": 0,
+      "goldSkills": 71,
+      "goldReached": 65,
+      "goldRecallAmongJudged": 0.9154929577464789,
+      "goldTasks": 62,
+      "goldTasksAllReached": 56,
+      "taskAllGoldReachedRate": 0.9032258064516129,
+      "meanSkillsJudged": 8,
+      "meanRequests": 1,
+      "totalRequests": 96,
+      "unavailable": 1,
+      "unavailableWithGold": 0
+    },
+    "ko": {
+      "tasks": 64,
+      "wideTasks": 0,
+      "wideShare": 0,
+      "goldSkills": 49,
+      "goldReached": 20,
+      "goldRecallAmongJudged": 0.40816326530612246,
+      "goldTasks": 42,
+      "goldTasksAllReached": 16,
+      "taskAllGoldReachedRate": 0.38095238095238093,
+      "meanSkillsJudged": 8,
+      "meanRequests": 1,
+      "totalRequests": 64,
+      "unavailable": 36,
+      "unavailableWithGold": 21
+    }
+  }
 }

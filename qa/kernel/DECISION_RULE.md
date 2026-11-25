@@ -1,6 +1,8 @@
 # 사전 등록 결정 규칙: skill 후보 검색 기본값 (`kernel.skills.retrieval`)
 
-작성일 2026-11-25. **이 파일은 검색 방식별 실제(live) 개발 세트 실행이 한 번도 이루어지기 전에 작성했습니다.** 이 파일을 추가한 commit 시점에 `qa/kernel/results/`에는 `--retrieval`로 원격 judge를 돌린 결과가 없습니다. 있는 것은 stub judge의 오프라인 분석(`results/dev-retrieval-offline/`)과 `local` arm 배선 확인(`results/20261125-wiring-local-retrieval/`)뿐이며, 둘 다 결과가 아닙니다.
+작성일 2026-11-25. **이 파일은 검색 방식별 실제(live) 개발 세트 실행이 한 번도 이루어지기 전에 작성했습니다.** 이 파일을 추가한 commit 시점에 `qa/kernel/results/`에는 `--retrieval`로 원격 judge를 돌린 결과가 없습니다. 있는 것은 stub judge의 오프라인 분석(`results/dev-retrieval-offline/`)과 `local` arm 배선 확인(`results/20261125-wiring-local-retrieval-2/`)뿐이며, 둘 다 결과가 아닙니다.
+
+**개정 1 (2026-11-25, 실제 실행 전).** 독립 리뷰가 "규칙이 고정되어 있지 않다"고 지적했습니다. 명령과 consensus 부분집합이 commit되지 않은 라벨 파일에 달려 있었고, 어느 실행이 결정에 쓰이는 실행인지 기록할 수단이 없었습니다. 이 개정은 아래 [고정한 것](#고정한-것) 절과 결정 실행의 run id, 함께 보고할 수치를 더했습니다. **자격 조건, 선택, 동률 규칙과 한도(0.02, 1500 ms, 0.01)는 한 글자도 바꾸지 않았습니다.** 이 개정 시점에도 `--retrieval`로 원격 judge를 돌린 결과는 없습니다(`results/RUN_LEDGER.jsonl`에 live 원격 실행이 한 줄도 없음).
 
 규칙을 바꿔야 한다면 실제 개발 세트 실행 **전에** 이 파일을 고치고 commit합니다. 실행 뒤에는 고치지 않습니다. 실행 뒤에 규칙이 부적절했다는 것을 알게 되면 규칙을 고치는 대신 그 사실을 보고서에 적습니다.
 
@@ -13,16 +15,35 @@
 ## 입력: 개발 세트 실제 실행 1회
 
 - 데이터: `qa/kernel/data` (개발 세트). judge: Jev (`--arms jev`).
-- 실행 명령(이 형태 그대로, run id만 정함):
+- 실행 명령(이 형태 그대로, run id까지 고정):
 
 ```bash
-node qa/kernel/run-eval.mjs --run-id <run-id> --suite skills --arms jev \
+node qa/kernel/run-eval.mjs --run-id dev-retrieval-decision-1 --suite skills --arms jev \
   --retrieval lexical,adaptive,full --gold consensus \
   --labels skill-tasks.gold.jsonl,relabel/skill-tasks.blind2.jsonl
 ```
 
+- 요청 수: 작업 160건에 `lexical` 160 + `adaptive` 239 + `full` 320 = **719건**(전부 `api.typesafe.ai`). 전송 오류로 작업 전체가 실패한 경우에만 1회 재시도가 더해집니다(작업당 최대 1~2건). 러너의 arm당 상한은 3000건입니다.
+
 - consensus 부분집합: `skill-tasks.gold.jsonl`과 `relabel/skill-tasks.blind2.jsonl`의 skill 집합이 정확히 일치하는 항목. `--labels`로 두 파일을 명시하므로 둘 중 하나가 없으면 실행이 거부됩니다(다른 라벨 파일로 조용히 바뀌지 않음).
 - 실패한 항목은 러너의 기본 채점대로 "아무것도 고르지 않음"으로 셉니다.
+
+## 고정한 것
+
+결정 실행이 읽는 파일의 sha256입니다(`qa/kernel/data` 기준 경로). 러너는 읽은 파일의 sha256을 `metrics.json`의 `inputs.files`와 `results/RUN_LEDGER.jsonl`에 남기므로, 결정 실행의 값이 아래와 같은지 대조합니다. 다르면 그 실행은 이 규칙의 결정 실행이 아닙니다. 오프라인 테스트(`qa/kernel/test/retrieval-holdout.test.mjs`)가 아래 값과 현재 파일이 일치하는지 검사하므로, 라벨 파일이 바뀌면 테스트가 실패합니다.
+
+```text
+40f19b21c8d7466b4735e336b169893dd84f75a7d2de11570693283f79504a63  skill-tasks.jsonl
+813ef393571862757e71ddff584cece8a11821e396c531ec4b9a478947a04f92  skill-tasks.gold.jsonl
+1610c0c9b077b438a4e7f1cf97ae21f06e235e2a13a42d54dc6885dcca7180f0  relabel/skill-tasks.blind2.jsonl
+75db7f681b04d72eaa245a3552f2abfc322dda407cfddc0f7ff3f3c13fd24083  relabel/skill-tasks.nocategory.jsonl
+```
+
+- consensus 부분집합 크기: 159 / 160 (작성자 gold와 `blind2`가 다른 항목은 `st-142` 하나).
+- `relabel/skill-tasks.nocategory.jsonl`은 두 번째 라벨러가 본 입력(범주 힌트를 뺀 작업 문장)이며 러너는 읽지 않습니다. 라벨이 어떤 입력에서 나왔는지 남기려고 함께 고정합니다.
+- **결정 실행**: run id `dev-retrieval-decision-1`. 오류로 중단되어 `metrics.json`이 쓰이지 않았을 때에만 `dev-retrieval-decision-2`, `-3` 순으로 다시 실행합니다. `metrics.json`이 있는 가장 작은 번호가 결정 실행입니다. 모든 시도는 첫 요청 전에 `results/RUN_LEDGER.jsonl`에 한 줄씩 남고(추가 전용), 러너는 live 결과가 있는 run id를 `--force`로 덮어쓰지 않습니다(`QA_RUN_ID_HAS_LIVE_RESULT`). ledger와 결과 폴더는 실행 직후 commit합니다.
+- 결정 실행의 `metrics.json`은 `live: true`, `product.git.dirty: false`여야 하고, `product.git.commit`은 이 개정을 담은 commit이거나 그 뒤여야 합니다. 그렇지 않으면 보고서에 적고 결정에 쓰지 않습니다.
+- 고정하지 못한 것: 이 파일과 ledger는 저장소 안의 파일입니다. git 기록 밖에서 지우거나 고치는 것까지 막지는 못합니다. 그래서 "실행 직후 commit"이 규칙의 일부입니다.
 
 ## 규칙
 
@@ -45,6 +66,14 @@ node qa/kernel/run-eval.mjs --run-id <run-id> --suite skills --arms jev \
 
 실행이 오류로 중단되어 `metrics.json`이 쓰이지 않았다면 새 run id로 다시 실행하고, 중단된 run id도 보고서에 적습니다. `metrics.json`이 쓰인 첫 실행이 결정에 쓰이는 실행입니다. 수치가 마음에 들지 않는다는 이유로 다시 실행하지 않습니다.
 
+## 함께 보고하되 결정에 쓰지 않는 것
+
+리뷰에서 `adaptive`가 개발 세트에서 사실상 한국어 판별기이고, 넓게 간 영어 작업 15건 중 14건이 skill이 필요 없는 작업이라는 점이 확인됐습니다(`results/dev-retrieval-offline/analysis.json`의 `adaptiveWideBreakdown`). 그래서 아래 수치를 개발 세트와 held-out 세트 모두에서 **반드시 함께 보고**합니다. 규칙에는 넣지 않습니다(실행 전에 정한 규칙은 위 네 줄뿐입니다).
+
+- 언어별 넓게 간 작업의 비율: `operations.retrieval.wideShareByLanguage`
+- 넓게 간 skill 불필요 작업의 언어별 오주입률: `gold.consensus.wideNoneTasksByLanguage`
+- 일부 요청만 실패하고 아무것도 고르지 못한 작업 수: `operations.retrieval.tasksPartialNothingSelected` (채점은 다른 실패와 같이 "아무것도 고르지 않음"이지만 "필요 없음" 판정이 아닙니다)
+
 ## 결정에 쓰지 않는 것
 
 - 러너와 `dev-retrieval-analysis.mjs`가 내는 모든 sweep(`autoLoadSweep`, BM25 top-k, `minCoverage` 격자 등). 전부 "development analysis - not a result"로 표시되며 기본값 선택의 근거가 아닙니다.
@@ -55,7 +84,8 @@ node qa/kernel/run-eval.mjs --run-id <run-id> --suite skills --arms jev \
 
 - held-out 세트는 **한 번만** 채점합니다: 위 규칙으로 고른 방식과 `lexical` 기준선. 고른 방식이 `lexical`이면 `lexical`만 돌립니다.
 - held-out 결과를 본 뒤에는 **아무것도 조정하지 않습니다**: 기본 검색 방식, `minCoverage`, 임계값, 프롬프트, 토크나이저, 이 규칙 모두. held-out 수치는 보고만 합니다. 개발 세트에서 고른 방식이 held-out에서 더 나쁘게 나와도 선택을 뒤집지 않고 그 사실을 그대로 적습니다.
-- 러너가 이를 강제합니다: `HOLDOUT.json`이 있는 폴더는 해시 검증 → `--spend-holdout "<이유>"` 없으면 거부 → 첫 요청 전에 `HOLDOUT_LEDGER.jsonl`에 기록 → 항목별 파일과 sweep 없이 집계 수치만 출력. ledger에 두 줄 이상이 있으면 "한 번만"이 지켜지지 않은 것이므로 보고서에 모든 줄을 적습니다.
+- 러너가 이를 강제합니다: `HOLDOUT.json`이 있는 폴더는 해시 검증 → `--spend-holdout "<이유>"` 없으면 거부 → 이미 기록된 실행이 있으면 거부(`QA_HOLDOUT_ALREADY_SPENT`) → 첫 요청 전에 `HOLDOUT_LEDGER.jsonl`과 `results/RUN_LEDGER.jsonl`에 기록 → 항목별 파일과 sweep 없이 집계 수치만 출력. 첫 실행이 오류로 죽어 다시 돌려야 할 때에만 `--respend-holdout "<이유>"`를 더해 실행하고, 그 사실과 ledger의 모든 줄을 보고서에 적습니다. ledger에 두 줄 이상이 있으면 "한 번만"이 지켜지지 않은 것입니다.
+- 러너가 강제하지 **못하는** 것: 두 ledger와 `HOLDOUT.json`을 지우고 다시 freeze하면 로컬에는 흔적이 남지 않습니다. 그래서 freeze 직후 `HOLDOUT.json`을, 채점 직후 두 ledger를 commit합니다. git 기록이 유일한 외부 근거입니다.
 
 ```bash
 node qa/kernel/run-eval.mjs --run-id <run-id> --data-dir <held-out 폴더> --suite skills --arms jev \

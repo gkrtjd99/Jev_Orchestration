@@ -77,6 +77,8 @@ export async function runSkillsArm({
     return {
       suite: 'skills', arm: key, judgeArm: arm, id: item.id, lang: item.lang ?? null, category: item.category ?? null, attempt: n, scope,
       status: result.status, code, judged: calls.length > 0, need: result.need, candidateCount: result.candidates,
+      // Some chunk requests failed while others answered; partialCode is the first failed request's code.
+      partial: result.partial === true, partialCode: result.partial === true ? result.failedCode ?? null : null,
       retrieval: { ...result.retrieval },
       candidates: result.trace.filter(t => t.rank <= result.candidates).map(t => ({ name: t.name, rank: t.rank, bm25: t.bm25, p: t.probability, stage: t.stage })),
       load: result.load.map(s => ({ name: s.name, p: s.probability })),
@@ -129,6 +131,7 @@ function sumCallUsage(calls) {
 
 const predFromRow = row => ({
   id: row.id, lang: row.lang, category: row.category, failed: row.status === 'unavailable', need: row.need,
+  wide: row.retrieval?.wide === true,
   load: row.load.map(s => s.name), suggest: row.suggest.map(s => s.name),
   stage: Object.fromEntries(row.candidates.map(c => [c.name, c.stage])),
 });
@@ -213,6 +216,13 @@ function scoreVariant(preds, gold, needGate, { breakdown = true } = {}) {
       .sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, group]) => [k, selection(group, gold, needGate)]));
     out.byLanguage = by('lang');
     out.byCategory = by('category');
+    // The exposure the wide path adds: no-skill tasks that were judged wide, by language. On the development
+    // set adaptive sends English tasks wide that are almost all no-skill tasks, so this is where it can only lose.
+    out.wideNoneTasksByLanguage = Object.fromEntries([...groupBy(scoped.filter(p => p.wide && gold.get(p.id).size === 0), p => p.lang ?? 'unknown').entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, group]) => {
+        const anyLoaded = group.filter(p => p.load.length > 0).length;
+        return [k, { tasks: group.length, anyLoaded, falseInjectionRate: ratio(anyLoaded, group.length) }];
+      }));
   }
   return out;
 }
@@ -352,6 +362,9 @@ function operations({ run, catalog }) {
       // Chunk requests that failed or were late, and tasks that lost some but not all of their requests.
       failedRequests: rows.reduce((a, r) => a + r.retrieval.failed, 0),
       tasksWithPartialFailure: rows.filter(r => r.retrieval.failed > 0 && r.status !== 'unavailable').length,
+      // Of those, the tasks that ended with nothing selected. They are scored as "nothing selected" like
+      // any failure, but they are not judged "no skill needed" decisions: the lost request may have held the skill.
+      tasksPartialNothingSelected: rows.filter(r => r.retrieval.failed > 0 && r.status === 'none').length,
     },
     // One entry per TASK: wall clock from its first judge request until selectSkills returned, so the
     // concurrent chunk requests of a wide decision count once. Failed tasks included; final attempt only.

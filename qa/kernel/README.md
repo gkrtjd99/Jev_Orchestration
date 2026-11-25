@@ -17,13 +17,14 @@ node qa/kernel/run-eval.mjs --run-id other --suite skills --arms jev --data-dir 
 
 | 옵션 | 기본 | 뜻 |
 |---|---|---|
-| `--run-id <id>` | 필수 | 결과 폴더 이름. 이미 있으면 `QA_RUN_ID_EXISTS`로 거부 (`--force`로 지우고 다시) |
+| `--run-id <id>` | 필수 | 결과 폴더 이름. 이미 있으면 `QA_RUN_ID_EXISTS`로 거부. `--force`는 오프라인·주입 전송 결과만 지우고 다시 돌립니다. **live 원격 실행의 결과가 든 폴더는 `--force`로도 지우지 않습니다**(`QA_RUN_ID_HAS_LIVE_RESULT`, 새 run id를 쓰세요) |
 | `--arms` | `jev,openai,local,chain` | 실행할 arm |
 | `--retrieval` | 없음 | `lexical`, `adaptive`, `full` 중 쉼표로 나열. skill arm마다 나열한 방식을 **교차**해 `<arm>-<방식>`이라는 arm으로 돌립니다(조합마다 별도 `stateDir`·decision log·rows 파일). 주지 않으면 arm 이름 그대로 제품 기본 방식(`lexical`)으로 한 번만 돕니다. `minCoverage`·`maxJudged`·`chunk`는 항상 제품 기본값입니다. supervisor에는 영향이 없습니다 |
 | `--data-dir <dir>` | `qa/kernel/data` | 데이터 세트 폴더. 그 안의 `skills/`가 카탈로그입니다. `--data`는 같은 뜻의 예전 이름 |
 | `--gold` | consensus가 있으면 `consensus`, 없으면 `author` | 대표(headline) gold. 요약에서 먼저 나오고 제품 decision log 라벨에 쓰입니다. **어느 쪽을 고르든 consensus 부분집합과 author gold 전체 수치가 둘 다 나옵니다.** `consensus`를 명시했는데 두 번째 라벨 파일이 없으면 `QA_NO_CONSENSUS`로 거부 |
 | `--labels <A,B>` | `skill-tasks.gold.jsonl`과, 있으면 `relabel/skill-tasks.blind2.jsonl`, 없으면 `skill-tasks.blind.jsonl` | consensus를 계산할 skill 라벨 파일 두 개(데이터 폴더 기준 상대 경로, 폴더 밖은 거부). 명시한 파일이 없으면 `DATA_FILE_MISSING` |
 | `--spend-holdout "<이유>"` | 없음 | `HOLDOUT.json`이 있는 폴더를 돌릴 때 필수. 아래 "Held-out 세트" 참고 |
+| `--respend-holdout "<이유>"` | 없음 | 이미 기록된 실행이 있는 held-out 세트를 **다시** 돌릴 때 `--spend-holdout`에 더해 필수. 없으면 `QA_HOLDOUT_ALREADY_SPENT` |
 | `--suite` | `all` | `skills`, `supervisor`, `all` |
 | `--limit n` | 없음 | 각 데이터 파일의 앞 n건만 |
 | `--timeout-ms` | `20000` | 요청당(체인은 체인 전체) 예산. 아래 "제품과 다른 점" 참고 |
@@ -49,7 +50,11 @@ node qa/kernel/dev-retrieval-analysis.mjs        # [--data dir] [--out file]
 TMPDIR="$(cd /tmp && pwd -P)" node --test qa/kernel/test/*.test.mjs
 ```
 
-`run-eval.test.mjs`는 러너의 기본 경로, `retrieval-holdout.test.mjs`는 검색 방식 교차, consensus 계산, held-out 규율(해시 검증, `--spend-holdout` 없는 실행 거부, ledger 기록, 항목별 출력 억제), `freeze-holdout.mjs`를 다룹니다. 전부 임시 폴더의 작은 fixture와 주입된 전송만 씁니다.
+`run-eval.test.mjs`는 러너의 기본 경로, `retrieval-holdout.test.mjs`는 검색 방식 교차, consensus 계산, held-out 규율(해시 검증, `--spend-holdout` 없는 실행 거부, 두 번째 실행 거부, ledger 기록, 항목별 출력 억제), `freeze-holdout.mjs`, 입력 파일 해시와 `RUN_LEDGER.jsonl`, rows 파일 분할을 다룹니다. 임시 폴더의 작은 fixture와 주입된 전송만 씁니다. 예외는 저장소의 실제 파일을 읽는 두 검사입니다: `qa/kernel/results`·`qa/kernel/data` 아래에 1,000,000바이트를 넘는 파일이 없는지(`bash scripts/test-all.sh`의 Python 검증이 commit된 파일에 거는 제한), `DECISION_RULE.md`에 적힌 라벨 파일 sha256과 consensus 크기가 현재 데이터와 같은지.
+
+## 실행 기록 (`results/RUN_LEDGER.jsonl`)
+
+모든 실행(개발 세트·held-out, 오프라인 포함)은 **첫 요청 전에** `<out>/RUN_LEDGER.jsonl`에 한 줄을 덧붙입니다: `runId`, `timestamp`, `productCommit`(+`productDirty`, `productVersion`), `dataDir`, `transport`, `remoteArms`, `arms`, `retrievalModes`, `suites`, `limit`, `gold`, `labels`, `inputs`(읽은 작업·라벨 파일별 sha256과 카탈로그 fingerprint), `replacedExistingResult`(`--force`로 이전 결과를 지웠는지), `holdout`(held-out이면 manifest sha256·이유·이전 기록 수). 같은 `inputs`가 `metrics.json`에도 들어가고 요약의 라벨 파일 이름 옆에 sha256 앞 12자가 찍힙니다. 이 파일은 추가 전용이고 실행 뒤 결과 폴더와 함께 commit합니다. `DECISION_RULE.md`가 "결정에 쓰이는 실행"을 이 기록의 순서와 해시로 가려냅니다.
 
 ## Arm
 
@@ -96,8 +101,11 @@ node qa/kernel/freeze-holdout.mjs --data-dir <dir> [--policy "<문장>"]
 
 1. **해시 검증이 가장 먼저**입니다. 적힌 파일 하나라도 내용이 다르면 `QA_HOLDOUT_HASH_MISMATCH`, 없으면 `QA_HOLDOUT_FILE_MISSING`. 이번 실행이 읽는 파일(작업·라벨 파일)이나 `skills/` 아래 파일이 목록에 없으면 `QA_HOLDOUT_UNLISTED_FILE`. `HOLDOUT.json`이 형식에 맞지 않으면 `QA_HOLDOUT_INVALID`(held-out이 아닌 것으로 취급하지 않음).
 2. `--spend-holdout "<이유>"`가 없으면 `QA_HOLDOUT_REQUIRES_SPEND`로 거부합니다. `local` arm처럼 API를 부르지 않는 실행도 같습니다. 반대로 `HOLDOUT.json`이 없는 폴더에 `--spend-holdout`을 주면 `QA_HOLDOUT_NOT_FROZEN`입니다.
-3. 키·라벨·run id 검사를 통과한 뒤, **첫 요청 전에** `<data-dir>/HOLDOUT_LEDGER.jsonl`에 한 줄을 덧붙입니다: `runId`, `timestamp`, `productCommit`(+`productDirty`, `productVersion`), `arms`, `retrievalModes`, `plan`, `suites`, `limit`, `gold`, `labels`, `transport`, `remoteArms`, `reason`. 실행이 중간에 죽어도 줄은 남습니다. 1~2번이나 그 뒤의 사전 검사에서 거부된 실행은 요청을 보내지 않았으므로 줄을 남기지 않습니다.
-4. 출력은 **집계 수치뿐**입니다. `rows-*.jsonl`과 `decision-log/` 사본을 쓰지 않고, `metrics.retrieval`(BM25 top-k sweep)·`autoLoadSweep`·`thresholdSweep`은 `{suppressed: ...}`로 바뀌며, `dataset.*.issues`는 항목 id 대신 개수만 담습니다. 결과 폴더에는 `metrics.json`과 `summary.txt`만 남고 `metrics.holdout`에 정책·ledger 줄·이전 기록 수가 들어갑니다.
+3. **이미 기록된 실행이 있으면 거부합니다**(`QA_HOLDOUT_ALREADY_SPENT`). `<data-dir>/HOLDOUT_LEDGER.jsonl`에 줄이 있거나, 출력 폴더의 `RUN_LEDGER.jsonl`에 같은 `HOLDOUT.json`(sha256)으로 돌린 기록이 있으면 해당합니다. 그래서 세트의 ledger를 지워도 초기화되지 않습니다. 첫 실행이 오류로 죽었을 때처럼 정말 다시 봐야 하면 `--respend-holdout "<이유>"`를 더하고, 그 사실을 보고서에 적습니다.
+4. 키·라벨·run id 검사를 통과한 뒤, **첫 요청 전에** `<data-dir>/HOLDOUT_LEDGER.jsonl`에 한 줄을 덧붙입니다: `runId`, `timestamp`, `productCommit`(+`productDirty`, `productVersion`), `arms`, `retrievalModes`, `plan`, `suites`, `limit`, `gold`, `labels`, `transport`, `remoteArms`, `reason`(+`respendReason`), `manifestSha256`, `inputs`. 실행이 중간에 죽어도 줄은 남습니다. 1~3번이나 그 뒤의 사전 검사에서 거부된 실행은 요청을 보내지 않았으므로 줄을 남기지 않습니다.
+5. 출력은 **집계 수치뿐**입니다. `rows-*.jsonl`과 `decision-log/` 사본을 쓰지 않고, `metrics.retrieval`(BM25 top-k sweep)·`autoLoadSweep`·`thresholdSweep`은 `{suppressed: ...}`로 바뀌며, `dataset.*.issues`는 항목 id 대신 개수만 담습니다. 결과 폴더에는 `metrics.json`과 `summary.txt`만 남고 `metrics.holdout`에 정책·ledger 줄·이전 기록 수가 들어갑니다.
+
+**강제하지 못하는 것.** 이 규율은 로컬 파일로만 지켜집니다. `HOLDOUT.json`, `HOLDOUT_LEDGER.jsonl`, `RUN_LEDGER.jsonl`을 모두 지우고 데이터를 고친 뒤 다시 freeze하면 로컬에는 흔적이 없습니다. freeze 전에 `HOLDOUT.json` 없이 돌려 항목별 출력을 본 것도 러너는 알 수 없습니다. 그래서 freeze 직후 `HOLDOUT.json`을, 채점 직후 두 ledger와 결과 폴더를 commit해야 하고, git 기록이 유일한 외부 근거입니다.
 
 기본 검색 방식을 어떻게 고르고 held-out을 어떻게 쓰는지는 `DECISION_RULE.md`에 실제 실행 전에 적어 두었습니다.
 
@@ -109,7 +117,7 @@ node qa/kernel/freeze-holdout.mjs --data-dir <dir> [--policy "<문장>"]
 |---|---|
 | `metrics.json` | 아래의 모든 수치. `live: true`는 전송을 주입하지 않았다는 뜻이고(테스트용 전송을 주입하면 `live: false`, `transport: "injected"`), `remoteArms: false`면 원격 API를 부르는 arm이 없었다는 뜻입니다(`local`만 돌린 실행). 실제로 보낸 요청 수는 `liveRequests`에 있습니다 |
 | `summary.txt` | 화면에 찍힌 요약 |
-| `rows-skills-<arm>.jsonl` | 항목별 원자료: id, 언어, 범주, 상태·오류 코드, `need`, `retrieval`(제품이 돌려준 `mode`/`wide`/`lexicalSignal`/`requests`/`failed`/`judged`/`dropped`), 후보별 BM25 순위·점수·확률·단계, load/suggest, 전체 순위, `calls`(요청별 skill 이름·성공 여부·코드·지연·`need`·judge·usage·`decisionId`), `decisions`(요청별 log 기록의 `trail`), `latencyMs`(작업 wall clock), usage 합, gold. `--retrieval`을 주면 `<arm>`은 `<arm>-<방식>` |
+| `rows-skills-<arm>.jsonl` | 항목별 원자료: id, 언어, 범주, 상태·오류 코드, `need`, `retrieval`(제품이 돌려준 `mode`/`wide`/`lexicalSignal`/`requests`/`failed`/`judged`/`dropped`), 후보별 BM25 순위·점수·확률·단계, load/suggest, 전체 순위, `calls`(요청별 skill 이름·성공 여부·코드·지연·`need`·judge·usage·`decisionId`), `decisions`(요청별 log 기록의 `trail`), `latencyMs`(작업 wall clock), usage 합, gold, `partial`·`partialCode`(일부 요청만 실패한 작업). `--retrieval`을 주면 `<arm>`은 `<arm>-<방식>`. **파일 하나는 900,000바이트를 넘지 않습니다.** 넘으면 이어지는 줄이 `rows-skills-<arm>.part2.jsonl`, `.part3.jsonl`, …에 쓰이고 `metrics.files`에 모두 나열됩니다(이어 붙이면 원래 순서의 전체 rows). commit된 파일이 1,000,000바이트를 넘으면 `bash scripts/test-all.sh`의 Python 검증이 `UNSAFE_ARCHIVE_ENTRY`로 실패하기 때문입니다 |
 | `rows-supervisor-<arm>.jsonl` | 항목별: outcome, 확신, 분포, evidence 점수·단계·분포, `advisory`, 지연, usage, `trail`, gold |
 | `decision-log/<suite>-<arm>/` | 제품 `DecisionLog`가 쓴 `decisions-*.jsonl`, `labels-*.jsonl` 사본 |
 

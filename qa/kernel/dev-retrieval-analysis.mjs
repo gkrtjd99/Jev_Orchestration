@@ -20,7 +20,10 @@ import { readJsonl } from './lib/data.mjs';
 import { readHoldout, SWEEP_LABEL } from './lib/holdout.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const MIN_COVERAGE_GRID = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1];
+// 0.000001 is the trigger that needs no tuned fraction: only a task with NO lexical signal (coverage 0) goes wide.
+const SIGNAL_ZERO_ONLY = 0.000001;
+const MIN_COVERAGE_GRID = [0, SIGNAL_ZERO_ONLY, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1];
+const CATALOG_SIZE_GRID = [3, 5, 10, 20, 40];
 const LEXICAL_K_GRID = [8, 16, 32];
 const CHUNK_GRID = [16, 32, 64];
 
@@ -110,6 +113,44 @@ async function main() {
     };
   }
 
+  // What the shipped adaptive rule sends wide, split by whether the task needs a skill, and what that
+  // buys over lexical. A wide no-skill task can only add false-injection exposure.
+  const shippedAdaptive = settingsOf({ retrieval: 'adaptive' });
+  const lexicalSettings = settingsOf({ retrieval: 'lexical' });
+  const wideBreakdown = {};
+  for (const item of items) {
+    const g = gold.get(item.id) ?? [];
+    const reachedBy = async settings => {
+      const r = await selectSkills({ task: item.task, catalog, judge: stubJudge(), scope: 'dev-retrieval-analysis', config: settings });
+      return { wide: r.retrieval.wide, reached: new Set(r.trace.filter(t => t.stage !== 'retrieval').map(t => t.name)) };
+    };
+    const a = await reachedBy(shippedAdaptive);
+    if (!a.wide) continue;
+    const l = await reachedBy(lexicalSettings);
+    const cell = wideBreakdown[String(item.lang ?? 'unknown')] ??= { wideTasks: 0, wideNoSkillTasks: 0, wideTasksWithGold: 0, goldSkillsGainedOverLexical: 0, byCategory: {} };
+    cell.wideTasks++;
+    if (g.length) cell.wideTasksWithGold++; else cell.wideNoSkillTasks++;
+    cell.goldSkillsGainedOverLexical += g.filter(name => a.reached.has(name) && !l.reached.has(name)).length;
+    const category = String(item.category ?? 'unknown');
+    cell.byCategory[category] = (cell.byCategory[category] ?? 0) + 1;
+  }
+
+  // Coverage is not a property of the task alone: the same tasks against the first N skills (by name) of
+  // the same catalog. Fewer skills means a smaller vocabulary, lower coverage and more tasks under the floor.
+  const byName = [...catalog.skills].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const coverageByCatalogSize = CATALOG_SIZE_GRID.filter(n => n <= byName.length).map(n => {
+    const subset = byName.slice(0, n);
+    const result = {};
+    for (const item of items) {
+      const cell = result[String(item.lang ?? 'unknown')] ??= { tasks: 0, belowMinCoverage: 0, zero: 0 };
+      const c = lexicalCoverage(item.task, subset);
+      cell.tasks++;
+      if (c < shipped.minCoverage) cell.belowMinCoverage++;
+      if (c === 0) cell.zero++;
+    }
+    return { catalogSkills: n, minCoverage: shipped.minCoverage, result };
+  });
+
   const out = {
     label: SWEEP_LABEL,
     what: 'Offline candidate-retrieval analysis on the development set. Upper bound on recall only: the judge is a stub.',
@@ -140,11 +181,14 @@ async function main() {
       // A catalog cap below the catalog size: the BM25 top maxJudged are judged, the rest are dropped.
       fullMaxJudged: await grid('maxJudged', [16, 24, 32, 64], m => run({ retrieval: 'full', maxJudged: m })),
     },
-    // The no-network judge alone (lexical retrieval): how often it now abstains instead of answering need 0.
-    localJudgeAbstention: await grid('minCoverage', MIN_COVERAGE_GRID, c => sweep({
-      items, gold, catalog, settings: settingsOf({ retrieval: 'lexical', minCoverage: c }),
+    adaptiveWideBreakdown: { minCoverage: shipped.minCoverage, result: wideBreakdown },
+    coverageByCatalogSize,
+    // The no-network judge alone (lexical retrieval): it abstains only on a task with no lexical signal at
+    // all (coverage 0), whatever minCoverage is, instead of answering need 0.
+    localJudgeAbstention: await sweep({
+      items, gold, catalog, settings: settingsOf({ retrieval: 'lexical' }),
       judge: new LocalJudge({ [SKILLS_POINT]: localSkillResolver() }),
-    })),
+    }),
   };
 
   await fs.mkdir(path.dirname(outFile), { recursive: true });
@@ -157,14 +201,16 @@ async function main() {
   const lines = [
     `[${SWEEP_LABEL}]`,
     `Development set: ${items.length} tasks (${Object.entries(out.dataset.byLanguage).map(([l, n]) => `${l} ${n}`).join(', ')}), ${catalog.skills.length} skills, ${out.dataset.goldSkills} gold skills (author gold). No API calls.`,
-    `lexicalSignal: ${Object.entries(distribution).map(([l, d]) => `${l} zero ${d.zero}/${d.tasks} p50 ${fix(d.quantiles.p50)} p90 ${fix(d.quantiles.p90)}`).join(' | ')}`,
+    `lexicalSignal: ${Object.entries(distribution).map(([l, d]) => `${l} zero ${d.zero}/${d.tasks} p50 ${fix(d.quantiles.p50)} p90 ${fix(d.quantiles.p90)} max ${d.quantiles.p100.toFixed(3)}`).join(' | ')}`,
     row('lexical', out.modes.lexical),
-    ...out.modes.adaptive.map(x => row(`adaptive ${x.minCoverage}`, x.result)),
+    ...out.modes.adaptive.map(x => row(x.minCoverage === SIGNAL_ZERO_ONLY ? 'adaptive signal=0' : `adaptive ${x.minCoverage}`, x.result)),
     row('full', out.modes.full),
     ...out.sensitivity.lexicalMaxCandidates.map(x => row(`lexical k=${x.maxCandidates}`, x.result)),
     ...out.sensitivity.fullChunk.map(x => row(`full chunk=${x.chunk}`, x.result)),
     ...out.sensitivity.fullMaxJudged.map(x => row(`full maxJ=${x.maxJudged}`, x.result)),
-    ...out.localJudgeAbstention.map(({ minCoverage: c, result: r }) => `local abstain @${c}`.padEnd(20) + langs.map(l => `${l} ${r[l].unavailable}/${r[l].tasks} (needing a skill: ${r[l].unavailableWithGold})`).join(' ')),
+    `adaptive ${shipped.minCoverage} wide tasks: ${Object.entries(wideBreakdown).sort().map(([l, c]) => `${l} ${c.wideTasks} (no-skill ${c.wideNoSkillTasks}, with gold ${c.wideTasksWithGold}, gold skills gained over lexical ${c.goldSkillsGainedOverLexical})`).join(' | ')}`,
+    ...coverageByCatalogSize.map(x => `first ${String(x.catalogSkills).padStart(2)} skills: below ${x.minCoverage} ` + Object.entries(x.result).sort().map(([l, c]) => `${l} ${c.belowMinCoverage}/${c.tasks} (zero ${c.zero})`).join(' ')),
+    'local abstain'.padEnd(20) + langs.map(l => `${l} ${out.localJudgeAbstention[l].unavailable}/${out.localJudgeAbstention[l].tasks} (needing a skill: ${out.localJudgeAbstention[l].unavailableWithGold})`).join(' '),
     'Upper bound only: this does not measure judge precision when the judge is shown the wide list.',
     `written: ${path.relative(process.cwd(), outFile)}`,
   ];

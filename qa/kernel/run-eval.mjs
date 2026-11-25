@@ -4,11 +4,15 @@
 //
 //   node qa/kernel/run-eval.mjs --run-id <id> [--arms jev,openai,local,chain] [--retrieval lexical,adaptive,full]
 //        [--data-dir dir] [--gold author|consensus] [--labels fileA,fileB] [--limit n] [--suite skills|supervisor|all]
-//        [--spend-holdout "<reason>"]
+//        [--spend-holdout "<reason>"] [--respend-holdout "<reason>"]
 //
 // A data directory that contains HOLDOUT.json is a held-out set: hashes are verified first, the run is refused
 // without --spend-holdout, it is recorded in HOLDOUT_LEDGER.jsonl before the first request, and the output
-// carries aggregate metrics only (no per-item files, no sweeps).
+// carries aggregate metrics only (no per-item files, no sweeps). A set that already has a recorded run is
+// refused again unless --respend-holdout "<reason>" is given as well.
+//
+// Every run (development or held-out) is also appended to <out>/RUN_LEDGER.jsonl before its first request,
+// with the sha256 of every data and label file it reads; metrics.json carries the same hashes under `inputs`.
 //
 // See qa/kernel/README.md for every option and the meaning of each metric.
 import fs from 'node:fs/promises';
@@ -20,7 +24,10 @@ import { loadSkillCatalog, DEFAULT_RETRIEVAL } from '../../orchestration/src/ker
 import { VERSION } from '../../orchestration/src/util.mjs';
 import { ARMS, RETRIEVAL_MODES, armKey } from './lib/harness.mjs';
 import { loadSkillSuite, loadSupervisorSuite, skillAgreement, supervisorAgreement, labelPath } from './lib/data.mjs';
-import { readHoldout, verifyHoldout, appendLedger, readLedger, suppressSweeps, SUPPRESSED, LEDGER_FILE } from './lib/holdout.mjs';
+import {
+  readHoldout, verifyHoldout, appendLedger, readLedger, suppressSweeps, SUPPRESSED, LEDGER_FILE, HOLDOUT_FILE, sha256File,
+  RUN_LEDGER_FILE, appendRunLedger, readRunLedger,
+} from './lib/holdout.mjs';
 import { runSkillsArm, skillsMetrics, retrievalAnalysis } from './lib/skills-eval.mjs';
 import { runSupervisorArm, supervisorMetrics } from './lib/supervisor-eval.mjs';
 
@@ -28,6 +35,23 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, '..', '..');
 const RUN_ID = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/;
 const SUITES = ['skills', 'supervisor'];
+// verification/verifier/repo_tasks.py refuses a repository snapshot that holds a committed file over
+// 1,000,000 bytes, so a rows file is written in parts that each stay well below it.
+export const MAX_ROWS_FILE_BYTES = 900000;
+
+/** Splits JSONL lines into parts of at most `maxBytes` (a single longer line gets a part of its own). */
+export function rowParts(lines, maxBytes = MAX_ROWS_FILE_BYTES) {
+  const parts = [];
+  let current = [], size = 0;
+  for (const line of lines) {
+    const bytes = Buffer.byteLength(line) + 1;
+    if (current.length && size + bytes > maxBytes) { parts.push(current); current = []; size = 0; }
+    current.push(line);
+    size += bytes;
+  }
+  if (current.length || !parts.length) parts.push(current);
+  return parts.map(part => part.map(line => line + '\n').join(''));
+}
 
 function fail(code, detail) {
   const e = new Error(detail ? `${code}: ${detail}` : code);
@@ -37,7 +61,7 @@ function fail(code, detail) {
 
 export function parseArgs(argv) {
   const flags = new Set(['force', 'no-retry', 'help']);
-  const known = new Set(['run-id', 'arms', 'retrieval', 'limit', 'suite', 'data', 'data-dir', 'gold', 'labels', 'spend-holdout', 'out',
+  const known = new Set(['run-id', 'arms', 'retrieval', 'limit', 'suite', 'data', 'data-dir', 'gold', 'labels', 'spend-holdout', 'respend-holdout', 'out',
     'timeout-ms', 'concurrency', 'openai-model', 'max-requests', ...flags]);
   const raw = {};
   for (let i = 0; i < argv.length; i++) {
@@ -79,9 +103,14 @@ export function parseArgs(argv) {
   if (raw.data !== undefined && raw['data-dir'] !== undefined) throw fail('QA_INVALID_OPTION', '--data and --data-dir');
   const spend = raw['spend-holdout'];
   if (spend !== undefined && (!spend.trim() || spend.length > 500 || /[\u0000-\u001f]/.test(spend))) throw fail('QA_INVALID_OPTION', '--spend-holdout');
+  const respend = raw['respend-holdout'];
+  if (respend !== undefined && (!respend.trim() || respend.length > 500 || /[\u0000-\u001f]/.test(respend))) throw fail('QA_INVALID_OPTION', '--respend-holdout');
+  // A second look is an addition to the first reason, never a replacement for it.
+  if (respend !== undefined && spend === undefined) throw fail('QA_INVALID_OPTION', '--respend-holdout needs --spend-holdout');
   return {
     help: raw.help === true, runId: raw['run-id'], arms, suites: suite === 'all' ? SUITES : [suite],
     retrieval, gold: raw.gold ?? null, labels, spendHoldout: spend === undefined ? null : spend.trim(),
+    respendHoldout: respend === undefined ? null : respend.trim(),
     limit: int('limit', null, 1, 1e6), dataDir: path.resolve(raw['data-dir'] ?? raw.data ?? path.join(HERE, 'data')),
     outDir: path.resolve(raw.out ?? path.join(HERE, 'results')), timeoutMs: int('timeout-ms', 20000, 50, 120000),
     concurrency: int('concurrency', 4, 1, 16), openaiModel: raw['openai-model'] ?? null,
@@ -91,7 +120,7 @@ export function parseArgs(argv) {
 
 const USAGE = `usage: node qa/kernel/run-eval.mjs --run-id <id> [--arms jev,openai,local,chain] [--retrieval lexical,adaptive,full]
        [--suite skills|supervisor|all] [--limit n] [--data-dir dir] [--gold author|consensus] [--labels fileA,fileB]
-       [--spend-holdout "<reason>"] [--out dir] [--timeout-ms 20000] [--concurrency 4] [--openai-model name]
+       [--spend-holdout "<reason>"] [--respend-holdout "<reason>"] [--out dir] [--timeout-ms 20000] [--concurrency 4] [--openai-model name]
        [--max-requests 3000] [--no-retry] [--force]`;
 
 /** The product only reads project skills from <project>/.claude/skills, so the dataset is copied into a disposable project. */
@@ -129,10 +158,19 @@ export async function runEvaluation(options, { env = process.env, fetchImpl = nu
 
   // Held-out discipline comes first: hashes are verified before anything else is looked at.
   const holdout = await readHoldout(options.dataDir);
-  let verified = null;
+  let verified = null, manifestSha256 = null, priorSpends = 0;
   if (holdout) {
     verified = await verifyHoldout(options.dataDir, holdout);
     if (!options.spendHoldout) throw fail('QA_HOLDOUT_REQUIRES_SPEND', `${path.join(options.dataDir, 'HOLDOUT.json')} is frozen; pass --spend-holdout "<reason>"`);
+    // "Scored once" is enforced as far as local files allow: a set with a recorded run - in its own ledger,
+    // or in the run ledger of the output directory under the same manifest hash (which survives a deleted
+    // HOLDOUT_LEDGER.jsonl) - is refused unless the second look is asked for explicitly, with its own reason.
+    manifestSha256 = await sha256File(path.join(options.dataDir, HOLDOUT_FILE));
+    priorSpends = Math.max((await readLedger(options.dataDir)).length,
+      (await readRunLedger(options.outDir)).filter(e => e?.holdout?.manifestSha256 === manifestSha256).length);
+    if (priorSpends > 0 && !options.respendHoldout) {
+      throw fail('QA_HOLDOUT_ALREADY_SPENT', `${priorSpends} run(s) already recorded for this set; a further look needs --respend-holdout "<reason>" and must be reported`);
+    }
   } else if (options.spendHoldout) {
     // Never let a run look "spent and recorded" when there was nothing frozen to record against.
     throw fail('QA_HOLDOUT_NOT_FROZEN', path.join(options.dataDir, 'HOLDOUT.json'));
@@ -174,11 +212,23 @@ export async function runEvaluation(options, { env = process.env, fetchImpl = nu
       openaiModelOverride: options.openaiModel, dataDir: path.relative(REPO, options.dataDir) || '.', gold: options.gold, labels: options.labels,
     },
     holdout: null,
+    // sha256 of every data and label file this run read (relative to the data directory) and the catalog
+    // fingerprint. qa/kernel/DECISION_RULE.md pins the label files of the deciding run by these hashes.
+    inputs: null,
     plan, dataset: {}, retrieval: null, skills: {}, supervisor: {}, liveRequests: { byHost: {}, total: 0 }, files: [],
   };
   const progress = label => {
     let last = 0;
     return n => { if (n - last >= 25) { last = n; stderr.write(`  ${label}: ${n}\n`); } };
+  };
+  // rows-<name>.jsonl, continued in rows-<name>.part2.jsonl, .part3.jsonl, ... when it would pass the size limit.
+  const writeRows = async (stem, lines) => {
+    const parts = rowParts(lines);
+    for (let i = 0; i < parts.length; i++) {
+      const name = i === 0 ? `${stem}.jsonl` : `${stem}.part${i + 1}.jsonl`;
+      await write(name, parts[i]);
+      metrics.files.push(name);
+    }
   };
   const addHttp = http => {
     for (const [host, n] of Object.entries(http.byHost)) metrics.liveRequests.byHost[host] = (metrics.liveRequests.byHost[host] ?? 0) + n;
@@ -206,13 +256,38 @@ export async function runEvaluation(options, { env = process.env, fetchImpl = nu
     }
     // Every file this run reads must be one of the frozen ones (and nothing may have been added under skills/).
     if (holdout) await verifyHoldout(options.dataDir, holdout, { reads });
+    const files = {};
+    for (const rel of [...new Set(reads)].sort()) files[rel] = await sha256File(path.join(options.dataDir, rel));
+    metrics.inputs = { files, catalogFingerprint: catalog?.fingerprint ?? null };
 
+    let replaced = false;
     try {
       await fs.access(resultDir);
       if (!options.force) throw fail('QA_RUN_ID_EXISTS', resultDir);
+      // --force may replace an offline or injected-transport result, never one that came from a live API:
+      // the first live run that wrote metrics.json is the one a pre-registered rule decides on.
+      let earlier = null;
+      try { earlier = JSON.parse(await fs.readFile(path.join(resultDir, 'metrics.json'), 'utf8')); } catch { /* no readable metrics.json */ }
+      if (earlier && earlier.live !== false && earlier.remoteArms !== false) throw fail('QA_RUN_ID_HAS_LIVE_RESULT', `${resultDir}: use a new --run-id`);
       await fs.rm(resultDir, { recursive: true, force: true });
+      replaced = true;
     } catch (e) { if (e.code !== 'ENOENT') throw e; }
     await fs.mkdir(resultDir, { recursive: true });
+
+    // Append-only record of every run, written BEFORE the first request. It is what identifies "the first
+    // run that wrote metrics.json" afterwards, and it keeps a trace of a result folder that --force replaced.
+    metrics.runLedger = {
+      file: RUN_LEDGER_FILE,
+      entry: await appendRunLedger(options.outDir, {
+        schema: 1, runId: options.runId, timestamp: now().toISOString(),
+        productCommit: git.commit, productDirty: git.dirty, productVersion: VERSION,
+        dataDir: metrics.options.dataDir, transport: live ? 'live' : 'injected', remoteArms: metrics.remoteArms,
+        arms: options.arms, retrievalModes: options.retrieval, suites: options.suites, limit: options.limit,
+        gold: options.gold, labels: skills ? [skills.labels.a, skills.labels.b] : null,
+        inputs: metrics.inputs, replacedExistingResult: replaced,
+        holdout: holdout ? { manifestSha256, reason: options.spendHoldout, respendReason: options.respendHoldout, runsRecordedBefore: priorSpends } : null,
+      }),
+    };
 
     if (holdout) {
       const prior = await readLedger(options.dataDir);
@@ -224,6 +299,8 @@ export async function runEvaluation(options, { env = process.env, fetchImpl = nu
         plan: plan.map(p => `${p.suite}/${p.key}`), suites: options.suites, limit: options.limit,
         gold: options.gold, labels: skills ? [skills.labels.a, skills.labels.b] : null,
         transport: live ? 'live' : 'injected', remoteArms: metrics.remoteArms, reason: options.spendHoldout,
+        ...(options.respendHoldout ? { respendReason: options.respendHoldout } : {}),
+        manifestSha256, inputs: metrics.inputs.files,
       });
       metrics.holdout = {
         frozen: true, frozenAt: holdout.frozenAt ?? null, policy: holdout.policy, verifiedFiles: verified.verifiedFiles,
@@ -252,8 +329,7 @@ export async function runEvaluation(options, { env = process.env, fetchImpl = nu
         metrics.skills[key] = await skillsMetrics({ run, items: suite.items, catalog, gold: suite.gold, labelGold: headlineOf(suite.gold) });
         addHttp(run.http);
         if (holdout) continue; // aggregate metrics only: no per-item rows, no copied decision log
-        await write(`rows-skills-${key}.jsonl`, run.rows.map(r => JSON.stringify(withGold(r, suite.gold, g => [...g].sort()))).join('\n') + '\n');
-        metrics.files.push(`rows-skills-${key}.jsonl`);
+        await writeRows(`rows-skills-${key}`, run.rows.map(r => JSON.stringify(withGold(r, suite.gold, g => [...g].sort()))));
         for (const name of await copyLog(run, path.join(resultDir, 'decision-log', `skills-${key}`))) metrics.files.push(`decision-log/skills-${key}/${name}`);
       }
     }
@@ -271,8 +347,7 @@ export async function runEvaluation(options, { env = process.env, fetchImpl = nu
         metrics.supervisor[arm] = await supervisorMetrics({ run, gold: suite.gold, labelGold: headlineOf(suite.gold) });
         addHttp(run.http);
         if (holdout) continue;
-        await write(`rows-supervisor-${arm}.jsonl`, run.rows.map(r => JSON.stringify(withGold(r, suite.gold, g => g))).join('\n') + '\n');
-        metrics.files.push(`rows-supervisor-${arm}.jsonl`);
+        await writeRows(`rows-supervisor-${arm}`, run.rows.map(r => JSON.stringify(withGold(r, suite.gold, g => g))));
         for (const name of await copyLog(run, path.join(resultDir, 'decision-log', `supervisor-${arm}`))) metrics.files.push(`decision-log/supervisor-${arm}/${name}`);
       }
     }
@@ -324,7 +399,8 @@ export function summary(m, where) {
   if (ds) {
     const headline = pick(ds);
     const lf = ds.labelFiles;
-    lines.push(`skills data: ${ds.items} tasks, ${ds.catalog.skills} skills; label files A=${lf?.a ?? 'n/a'} B=${lf?.b ?? 'none'}`);
+    const sha = name => (name && m.inputs?.files?.[name] ? ` (sha256 ${m.inputs.files[name].slice(0, 12)})` : '');
+    lines.push(`skills data: ${ds.items} tasks, ${ds.catalog.skills} skills; label files A=${lf?.a ?? 'n/a'}${sha(lf?.a)} B=${lf?.b ?? 'none'}${sha(lf?.b)}`);
     lines.push(`  agreement A vs B: exact-set ${pct(ds.exactSetMatchRate)} of ${ds.bothLabeled ?? 'n/a'} labeled by both, any-skill kappa ${num(ds.anySkillKappa?.kappa)}; consensus subset ${ds.consensus ?? 'n/a'} of ${ds.items} tasks (${pct(ds.consensusShareOfItems)})`);
     const r = m.retrieval?.[headline];
     if (Array.isArray(r)) {

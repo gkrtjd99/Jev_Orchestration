@@ -112,6 +112,22 @@ export async function readLedger(dataDir) {
   return text.split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
 }
 
+// Append-only record of every evaluation run in an output directory (development and held-out alike).
+export const RUN_LEDGER_FILE = 'RUN_LEDGER.jsonl';
+
+export async function appendRunLedger(outDir, entry) {
+  await fs.mkdir(outDir, { recursive: true });
+  await fs.appendFile(path.join(outDir, RUN_LEDGER_FILE), JSON.stringify(entry) + '\n', { flag: 'a' });
+  return entry;
+}
+
+export async function readRunLedger(outDir) {
+  let text;
+  try { text = await fs.readFile(path.join(outDir, RUN_LEDGER_FILE), 'utf8'); }
+  catch (e) { if (e.code === 'ENOENT') return []; throw e; }
+  return text.split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
+}
+
 const SWEEP_KEYS = new Set(['autoLoadSweep', 'thresholdSweep']);
 export const SUPPRESSED = Object.freeze({ suppressed: 'held-out set: sweeps and per-item listings are not produced' });
 
