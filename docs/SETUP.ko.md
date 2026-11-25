@@ -23,6 +23,24 @@ Claude/Codex의 기존 로그인은 native Main/worker 실행용입니다. **Jev
 
 가용성 확인이 없으면 자동 후보가 생기지 않습니다. 이름을 공식 문서에서 보았다는 사실만으로 모든 항목을 confirmed로 바꾸지 마세요.
 
+### 품질 우선 모델×effort 후보 (기존 Jev 선택 경로)
+
+아래는 `delegation.profile`이 고르는 후보의 기본 방향입니다. `controller`의 고정 정책표가 아닙니다(그 대응과 보류 규칙은 [controller 문서](CONTROLLER.ko.md)에 있습니다).
+
+| 작업 | 정상 후보 |
+|---|---|
+| 기계적 조회·정형 변환 | Sonnet/Luna high; 원래 Main 직접 처리 가능 |
+| 실질적인 읽기·문서·범위 제한 구현 | Sonnet/Luna xhigh와 max, 필요하면 Opus/Sol high·xhigh |
+| 여러 모듈의 계약·복합 구현 | Opus/Sol high·xhigh·max |
+| 깊은 원인 추적·민감한 변경 검토 | Opus/Sol xhigh·max 또는 승인된 frontier |
+| 계획·새로운 구조 | Fable/Astra high·xhigh |
+
+실제 모델명과 지원 effort는 사용자가 확인한 registry를 따릅니다. 동일 effort 이름을 모델 간 동일 성능으로 간주하지 않습니다. `max`를 고르기 위해 이전 설정으로 먼저 실패할 의무가 없고, max로 실패해야 상위 모델을 고를 수 있는 것도 아닙니다. 가격·성공률을 만들어 넣지 않았습니다.
+
+### 지원 운영체제
+
+macOS/Linux/WSL 대상입니다. Windows native shell 설치는 검증하지 않았습니다. 런타임 외부 npm 패키지 의존성은 없습니다.
+
 ## 3. env 준비
 
 저장소 밖의 파일에 아래 형태로 저장하고 `chmod 600`을 적용합니다. `export`, 중복 key, 셸 명령 치환은 지원하지 않습니다.
