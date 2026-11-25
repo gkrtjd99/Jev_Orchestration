@@ -6,7 +6,7 @@ import { projectFor } from './config.mjs';
 import { SessionStore } from './state.mjs';
 import { inventory, revisionFingerprint, readDocumentMetadata } from './documents.mjs';
 import { routeQuestions, failureQuestions, readQuestions, QUESTION_VERSION } from './questions.mjs';
-import { routeContext, policyFingerprint } from './policy.mjs';
+import { routeContext, policyFingerprint, hasRoutingPacket } from './policy.mjs';
 import { routeTask } from './router.mjs';
 import { assertInstalledProfile } from './profiles.mjs';
 import { profileCatalog } from './catalog.mjs';
@@ -316,6 +316,34 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
       if(secretLike(d.text,apiKey)){await store.record('routing_skipped',{reason:'secret_guard'});return visible?warning(e.event,'SECRET_GUARD'):{};}
       if(typeof e.tool_use_id!=='string'||!e.tool_use_id){await store.record('unsupported_input',{tool:e.tool_name});return visible?warning(e.event,'MISSING_TOOL_USE_ID'):{};}
       const inputHash=hash(e.input);const policy=policyFingerprint(cfg);
+      // Permission mode auto: the host refuses a call whose input a hook changed after its review and Main
+      // issues the call again, under a new tool_use_id, with exactly the input this extension returned.
+      // That second call carries a decision that was already made. It is left as issued: no judge request,
+      // no rewrite, the output of a preserved call. Its id is linked to the original decision so the launch
+      // acknowledgement, the agent mapping and the report check apply to the call that actually runs.
+      const known=await store.getTask(e.tool_use_id);
+      if(known?.reissueOf)return {}; // replay of a recognised re-issue
+      if(!known){
+        const original=await store.claimReissue(inputHash,e.tool_use_id);
+        if(original){
+          const {task}=original;
+          const skills=await store.getEvent('skills',original.taskId);
+          await store.putTask(e.tool_use_id,{inputHash,outputHash:inputHash,policy:task.policy,stamp:task.stamp,route:task.route,
+            ...(task.skillsText?{skillsText:task.skillsText}:{}),...(object(skills)?{skills}:{}),reissueOf:original.taskId});
+          await store.record('delegation_reissued',{taskId:e.tool_use_id,reissueOf:original.taskId,decisionId:task.route.decisionId||null,
+            profile:task.route.profile||null,skillsDecisionIds:Array.isArray(skills?.decisionIds)?skills.decisionIds:[],
+            skillsInjected:skills?.injected===true,inputHash,ageMs:original.ageMs},e.tool_use_id);
+          return {};
+        }
+        // No stored rewrite matches (state lost, look-back passed, decision already used by another call), yet the
+        // call names a managed profile and its prompt already ends in a routing packet: routing it again would
+        // judge the packet as if it were task text and append a second one. The packet is not trusted for
+        // anything; the call is only left alone, so nothing is mapped to a route and no report is checked.
+        if(d.managed&&hasRoutingPacket(d.text)){
+          await store.record('routing_skipped',{reason:'managed_call_already_carries_routing_packet',taskId:e.tool_use_id,inputHash});
+          return {};
+        }
+      }
       const docs=await inventory(project,cfg);const snap=await store.snapshot();
       const revision=await revisionFingerprint(project,docs);
       const plan=cfg.safety.sharePlanContext&&snap.goalEligible?await planContext(project,snap.goalHash,apiKey):null;
@@ -402,7 +430,10 @@ export async function handleHook(raw,runtime,{config:cfg,apiKey='',client=null,r
           output=rewrite(e,d,route,withSkills(context,skillsText),cfg);
         }
         // The exact skills text is stored so an idempotent replay reproduces the identical rewrite.
-        await store.putTask(e.tool_use_id,{inputHash,outputHash:hash(output.hookSpecificOutput?.updatedInput||e.input),policy,stamp,route,...(skillsText?{skillsText}:{})});
+        const outputHash=hash(output.hookSpecificOutput?.updatedInput||e.input);
+        await store.putTask(e.tool_use_id,{inputHash,outputHash,policy,stamp,route,...(skillsText?{skillsText}:{})});
+        // Lets a re-issue of this rewritten input be recognised under its new tool_use_id (claimReissue).
+        if(outputHash!==inputHash){try{await store.noteRewrite(outputHash,e.tool_use_id);}catch{/* without the index the re-issue is still preserved by the routing-packet check */}}
         await recordSkills(injected);
         await store.record('route',{taskId:e.tool_use_id,inputHash,route,mode:cfg.mode,cached:decision.cached,latencyMs:decision.latencyMs,hookMs:performance.now()-began,questionVersion:QUESTION_VERSION},e.tool_use_id);
         return output;

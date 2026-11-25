@@ -1,7 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { hash, readJSON, writeJSON, withLock } from './util.mjs';
+import { hash, object, readJSON, writeJSON, withLock } from './util.mjs';
+// Look-back for recognising a re-issued delegation (see claimReissue). In permission mode auto the host refuses
+// a call whose input a hook changed and Main issues it again, with a new tool_use_id, in its next response.
+// In two recorded desktop sessions the two calls' decisions were stored 5.6-10.8 s apart (15 of 15; at most
+// 12.6 s between the two calls in Main's transcript). The window is about ten times the slowest of those, so
+// one slow Main turn still fits, while an identical input that appears later is treated as a call of its own.
+export const REISSUE_WINDOW_MS=120000;
+// Rewrites remembered per rewritten input. Only delegations whose rewritten inputs are byte-identical share a
+// list (the same task issued more than once in one turn), so eight is already more than a parallel batch needs.
+export const REISSUE_KEEP=8;
 const blank=()=>({schema:1,resetAt:0,goal:null,unverifiedPrompt:false,tasks:{},agents:{},failures:{},lastFailure:null});
 function bounded(map,max=64){return Object.fromEntries(Object.entries(map).sort((a,b)=>b[1].time-a[1].time).slice(0,max));}
 function applyEvent(state,e){
@@ -13,6 +22,23 @@ function applyEvent(state,e){
     const previous=state.tasks[e.taskId]||{};
     state.tasks[e.taskId]={...previous,taskId:e.taskId,role:e.route.role,tier:e.route.tier,model:e.route.model,effort:e.route.effort,
       decisionId:e.route.decisionId,status:previous.status||'route_requested',time:Math.max(previous.time||0,e.time)};
+  }
+  if(e.type==='delegation_reissued'){
+    // The refused first call never ran: its entry moves to the call that carries the same decision.
+    const from=state.tasks[e.reissueOf];
+    if(from){
+      const {status,agentId,...decided}=from;const now=state.tasks[e.taskId]||{};
+      state.tasks[e.taskId]={...decided,...now,taskId:e.taskId,status:now.status||'route_requested',time:Math.max(now.time||0,e.time)};
+      delete state.tasks[e.reissueOf];
+    }
+    // A refusal that was followed by its re-issue is not a failed attempt of the task (no such failure was
+    // observed; this keeps retry escalation clean if a host ever reports the refusal as a tool failure).
+    for(const [signature,failure] of Object.entries(state.failures||{})){
+      if(!failure.attempts?.[e.reissueOf])continue;
+      delete failure.attempts[e.reissueOf];
+      if(!Object.keys(failure.attempts).length)delete state.failures[signature];
+    }
+    if(state.lastFailure?.taskId===e.reissueOf)state.lastFailure=null;
   }
   if(e.type==='spawn_observed')state.tasks[e.taskId]={...state.tasks[e.taskId],taskId:e.taskId,
     status:e.failed?'spawn_failed':'spawn_acknowledged',...(e.agentId?{agentId:e.agentId}:{}),time:e.time};
@@ -39,7 +65,7 @@ export class SessionStore{
     const event={type,time:Date.now(),...data};
     const name=id?hash([type,id]):`${String(event.time).padStart(16,'0')}-${randomUUID()}`;
     await writeJSON(path.join(this.dir,'events',name+'.json'),event);
-    if(['session_reset','user_prompt','unverified_prompt','route','spawn_observed','agent_started','agent_stopped','failure'].includes(type)){
+    if(['session_reset','user_prompt','unverified_prompt','route','delegation_reissued','spawn_observed','agent_started','agent_stopped','failure'].includes(type)){
       await withLock(this.projectionFile+'.lock',async()=>{
         let state=await readJSON(this.projectionFile,null);
         if(!state)state=(await this.events()).reduce(applyEvent,blank());
@@ -86,6 +112,57 @@ export class SessionStore{
   taskFile(id){return path.join(this.dir,'decisions',hash(id)+'.json');}
   getTask(id){return readJSON(this.taskFile(id),null);}
   putTask(id,value){return writeJSON(this.taskFile(id),value);}
+  rewriteFile(outputHash){return path.join(this.dir,'rewrites',hash(['rewrite',outputHash])+'.json');}
+  /** Remembers that the delegation taskId was answered with a rewritten input whose hash is outputHash. Hashes and ids only. */
+  async noteRewrite(outputHash,taskId,now=Date.now()){
+    const file=this.rewriteFile(outputHash);
+    await withLock(file+'.lock',async()=>{
+      const index=await readJSON(file,null);
+      const entries=(Array.isArray(index?.entries)?index.entries:[]).filter(x=>object(x)&&x.taskId!==taskId&&now-x.time<=REISSUE_WINDOW_MS);
+      entries.push({taskId,time:now});
+      await writeJSON(file,{schema:1,entries:entries.slice(-REISSUE_KEEP)});
+    });
+  }
+  /** True once the runtime acknowledged a launch of this call (a spawn_observed that did not fail). */
+  async launchObserved(taskId){
+    const seen=await this.getEvent('spawn_observed',taskId);
+    return object(seen)&&seen.failed===false;
+  }
+  /**
+   * The earlier delegation of this session that taskId re-issues, or null.
+   * A call is a re-issue when its input hash equals the hash of a rewritten input this extension returned
+   * for another tool_use_id at most REISSUE_WINDOW_MS ago, that call was not observed to launch, and no other
+   * call has been linked to it. Each rewrite is handed out once (the oldest open one first), so two
+   * delegations with identical rewritten input get one re-issue each, and an identical input that arrives
+   * after the link was made is not a re-issue. Asking again for the same taskId returns the same link.
+   */
+  async claimReissue(inputHash,taskId,now=Date.now()){
+    const file=this.rewriteFile(inputHash);
+    if(await readJSON(file,null)===null)return null;
+    return withLock(file+'.lock',async()=>{
+      const index=await readJSON(file,null);
+      const entries=Array.isArray(index?.entries)?index.entries.filter(object):[];
+      const usable=async entry=>{
+        if(typeof entry.taskId!=='string'||entry.taskId===taskId)return null;
+        const ageMs=now-entry.time;
+        if(!Number.isFinite(ageMs)||ageMs<0||ageMs>REISSUE_WINDOW_MS)return null;
+        const task=await this.getTask(entry.taskId);
+        if(!object(task?.route)||task.reissueOf||task.outputHash!==inputHash||task.inputHash===inputHash)return null;
+        return {taskId:entry.taskId,task,ageMs};
+      };
+      const mine=entries.find(x=>x.reissuedAs===taskId);
+      if(mine)return usable(mine);
+      for(const entry of entries){
+        if(entry.reissuedAs!==undefined)continue;
+        const found=await usable(entry);
+        if(!found||await this.launchObserved(entry.taskId))continue;
+        entry.reissuedAs=taskId;
+        await writeJSON(file,{schema:1,entries});
+        return found;
+      }
+      return null;
+    });
+  }
   async restoreContext(){
     const s=await this.snapshot();
     if(!s.goalEligible)s.goal='[withheld: parent prompt provenance unverified]';
