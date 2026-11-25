@@ -1,11 +1,11 @@
 ---
 name: payment-refund-ledger
-description: "Use when recording a refund or a correction in the payments ledger."
+description: "Use when recording a refund or a correction entry in the payments ledger and matching it to the original locker fee payment."
 ---
 
 # Payment Refund Ledger
 
-Use when recording a refund or a correction in the payments ledger.
+Use when recording a refund or a correction entry in the payments ledger and matching it to the original locker fee payment.
 
 ## Steps
 

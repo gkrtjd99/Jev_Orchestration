@@ -11,6 +11,9 @@ import { inScope } from './checkers/scopes.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const SKILL_FILE = /(?:^|\/)\.claude\/skills\/([^/]+)\/SKILL\.md$/;
+const SKILL_NAME_CHARS = 'A-Za-z0-9_.:-';
+// How many catalog names a row must mention to be taken as the harness's skill listing.
+const LISTING_MIN_NAMES = 3;
 
 const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const squash = (text) => String(text ?? '').replace(/\s+/g, ' ').trim();
@@ -150,6 +153,30 @@ function relativeToProject(filePath, projectRoots) {
   return null; // outside the project
 }
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// The harness's skill listing as the subagent received it: the row before the first assistant turn that
+// names the most catalog skills (at least LISTING_MIN_NAMES). The <jev-skills> block is cut out first, so a
+// name that only the hook injected does not count as "listed". Shape-agnostic on purpose: the row is searched
+// as serialised text, whatever its type (system, attachment, or a reminder inside the first user message).
+function skillListing(rows, skillNames) {
+  const none = { found: false, source: null, names: [] };
+  if (skillNames.size === 0) return none;
+  let best = none;
+  for (const row of rows) {
+    if (row.type === 'assistant' || row.message?.role === 'assistant') break;
+    let text;
+    try { text = JSON.stringify(row); } catch { continue; }
+    text = text.replace(/<jev-skills>[\s\S]*?<\/jev-skills>/g, ' ');
+    const listed = [...skillNames].filter((name) => new RegExp(`(?<![A-Za-z0-9_-])${escapeRegExp(name)}(?![A-Za-z0-9_-])`).test(text));
+    if (listed.length >= LISTING_MIN_NAMES && listed.length > best.names.length) {
+      const kind = str(row.type) ?? 'unknown';
+      best = { found: true, source: isObject(row.attachment) && str(row.attachment.type) ? `${kind}:${row.attachment.type}` : kind, names: listed.sort() };
+    }
+  }
+  return best;
+}
+
 function summariseSubagent(rows, { task, projectRoots, skillNames }) {
   const warnings = [];
   const calls = [];
@@ -158,6 +185,8 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
   let anonymousUsage = 0;
   const stamps = [];
   let firstUserText;
+  const assistantMessages = new Set();
+  let anonymousAssistant = 0;
   for (const row of rows) {
     const stamp = str(row.timestamp);
     if (stamp !== null) {
@@ -169,6 +198,7 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
       if (text !== null) firstUserText = text;
     }
     if (row.type !== 'assistant' && row.message?.role !== 'assistant') continue;
+    assistantMessages.add(str(row.message?.id) ?? `anon-${anonymousAssistant += 1}`);
     for (const item of contentItems(row)) {
       if (item.type !== 'tool_use' || typeof item.name !== 'string') continue;
       const key = typeof item.id === 'string' ? item.id : `anon-${calls.length}`;
@@ -186,18 +216,50 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
     }
   }
 
+  // A load is: a Skill call naming the skill, a Read of its SKILL.md, or a Bash command that names its
+  // SKILL.md. Anything else that touches the skill folders (Grep, Glob, a Bash command naming only a folder
+  // or the whole skills folder, a Read of another file there) is kept as a "mention": the skill text may or
+  // may not have been read, so it never counts as a load and never as "not loaded" either.
   const loaded = [];
-  const noteLoad = (name, via, index) => {
-    if (!loaded.some((entry) => entry.name === name)) loaded.push({ name, via, callIndex: index });
+  const mentions = [];
+  const noteLoad = (name, via, index, raw) => {
+    if (!loaded.some((entry) => entry.name === name)) loaded.push({ name, via, callIndex: index, ...(raw !== undefined && raw !== name ? { raw } : {}) });
+  };
+  const noteMention = (name, via, index) => {
+    if (!mentions.some((entry) => entry.name === name && entry.via === via)) mentions.push({ name, via, callIndex: index });
+  };
+  const folderNames = (text) => [...String(text).matchAll(new RegExp(`\\.claude/skills/([A-Za-z0-9][${SKILL_NAME_CHARS}]{0,63})`, 'g'))].map((m) => m[1].replace(/[.:]+$/, ''));
+  const scanText = (text, via, index, { loadsFromSkillFile }) => {
+    if (typeof text !== 'string' || text === '') return;
+    const touchesSkills = text.includes('.claude/skills');
+    let named = 0;
+    for (const name of skillNames) {
+      const fileHit = new RegExp(`(?<![${SKILL_NAME_CHARS}])${escapeRegExp(name)}/SKILL\\.md`).test(text) && (touchesSkills || /SKILL\.md/.test(text));
+      const folderHit = folderNames(text).includes(name);
+      if (fileHit && loadsFromSkillFile) { noteLoad(name, via, index); named += 1; }
+      else if (fileHit || folderHit) { noteMention(name, via, index); named += 1; }
+    }
+    if (touchesSkills && named === 0) noteMention(null, via, index);
   };
   const toolNames = {};
   const writes = [];
   calls.forEach((call, index) => {
     toolNames[call.name] = (toolNames[call.name] ?? 0) + 1;
-    if (call.name === 'Skill' && str(call.input.skill)) noteLoad(call.input.skill, 'Skill', index);
+    if (call.name === 'Skill' && str(call.input.skill)) {
+      const raw = call.input.skill;
+      const last = raw.split(':').pop();
+      // "plugin:name" style input: use the last segment when that is a catalog skill and the raw value is not.
+      noteLoad(!skillNames.has(raw) && skillNames.has(last) ? last : raw, 'Skill', index, raw);
+    }
     if (call.name === 'Read') {
-      const match = SKILL_FILE.exec(String(call.input.file_path ?? ''));
+      const path = String(call.input.file_path ?? '');
+      const match = SKILL_FILE.exec(path);
       if (match) noteLoad(match[1], 'Read', index);
+      else scanText(path, 'Read', index, { loadsFromSkillFile: false });
+    }
+    if (call.name === 'Bash') scanText(call.input.command, 'Bash', index, { loadsFromSkillFile: true });
+    if (call.name === 'Grep' || call.name === 'Glob') {
+      for (const field of ['path', 'glob', 'pattern']) scanText(call.name === 'Grep' && field === 'pattern' ? null : call.input[field], call.name, index, { loadsFromSkillFile: false });
     }
     if (WRITE_TOOLS.has(call.name)) {
       const raw = str(call.input.file_path) ?? str(call.input.notebook_path);
@@ -217,9 +279,16 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
       }
       return any ? total : null;
     };
-    tokens = { input: sum('input_tokens'), output: sum('output_tokens'), cacheRead: sum('cache_read_input_tokens'), cacheCreation: sum('cache_creation_input_tokens'), messages: usageByMessage.size };
+    tokens = { input: sum('input_tokens'), output: sum('output_tokens'), cacheRead: sum('cache_read_input_tokens'), cacheCreation: sum('cache_creation_input_tokens'),
+      messages: usageByMessage.size, assistantMessages: assistantMessages.size };
     const parts = [tokens.input, tokens.output, tokens.cacheRead, tokens.cacheCreation].filter((n) => n !== null);
     tokens.total = parts.length ? parts.reduce((a, b) => a + b, 0) : null;
+    if (usageByMessage.size < assistantMessages.size) {
+      warnings.push(`token usage is present on ${usageByMessage.size} of ${assistantMessages.size} assistant messages; the token sums are partial`);
+    }
+  }
+  if (stamps.length >= 2 && stamps.length < rows.length) {
+    warnings.push(`a timestamp is present on ${stamps.length} of ${rows.length} transcript rows; wall time covers only the stamped rows`);
   }
 
   let block = null;
@@ -235,8 +304,22 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
     }
   } else warnings.push('no first user message found in the subagent transcript');
 
+  const listing = skillListing(rows, skillNames);
   const target = task.targetSkill;
   const targetEntry = target ? loaded.find((entry) => entry.name === target) ?? null : null;
+  // true: a load was seen. false: no load and nothing touched the skill folders in a way that could have
+  // read it. null: only an indeterminate access was seen (the target's folder, or the skills folder as a whole).
+  let targetLoaded = null;
+  if (target) {
+    const unclear = mentions.filter((entry) => entry.name === target || entry.name === null);
+    if (targetEntry !== null) targetLoaded = true;
+    else if (unclear.length === 0) targetLoaded = false;
+    else warnings.push(`target skill load not determined: no Skill/Read/Bash load of its SKILL.md, but ${unclear.map((entry) => `${entry.via} touched ${entry.name ? 'its folder' : 'the skills folder'}`).join('; ')}`);
+  }
+  if (target) {
+    if (!listing.found) warnings.push('no skill listing found in the subagent transcript before its first assistant turn; whether the target was visible is unknown');
+    else if (!listing.names.includes(target)) warnings.push(`the skill listing shown to the subagent (${listing.names.length} of ${skillNames.size} catalog names) does not contain the target skill`);
+  }
   const firstWrite = writes.length ? writes[0].index : null;
   const outOfScope = writes.filter((write) => write.rel === null || !inScope(write.rel, task.id)).map((write) => write.rel ?? write.raw ?? '(unknown path)');
   return {
@@ -244,14 +327,19 @@ function summariseSubagent(rows, { task, projectRoots, skillNames }) {
       toolCalls: calls.length,
       toolNames,
       loadedSkills: loaded,
-      targetSkillLoaded: target ? targetEntry !== null : null,
-      targetLoadedBeforeFirstWrite: target ? (targetEntry !== null && (firstWrite === null || targetEntry.callIndex < firstWrite)) : null,
+      skillFolderMentions: mentions,
+      targetSkillLoaded: targetLoaded,
+      targetSkillLoadedVia: targetEntry ? targetEntry.via : null,
+      targetLoadedBeforeFirstWrite: target && targetLoaded !== null ? (targetEntry !== null && (firstWrite === null || targetEntry.callIndex < firstWrite)) : null,
+      skillListing: { found: listing.found, source: listing.source, catalogNamesListed: listing.found ? listing.names.length : null, catalogSize: skillNames.size },
+      targetListedToSubagent: target && listing.found ? listing.names.includes(target) : null,
       promptHadSkillsBlock: block ? block.present : null,
       promptBlockLoad: block ? block.load : null,
       promptBlockConsider: block ? block.consider : null,
       firstPromptContainsTask: firstUserText !== undefined ? squash(firstUserText).includes(squash(task.text)) : null,
       tokens,
       wallMs: stamps.length >= 2 ? Math.max(...stamps) - Math.min(...stamps) : null,
+      timestampCoverage: { rows: rows.length, withTimestamp: stamps.length },
       filesWritten: [...new Set(writes.map((write) => write.rel ?? write.raw ?? '(unknown path)'))],
       outOfScopeWrites: [...new Set(outOfScope)],
     },
@@ -282,8 +370,65 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
   const agents = readSubagents(resolve(transcripts), warnings);
   const eventsFor = (type, toolUseId) => events.filter((event) => event.type === type && event.taskId === toolUseId);
 
+  const EMPTY_HOOK = { skillsEvent: null, injected: null, load: null, consider: null, mode: null, status: null, route: null };
+  const firstPromptOf = (agent) => {
+    agent.rows ??= readJsonl(agent.file, warnings) ?? [];
+    const first = agent.rows.find((row) => (row.type === 'user' || row.message?.role === 'user') && messageText(row) !== null);
+    return first ? squash(messageText(first)) : null;
+  };
+
+  // Everything known about ONE Agent call: its hook events and the subagent it started. Events and subagent
+  // are never taken from a different call of the same task.
+  const resolveCall = (call, { wanted, allowPromptMatch }) => {
+    const notes = [];
+    const skillEvents = eventsFor('skills', call.id);
+    if (skillEvents.length === 0) notes.push('no skills event for this delegation');
+    if (skillEvents.length > 1) notes.push(`${skillEvents.length} skills events for this delegation; the last one is used`);
+    const skills = skillEvents[skillEvents.length - 1] ?? null;
+    const routeEvents = eventsFor('route', call.id);
+    const route = routeEvents[routeEvents.length - 1] ?? null;
+    if (!route) notes.push('no route event for this delegation');
+    // The hook stores optional entries under "suggest"; "consider" is the name used inside the injected block.
+    const optional = skills ? (Array.isArray(skills.suggest) ? skills.suggest : Array.isArray(skills.consider) ? skills.consider : null) : null;
+    if (skills && optional === null) notes.push('skills event has neither a "suggest" nor a "consider" list');
+    const hook = {
+      skillsEvent: skills !== null,
+      injected: skills && typeof skills.injected === 'boolean' ? skills.injected : null,
+      load: skills ? names(skills.load) : null,
+      consider: names(optional),
+      mode: skills ? str(skills.mode) : null,
+      status: skills ? str(skills.status) : null,
+      route: route && isObject(route.route) ? { profile: str(route.route.profile), model: str(route.route.model), effort: str(route.route.effort) } : null,
+    };
+    if (skills && typeof skills.injected !== 'boolean') notes.push('skills event has no boolean "injected"');
+
+    const spawnEvents = eventsFor('spawn_observed', call.id);
+    const spawnFailed = spawnEvents.length ? spawnEvents.some((event) => event.failed === true) : null;
+    const spawned = spawnEvents.filter((event) => event.failed !== true).map((event) => str(event.agentId)).filter((id) => id !== null);
+    let agentId = null;
+    let agentIdSource = null;
+    if (spawned.length > 1 && new Set(spawned).size > 1) notes.push(`several spawn_observed agent ids for this delegation: ${[...new Set(spawned)].join(', ')}; the first is used`);
+    if (spawned.length) { agentId = spawned[0]; agentIdSource = 'spawn_observed'; }
+    else if (spawnFailed === true) notes.push('spawn_observed reports failed=true for this Agent call; no subagent is scored for it');
+    else if (main.agentResults.has(call.id)) {
+      agentId = main.agentResults.get(call.id);
+      agentIdSource = 'main_tool_result';
+      if (spawnEvents.length) notes.push('spawn_observed has no agentId; the id comes from the tool result in the Main transcript');
+    } else if (spawnEvents.length) notes.push('spawn_observed has no agentId for this Agent call and the Main transcript names none; no subagent is scored for it');
+    else if (!allowPromptMatch) notes.push('no spawn_observed event; the first-prompt fallback is not used because several Agent calls carry this task');
+    else {
+      // Last resort that is still evidence, not a guess: this is the only Agent call for the task, it has
+      // no spawn event at all, and exactly one subagent transcript starts with the task text.
+      const byPrompt = [...agents].filter(([, agent]) => firstPromptOf(agent)?.includes(wanted)).map(([id]) => id);
+      if (byPrompt.length === 1) { agentId = byPrompt[0]; agentIdSource = 'prompt_match'; notes.push('no spawn_observed event; subagent found by its first prompt'); }
+      else notes.push(byPrompt.length === 0 ? 'no spawn_observed event and no subagent transcript starts with this task' : `no spawn_observed event and ${byPrompt.length} subagent transcripts start with this task; none is used`);
+    }
+    return { hook, agentId, agentIdSource, spawnFailed, notes };
+  };
+
   const claimed = new Set();
-  const usedAgents = new Set();
+  const tasksByCall = new Map();
+  const tasksByAgent = new Map();
   const taskRows = tasks.map((task) => {
     const notes = [];
     const verdict = checkById.get(task.id) ?? null;
@@ -291,49 +436,25 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
     const wanted = squash(task.text);
     const matches = main.agentCalls.filter((call) => call.prompt !== null && squash(call.prompt).includes(wanted));
     const call = matches[0] ?? null;
-    if (!call) notes.push('no Agent call in the Main transcript contains this task text');
-    if (matches.length > 1) notes.push(`${matches.length} Agent calls contain this task text; the first one is used`);
+    if (!call) notes.push('no Agent call in the Main transcript contains this task text: the task was not delegated (its checker result still counts)');
+    if (matches.length > 1) notes.push(`${matches.length} Agent calls contain this task text; the first one is scored, the others are listed under otherCalls`);
     for (const match of matches) claimed.add(match.id);
 
-    let hook = { skillsEvent: null, injected: null, load: null, consider: null, mode: null, status: null, route: null };
+    let hook = { ...EMPTY_HOOK };
     let agentId = null;
     let agentIdSource = null;
+    let spawnFailed = null;
     if (call) {
-      const skillEvents = eventsFor('skills', call.id);
-      if (skillEvents.length === 0) notes.push('no skills event for this delegation');
-      if (skillEvents.length > 1) notes.push(`${skillEvents.length} skills events for this delegation; the last one is used`);
-      const skills = skillEvents[skillEvents.length - 1] ?? null;
-      const routeEvents = eventsFor('route', call.id);
-      const route = routeEvents[routeEvents.length - 1] ?? null;
-      if (!route) notes.push('no route event for this delegation');
-      hook = {
-        skillsEvent: skills !== null,
-        injected: skills && typeof skills.injected === 'boolean' ? skills.injected : null,
-        load: skills ? names(skills.load) : null,
-        consider: skills ? names(skills.consider) : null,
-        mode: skills ? str(skills.mode) : null,
-        status: skills ? str(skills.status) : null,
-        route: route && isObject(route.route) ? { profile: str(route.route.profile), model: str(route.route.model), effort: str(route.route.effort) } : null,
-      };
-      if (skills && typeof skills.injected !== 'boolean') notes.push('skills event has no boolean "injected"');
-
-      const spawn = eventsFor('spawn_observed', call.id).map((event) => str(event.agentId)).filter((id) => id !== null);
-      if (spawn.length > 1 && new Set(spawn).size > 1) notes.push(`several spawn_observed agent ids for this delegation: ${[...new Set(spawn)].join(', ')}; the first is used`);
-      if (spawn.length) { agentId = spawn[0]; agentIdSource = 'spawn_observed'; }
-      else if (main.agentResults.has(call.id)) { agentId = main.agentResults.get(call.id); agentIdSource = 'main_tool_result'; }
-      else {
-        // Last resort that is still evidence, not a guess: the one subagent transcript whose first prompt
-        // contains this task text.
-        const byPrompt = [];
-        for (const [id, agent] of agents) {
-          agent.rows ??= readJsonl(agent.file, warnings) ?? [];
-          const first = agent.rows.find((row) => (row.type === 'user' || row.message?.role === 'user') && messageText(row) !== null);
-          if (first && squash(messageText(first)).includes(wanted)) byPrompt.push(id);
-        }
-        if (byPrompt.length === 1) { agentId = byPrompt[0]; agentIdSource = 'prompt_match'; notes.push('no spawn_observed event; subagent found by its first prompt'); }
-        else notes.push(byPrompt.length === 0 ? 'no spawn_observed event and no subagent transcript starts with this task' : `no spawn_observed event and ${byPrompt.length} subagent transcripts start with this task; none is used`);
-      }
+      tasksByCall.set(call.id, [...(tasksByCall.get(call.id) ?? []), task.id]);
+      const resolved = resolveCall(call, { wanted, allowPromptMatch: matches.length === 1 });
+      ({ hook, agentId, agentIdSource, spawnFailed } = resolved);
+      notes.push(...resolved.notes);
     }
+    const otherCalls = matches.slice(1).map((other) => {
+      const resolved = resolveCall(other, { wanted, allowPromptMatch: false });
+      return { toolUseId: other.id, agentId: resolved.agentId, agentIdSource: resolved.agentIdSource, spawnFailed: resolved.spawnFailed,
+        injected: resolved.hook.injected, load: resolved.hook.load };
+    });
 
     let subagent = null;
     if (agentId !== null) {
@@ -341,21 +462,23 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
       if (!agent) notes.push(`subagent transcript agent-${agentId}.jsonl not found`);
       else {
         agent.rows ??= readJsonl(agent.file, warnings) ?? [];
-        if (usedAgents.has(agentId)) notes.push(`subagent ${agentId} is also attributed to another task`);
-        usedAgents.add(agentId);
+        tasksByAgent.set(agentId, [...(tasksByAgent.get(agentId) ?? []), task.id]);
+        if (tasksByAgent.get(agentId).length > 1) notes.push(`subagent ${agentId} is also attributed to ${tasksByAgent.get(agentId).slice(0, -1).join(', ')}; run totals count it once`);
         const { summary, warnings: subWarnings } = summariseSubagent(agent.rows, { task, projectRoots, skillNames });
         subagent = summary;
         notes.push(...subWarnings);
       }
     }
+    if (verdict?.blockedBy?.length) notes.push(`checker: this task's modules could not be loaded because of a file of ${verdict.blockedBy.join(', ')}; the pair is contaminated`);
 
     return {
       id: task.id,
       lang: task.lang,
       kind: task.kind,
       targetSkill: task.targetSkill,
-      check: verdict ? { done: verdict.done, convention: verdict.convention, failedChecks: verdict.details.filter((d) => !d.ok).map((d) => d.check) } : null,
-      delegation: call ? { toolUseId: call.id, subagentType: call.subagentType, promptVerbatim: squash(call.prompt) === wanted, agentCalls: matches.length } : null,
+      check: verdict ? { done: verdict.done, convention: verdict.convention, blockedBy: verdict.blockedBy ?? [], failedChecks: verdict.details.filter((d) => !d.ok).map((d) => d.check) } : null,
+      delegation: call ? { toolUseId: call.id, subagentType: call.subagentType, promptVerbatim: squash(call.prompt) === wanted, agentCalls: matches.length, spawnFailed } : null,
+      otherCalls,
       hook,
       agentId,
       agentIdSource,
@@ -364,6 +487,8 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
     };
   });
 
+  for (const [callId, ids] of tasksByCall) if (ids.length > 1) warnings.push(`one Agent call (${callId}) carries the text of ${ids.length} tasks: ${ids.join(', ')}`);
+  for (const [agentId, ids] of tasksByAgent) if (ids.length > 1) warnings.push(`one subagent (${agentId}) is attributed to ${ids.length} tasks: ${ids.join(', ')}; its tool calls, tokens and wall time are counted once in the totals`);
   const stray = main.agentCalls.filter((call) => !claimed.has(call.id));
   if (stray.length) warnings.push(`${stray.length} Agent call(s) in the Main transcript match no task: ${stray.map((call) => call.id).join(', ')}`);
   const order = taskRows.map((row) => (row.delegation ? main.agentCalls.findIndex((call) => call.id === row.delegation.toolUseId) : null));
@@ -378,13 +503,22 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
     const measured = values.filter((value) => value !== null && value !== undefined);
     return { yes: measured.filter((value) => value === true).length, measured: measured.length, of: rows.length };
   };
+  // Sums over subagents, each counted once even when it is attributed to more than one task.
+  const countedAgents = new Set();
+  const distinctRows = taskRows.filter((row) => {
+    if (row.agentId === null || row.subagent === null) return true;
+    if (countedAgents.has(row.agentId)) return false;
+    countedAgents.add(row.agentId);
+    return true;
+  });
   const total = (pick) => {
-    const values = taskRows.map(pick);
+    const values = distinctRows.map(pick);
     const measured = values.filter((value) => typeof value === 'number');
-    return { sum: measured.length ? measured.reduce((a, b) => a + b, 0) : null, measured: measured.length, of: taskRows.length };
+    return { sum: measured.length ? measured.reduce((a, b) => a + b, 0) : null, measured: measured.length, of: distinctRows.length };
   };
+  const via = (name) => skillRows.filter((row) => row.subagent?.targetSkillLoadedVia === name).length;
   return {
-    schema: 1,
+    schema: 2,
     arm: String(arm),
     inputs: { project: projectDir, stateDir: resolve(stateDir), transcripts: resolve(transcripts) },
     mainTranscripts: main.files,
@@ -396,7 +530,12 @@ export function analyze({ arm, project, stateDir, transcripts, template, tasksFi
       primary_conventionPassed: count(skillRows, (row) => row.check?.convention),
       skillTasksDone: count(skillRows, (row) => row.check?.done),
       controlsDone: count(controlRows, (row) => row.check?.done),
+      skillTasksDelegated: { yes: skillRows.filter((row) => row.delegation !== null).length, of: skillRows.length },
       targetSkillLoaded: count(skillRows, (row) => row.subagent?.targetSkillLoaded),
+      targetSkillLoadedVia: { Skill: via('Skill'), Read: via('Read'), Bash: via('Bash') },
+      targetListedToSubagent: count(skillRows, (row) => row.subagent?.targetListedToSubagent),
+      targetInInjectedLoad: count(skillRows, (row) => (Array.isArray(row.hook.load) ? row.hook.load.includes(row.targetSkill) : null)),
+      blockedByOtherTask: taskRows.filter((row) => row.check?.blockedBy?.length).map((row) => ({ id: row.id, blockedBy: row.check.blockedBy })),
       injectedOnSkillTasks: count(skillRows, (row) => row.hook.injected),
       injectedOnControls: count(controlRows, (row) => row.hook.injected),
       subagentToolCalls: total((row) => row.subagent?.toolCalls),

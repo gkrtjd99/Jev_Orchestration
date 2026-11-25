@@ -28,7 +28,7 @@
       "lang": "ko",
       "kind": "skill",
       "targetSkill": "periodic-job-contract",
-      "text": "수령이 끝난 지 오래된 택배 기록이 저장소에 계속 쌓이고 있습니다. status가 'collected'이고 collectedAt이 30일보다 더 지난 택배 기록을 저장소에서 지우는 정리 작업을 하루에 한 번(everyMinutes 1440) 돌도록 추가해 주세요. src/jobs 아래에 새 파일로 만들고, 기존 작업들과 같은 형태로 src/jobs/index.mjs의 jobs 목록에 등록해 주세요. 테스트도 추가해 주세요."
+      "text": "수령이 끝난 지 오래된 택배 기록이 저장소에 계속 쌓이고 있습니다. status가 'collected'이고 collectedAt이 30일보다 더 지난 택배 기록을 저장소에서 지우는 정리 작업을 하루에 한 번(everyMinutes 1440) 돌도록 추가해 주세요. src/jobs 아래에 새 파일로 만들고, src/jobs/index.mjs의 jobs 목록에 등록해 주세요. 테스트도 추가해 주세요."
     },
     {
       "id": "t05",
@@ -42,7 +42,7 @@
       "lang": "ko",
       "kind": "skill",
       "targetSkill": "read-endpoints",
-      "text": "보관함 하나에 지금 택배가 몇 개 들어 있는지 알려 주는 API가 필요합니다. GET /lockers/:id/occupancy 를 src/http에 추가해 주세요. 그 보관함(lockerId)에 있는 status가 'stored'인 택배의 개수를 돌려주고, 없는 보관함 id면 404로 응답하면 됩니다. 기존 라우트들과 같은 방식으로 src/http/routes.mjs에 등록하고 테스트도 추가해 주세요."
+      "text": "보관함 하나에 지금 택배가 몇 개 들어 있는지 알려 주는 API가 필요합니다. GET /lockers/:id/occupancy 를 src/http에 추가해 주세요. 그 보관함(lockerId)에 있는 status가 'stored'인 택배의 개수를 돌려주고, 없는 보관함 id면 404로 응답하면 됩니다. src/http/routes.mjs에 등록하고 테스트도 추가해 주세요."
     },
     {
       "id": "t07",
@@ -56,7 +56,7 @@
       "lang": "en",
       "kind": "skill",
       "targetSkill": "customer-text-messages",
-      "text": "When an uncollected parcel is sent back to its sender, the recipient currently hears nothing. Add a notification for 'parcel returned to sender' to src/notify/templates.mjs, in English and Korean like the existing ones. It should address the recipient by name (the {name} placeholder) and say which sender the parcel went back to. Add a test that renders it."
+      "text": "When an uncollected parcel is sent back to its sender, the recipient currently hears nothing. Add a notification for 'parcel returned to sender' to src/notify/templates.mjs, in English and Korean. It should address the recipient by name (the {name} placeholder) and say which sender the parcel went back to. Add a test that renders it."
     }
   ]
 }

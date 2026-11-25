@@ -1,6 +1,6 @@
 ---
 name: partner-file-exports
-description: "Use when producing a delimited text export (a CSV-like list of records) from src/reports that is handed to operations or a partner as a file. Covers the required first line, separators, line endings, column names and time format."
+description: "Use when a module in src/reports produces a list of records as delimited text that is handed over as a file to operations or to a partner."
 ---
 
 # File exports

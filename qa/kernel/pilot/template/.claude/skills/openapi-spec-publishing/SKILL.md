@@ -1,11 +1,11 @@
 ---
 name: openapi-spec-publishing
-description: "Use when publishing the public OpenAPI document to the developer portal after an interface has shipped."
+description: "Use when publishing the public OpenAPI document to the developer portal after a change to the HTTP interface has shipped."
 ---
 
 # Openapi Spec Publishing
 
-Use when publishing the public OpenAPI document to the developer portal after an interface has shipped.
+Use when publishing the public OpenAPI document to the developer portal after a change to the HTTP interface has shipped.
 
 ## Steps
 

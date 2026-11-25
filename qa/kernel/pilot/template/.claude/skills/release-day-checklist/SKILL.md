@@ -1,11 +1,11 @@
 ---
 name: release-day-checklist
-description: "The complete checklist the release manager walks through on release day, from tagging the build to the announcement."
+description: "The complete checklist the release manager walks through on release day, from tagging the build to the announcement to building staff."
 ---
 
 # Release Day Checklist
 
-The complete checklist the release manager walks through on release day, from tagging the build to the announcement.
+The complete checklist the release manager walks through on release day, from tagging the build to the announcement to building staff.
 
 ## Steps
 

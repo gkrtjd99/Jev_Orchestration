@@ -1,11 +1,11 @@
 ---
 name: load-test-scenarios
-description: "Use when preparing a load test: choosing scenarios, ramp-up and pass criteria."
+description: "Use when preparing a load test of parceldesk: choosing the scenarios, the ramp-up of traffic and the criteria for calling it a pass."
 ---
 
 # Load Test Scenarios
 
-Use when preparing a load test: choosing scenarios, ramp-up and pass criteria.
+Use when preparing a load test of parceldesk: choosing the scenarios, the ramp-up of traffic and the criteria for calling it a pass.
 
 ## Steps
 

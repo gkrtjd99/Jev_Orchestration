@@ -1,11 +1,11 @@
 ---
 name: email-campaign-builder
-description: "Use when composing a marketing newsletter or a promotional HTML email for the mailing list."
+description: "Use when composing a marketing newsletter or a promotional HTML email for the customer mailing list, including subject line and layout."
 ---
 
 # Email Campaign Builder
 
-Use when composing a marketing newsletter or a promotional HTML email for the mailing list.
+Use when composing a marketing newsletter or a promotional HTML email for the customer mailing list, including subject line and layout.
 
 ## Steps
 

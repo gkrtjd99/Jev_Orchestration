@@ -1,11 +1,11 @@
 ---
 name: queue-worker-scaling
-description: "Use when deciding how many queue workers to run, or tuning concurrency for the outbound delivery queue."
+description: "Use when deciding how many queue workers to run for the outbound delivery queue, or tuning their concurrency under load."
 ---
 
 # Queue Worker Scaling
 
-Use when deciding how many queue workers to run, or tuning concurrency for the outbound delivery queue.
+Use when deciding how many queue workers to run for the outbound delivery queue, or tuning their concurrency under load.
 
 ## Steps
 

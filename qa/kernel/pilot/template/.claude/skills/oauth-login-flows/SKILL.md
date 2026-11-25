@@ -1,11 +1,11 @@
 ---
 name: oauth-login-flows
-description: "Use when implementing or debugging sign-in through an external identity provider."
+description: "Use when implementing or debugging staff sign-in through an external identity provider, including token refresh and sign-out."
 ---
 
 # Oauth Login Flows
 
-Use when implementing or debugging sign-in through an external identity provider.
+Use when implementing or debugging staff sign-in through an external identity provider, including token refresh and sign-out.
 
 ## Steps
 

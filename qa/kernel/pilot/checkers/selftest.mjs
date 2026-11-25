@@ -130,6 +130,83 @@ try {
     expect('t04 done', result.t04.done, false);
     expect('t06 done', result.t06.done, false);
   }
+
+  const edit = (dir, rel, from, to) => {
+    const text = readFileSync(join(dir, rel), 'utf8');
+    if (!text.includes(from)) throw new Error(`selftest: "${from}" not found in ${rel}`);
+    writeFileSync(join(dir, rel), text.replaceAll(from, to));
+  };
+  const failedList = (t) => t.details.filter((d) => !d.ok).map((d) => d.check);
+
+  console.log('\n[7] skill-compliant variants pass; a wrong value fails only its own check');
+  {
+    for (const key of ['parcel.returned-to-sender.sms', 'parcel.returned_to_sender.sms']) {
+      const dir = project('reference', ['t08']);
+      edit(dir, 'src/notify/templates.mjs', 'parcel.returned.sms', key);
+      edit(dir, 'docs/copy-desk.log', 'parcel.returned.sms', key);
+      const t = byId(checkProject({ project: dir })).t08;
+      console.log(`  t08 key ${key}: ${row(t)}`);
+      expect(`t08 key ${key}`, [t.done, t.convention], [true, true]);
+    }
+    {
+      const dir = project('reference', ['t08']);
+      edit(dir, 'src/notify/templates.mjs', 'parcel.returned.sms', 'parcelReturned.sms');
+      edit(dir, 'docs/copy-desk.log', 'parcel.returned.sms', 'parcelReturned.sms');
+      const t = byId(checkProject({ project: dir })).t08;
+      console.log(`  t08 key parcelReturned.sms: ${row(t)}  failed: ${failedList(t).join(',')}`);
+      expect('t08 two-part camelCase key', [t.done, t.convention, failedList(t)], [true, false, ['conv.key']]);
+    }
+    {
+      const dir = project('reference', ['t04']);
+      edit(dir, 'src/jobs/purge-collected.mjs', 'parcels.purge-collected@v1', 'parcels.purge-collected-30d@v1');
+      edit(dir, 'ops/JOBS.ledger', 'parcels.purge-collected@v1', 'parcels.purge-collected-30d@v1');
+      const t = byId(checkProject({ project: dir })).t04;
+      console.log(`  t04 name parcels.purge-collected-30d@v1: ${row(t)}`);
+      expect('t04 name with a digit', [t.done, t.convention], [true, true]);
+    }
+    {
+      const dir = project('reference', ['t06']);
+      edit(dir, 'src/http/routes.mjs', "tier: 'read:lockers'", "tier: 'read:parcels'");
+      const t = byId(checkProject({ project: dir })).t06;
+      console.log(`  t06 tier read:parcels: ${row(t)}  failed: ${failedList(t).join(',')}`);
+      expect('t06 tier named after the collection read, not the path', [t.done, t.convention, failedList(t)], [true, false, ['conv.route_tier']]);
+    }
+    {
+      // generic work whose variable name is assembled from a prefix: still "done", still not the convention
+      const dir = project('naive', ['t02']);
+      edit(dir, 'src/config/settings.mjs', 'env.PARCELDESK_DOOR_ALERT_AFTER_SEC', 'env[`${PREFIX}DOOR_ALERT_SECONDS`]');
+      edit(dir, 'src/config/settings.mjs', 'export function loadSettings', "const PREFIX = 'PARCELDESK_';\n\nexport function loadSettings");
+      for (const rel of ['.env.example', 'docs/settings.md']) cpSync(join(template, rel), join(dir, rel));
+      const t = byId(checkProject({ project: dir })).t02;
+      console.log(`  t02 name built from a prefix: ${row(t)}`);
+      expect('t02 prefix-built name', [t.done, t.convention], [true, false]);
+    }
+  }
+
+  console.log('\n[8] coupling: a broken file of another task is reported as "blocked", not as a plain failure');
+  {
+    const dir = project('reference', tasks.map((t) => t.id));
+    writeFileSync(join(dir, 'src/lockers/door-watch.mjs'), 'export function doorNeedsAlert( {\n');
+    const result = byId(checkProject({ project: dir }));
+    console.log(`  t02's door-watch.mjs broken: ${row(result.t04)} blockedBy=${JSON.stringify(result.t04.blockedBy)}; ${row(result.t06)} blockedBy=${JSON.stringify(result.t06.blockedBy)}`);
+    expect('t04 blockedBy', result.t04.blockedBy, ['t02']);
+    expect('t04 judged through its own module', [result.t04.done, result.t04.convention], [true, true]);
+    expect('t04 blocked detail', [...new Set(failedList(result.t04))], ['blocked.other_task_file']);
+    expect('t06 untouched', [result.t06.done, result.t06.convention, result.t06.blockedBy], [true, true, []]);
+  }
+  {
+    const dir = project('reference', tasks.map((t) => t.id));
+    edit(dir, 'src/lockers/assign.mjs', "from '../", "from '../missing/");
+    const result = byId(checkProject({ project: dir }));
+    console.log(`  t05's assign.mjs broken: ${row(result.t06)} blockedBy=${JSON.stringify(result.t06.blockedBy)}; ${row(result.t04)} blockedBy=${JSON.stringify(result.t04.blockedBy)}`);
+    expect('t06 blockedBy', result.t06.blockedBy, ['t05']);
+    expect('t06 cannot be judged', [result.t06.done, result.t06.convention], [false, false]);
+    expect('t04 untouched', [result.t04.done, result.t04.convention, result.t04.blockedBy], [true, true, []]);
+  }
+  {
+    const result = checkProject({ project: project('reference', tasks.map((t) => t.id)) });
+    expect('no blockedBy on a clean reference project', result.tasks.map((t) => t.blockedBy.length), tasks.map(() => 0));
+  }
 } finally {
   for (const dir of temps) rmSync(dir, { recursive: true, force: true });
 }

@@ -1,11 +1,11 @@
 ---
 name: git-bisect-regressions
-description: "Use when a behaviour used to work and you need to find the commit that broke it."
+description: "Use when a behaviour of parceldesk used to work and you need to find, commit by commit, the change that broke it."
 ---
 
 # Git Bisect Regressions
 
-Use when a behaviour used to work and you need to find the commit that broke it.
+Use when a behaviour of parceldesk used to work and you need to find, commit by commit, the change that broke it.
 
 ## Steps
 

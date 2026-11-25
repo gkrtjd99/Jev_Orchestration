@@ -1,11 +1,11 @@
 ---
 name: admin-console-i18n
-description: "Use when extracting or translating interface strings of the staff admin web console (labels, buttons, menus)."
+description: "Use when extracting or translating interface strings of the staff admin web console, such as labels, buttons, menus and table headings."
 ---
 
 # Admin Console I18n
 
-Use when extracting or translating interface strings of the staff admin web console (labels, buttons, menus).
+Use when extracting or translating interface strings of the staff admin web console, such as labels, buttons, menus and table headings.
 
 ## Steps
 

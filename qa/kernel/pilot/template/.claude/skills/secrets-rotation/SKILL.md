@@ -1,11 +1,11 @@
 ---
 name: secrets-rotation
-description: "Use when rotating API keys, tokens or other credentials and updating the places where they are stored."
+description: "Use when rotating API keys, tokens or other credentials and updating every place where the service or its deploy scripts store them."
 ---
 
 # Secrets Rotation
 
-Use when rotating API keys, tokens or other credentials and updating the places where they are stored.
+Use when rotating API keys, tokens or other credentials and updating every place where the service or its deploy scripts store them.
 
 ## Steps
 

@@ -1,1 +1,1 @@
-{"type":"skills","taskId":"toolu_t03","mode":"active","status":"ok","injected":true,"load":[{"name":"repo-tour","probability":0.91}]}
+{"type":"skills","taskId":"toolu_t03","mode":"active","status":"selected","code":null,"need":null,"candidates":60,"decisionId":null,"decisionIds":[],"retrieval":"full","cached":false,"catalog":"fp","injected":true,"load":[{"name":"repo-tour","probability":0.91}],"suggest":[],"trace":[]}

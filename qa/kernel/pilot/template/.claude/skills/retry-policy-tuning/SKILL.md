@@ -1,11 +1,11 @@
 ---
 name: retry-policy-tuning
-description: "Use when adjusting how many times and how long outbound calls to carriers are retried, or picking a backoff curve."
+description: "Use when adjusting how many times and for how long outbound calls to carriers are retried, or when picking a backoff curve for them."
 ---
 
 # Retry Policy Tuning
 
-Use when adjusting how many times and how long outbound calls to carriers are retried, or picking a backoff curve.
+Use when adjusting how many times and for how long outbound calls to carriers are retried, or when picking a backoff curve for them.
 
 ## Steps
 

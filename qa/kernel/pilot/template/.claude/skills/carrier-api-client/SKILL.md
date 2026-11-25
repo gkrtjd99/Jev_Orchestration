@@ -1,11 +1,11 @@
 ---
 name: carrier-api-client
-description: "Use when calling an external carrier's REST API from this service: authentication, paging through results and backoff."
+description: "Use when calling an external carrier's REST API from this service: authentication, paging through results and backing off after failures."
 ---
 
 # Carrier Api Client
 
-Use when calling an external carrier's REST API from this service: authentication, paging through results and backoff.
+Use when calling an external carrier's REST API from this service: authentication, paging through results and backing off after failures.
 
 ## Steps
 

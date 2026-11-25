@@ -1,11 +1,11 @@
 ---
 name: feature-flag-rollout
-description: "Use when hiding an unfinished feature behind a flag and releasing it gradually to a percentage of buildings."
+description: "Use when hiding an unfinished feature behind a flag and releasing it gradually, one building or one percentage of buildings at a time."
 ---
 
 # Feature Flag Rollout
 
-Use when hiding an unfinished feature behind a flag and releasing it gradually to a percentage of buildings.
+Use when hiding an unfinished feature behind a flag and releasing it gradually, one building or one percentage of buildings at a time.
 
 ## Steps
 

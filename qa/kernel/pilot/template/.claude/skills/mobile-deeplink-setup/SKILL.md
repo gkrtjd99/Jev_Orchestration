@@ -1,11 +1,11 @@
 ---
 name: mobile-deeplink-setup
-description: "Use when a link in a message should open a specific screen of the mobile app."
+description: "Use when a link inside a customer message should open a specific screen of the mobile app when the customer taps it."
 ---
 
 # Mobile Deeplink Setup
 
-Use when a link in a message should open a specific screen of the mobile app.
+Use when a link inside a customer message should open a specific screen of the mobile app when the customer taps it.
 
 ## Steps
 

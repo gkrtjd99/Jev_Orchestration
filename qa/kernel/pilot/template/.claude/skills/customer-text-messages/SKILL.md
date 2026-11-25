@@ -1,6 +1,6 @@
 ---
 name: customer-text-messages
-description: "Use when adding or editing the wording of a customer-facing notification in src/notify: a new message template or another locale of one. Covers key naming, the required ending, length limits and the review log."
+description: "Use when adding the wording of a customer-facing notification in src/notify: a new message template, or another locale of an existing one."
 ---
 
 # Customer message wording

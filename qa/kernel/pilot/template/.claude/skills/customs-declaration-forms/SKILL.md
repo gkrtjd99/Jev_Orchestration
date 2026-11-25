@@ -1,11 +1,11 @@
 ---
 name: customs-declaration-forms
-description: "Use when a cross-border parcel needs a customs declaration filled in."
+description: "Use when a cross-border parcel needs a customs declaration filled in: goods description, declared value and the sender's details."
 ---
 
 # Customs Declaration Forms
 
-Use when a cross-border parcel needs a customs declaration filled in.
+Use when a cross-border parcel needs a customs declaration filled in: goods description, declared value and the sender's details.
 
 ## Steps
 

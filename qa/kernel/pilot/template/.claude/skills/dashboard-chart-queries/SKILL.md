@@ -1,11 +1,11 @@
 ---
 name: dashboard-chart-queries
-description: "Use when writing aggregate queries that feed the charts on the internal operations dashboard."
+description: "Use when writing the aggregate queries that feed the charts on the internal operations dashboard, such as parcels per day per building."
 ---
 
 # Dashboard Chart Queries
 
-Use when writing aggregate queries that feed the charts on the internal operations dashboard.
+Use when writing the aggregate queries that feed the charts on the internal operations dashboard, such as parcels per day per building.
 
 ## Steps
 

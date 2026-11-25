@@ -1,11 +1,11 @@
 ---
 name: job-failure-runbook
-description: "Use when a scheduled job has failed or stalled in production and has to be diagnosed or started again by hand."
+description: "Use when a job from src/jobs has failed or stalled in production and has to be diagnosed, or started again by hand, by whoever is on call."
 ---
 
 # Job Failure Runbook
 
-Use when a scheduled job has failed or stalled in production and has to be diagnosed or started again by hand.
+Use when a job from src/jobs has failed or stalled in production and has to be diagnosed, or started again by hand, by whoever is on call.
 
 ## Steps
 

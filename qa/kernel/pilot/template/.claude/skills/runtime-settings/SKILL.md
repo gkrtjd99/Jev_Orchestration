@@ -1,6 +1,6 @@
 ---
 name: runtime-settings
-description: "Use when making a value configurable in parceldesk: adding a setting, or an environment variable read by src/config, including moving a hard-coded number into configuration."
+description: "Use when a value has to become configurable: a new setting or environment variable that src/config reads, or a fixed number moved there."
 ---
 
 # Adding a setting

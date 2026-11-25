@@ -1,11 +1,11 @@
 ---
 name: slo-burn-alerts
-description: "Use when defining or tuning alerts that fire on how fast a service level objective budget is being spent."
+description: "Use when defining or tuning the alerts that fire on how fast the error budget of a service level objective is being spent."
 ---
 
 # Slo Burn Alerts
 
-Use when defining or tuning alerts that fire on how fast a service level objective budget is being spent.
+Use when defining or tuning the alerts that fire on how fast the error budget of a service level objective is being spent.
 
 ## Steps
 

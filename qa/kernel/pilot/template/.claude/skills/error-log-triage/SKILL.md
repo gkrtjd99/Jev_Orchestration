@@ -1,11 +1,11 @@
 ---
 name: error-log-triage
-description: "Use when investigating a spike of errors in production logs and you need to find the first failing request and its cause."
+description: "Use when investigating a spike of errors in the production logs of parceldesk and you need the first failing request and its cause."
 ---
 
 # Error Log Triage
 
-Use when investigating a spike of errors in production logs and you need to find the first failing request and its cause.
+Use when investigating a spike of errors in the production logs of parceldesk and you need the first failing request and its cause.
 
 ## Steps
 

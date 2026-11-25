@@ -1,11 +1,11 @@
 ---
 name: rate-limit-tuning
-description: "Use when changing request rate limits or throttling rules at the gateway in front of the service."
+description: "Use when changing request rate limits or throttling rules at the gateway that sits in front of the routes in src/http."
 ---
 
 # Rate Limit Tuning
 
-Use when changing request rate limits or throttling rules at the gateway in front of the service.
+Use when changing request rate limits or throttling rules at the gateway that sits in front of the routes in src/http.
 
 ## Steps
 

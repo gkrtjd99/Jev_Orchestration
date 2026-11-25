@@ -1,11 +1,11 @@
 ---
 name: accessibility-audit
-description: "Use when checking a page of the staff web console for keyboard, contrast and screen-reader issues."
+description: "Use when checking a page of the staff web console for keyboard, contrast and screen-reader issues before it is released to building staff."
 ---
 
 # Accessibility Audit
 
-Use when checking a page of the staff web console for keyboard, contrast and screen-reader issues.
+Use when checking a page of the staff web console for keyboard, contrast and screen-reader issues before it is released to building staff.
 
 ## Steps
 

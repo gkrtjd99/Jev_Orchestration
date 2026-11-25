@@ -1,11 +1,11 @@
 ---
 name: repo-tour
-description: "Start here if you are new to this repository and want a guided overview of what lives where and who to talk to."
+description: "Start here if you are new to this repository and want a guided overview of what lives where under src/ and who to talk to about it."
 ---
 
 # Repo Tour
 
-Start here if you are new to this repository and want a guided overview of what lives where and who to talk to.
+Start here if you are new to this repository and want a guided overview of what lives where under src/ and who to talk to about it.
 
 ## Steps
 

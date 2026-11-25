@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Objective checker for the paired pilot.
 //   node check.mjs --project <dir> [--template <dir>] [--tasks <tasks.json>]
-// Prints JSON { tasks: [{ id, done, convention, details }], unattributedChanges: [...] }.
+// Prints JSON { tasks: [{ id, done, convention, blockedBy, details }], unattributedChanges: [...] }.
 // Reads only. Each task is probed in its own child process (it imports the project's modules), with a timeout.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -30,7 +30,7 @@ export function checkProject({ project, template = join(here, '..', 'template'),
     try { parsed = JSON.parse(child.stdout.trim().split('\n').pop()); } catch { /* fall through */ }
     if (!parsed || typeof parsed.done !== 'boolean' || !Array.isArray(parsed.details)) {
       const why = child.error?.code === 'ETIMEDOUT' ? 'probe timed out' : `probe produced no result (exit ${child.status})`;
-      return { id: task.id, done: false, convention: isSkill ? false : null, details: [{ check: 'probe.failed', ok: false, note: why }] };
+      return { id: task.id, done: false, convention: isSkill ? false : null, blockedBy: [], details: [{ check: 'probe.failed', ok: false, note: why }] };
     }
     const details = [...parsed.details];
     let done = parsed.done;
@@ -41,7 +41,9 @@ export function checkProject({ project, template = join(here, '..', 'template'),
       details.push({ check: 'control.no_unattributed_changes', ok: unattributedChanges.length === 0,
         ...(unattributedChanges.length ? { note: unattributedChanges.slice(0, 20).join(', ') } : {}) });
     }
-    return { id: task.id, done, convention: isSkill ? Boolean(parsed.convention) : null, details };
+    // blockedBy: other tasks whose broken file stopped this task's own modules from loading (see probes.mjs).
+    const blockedBy = Array.isArray(parsed.blockedBy) ? parsed.blockedBy.filter((id) => typeof id === 'string') : [];
+    return { id: task.id, done, convention: isSkill ? Boolean(parsed.convention) : null, blockedBy, details };
   });
   return { tasks: results, unattributedChanges };
 }

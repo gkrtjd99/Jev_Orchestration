@@ -1,11 +1,11 @@
 ---
 name: pdf-receipt-rendering
-description: "택배 수령 확인증이나 영수증을 PDF로 만들 때 사용."
+description: "택배 수령 확인증이나 보관료 영수증을 PDF로 만들거나, 그 PDF의 글꼴과 여백을 맞춰야 할 때 사용."
 ---
 
 # Pdf Receipt Rendering
 
-택배 수령 확인증이나 영수증을 PDF로 만들 때 사용.
+택배 수령 확인증이나 보관료 영수증을 PDF로 만들거나, 그 PDF의 글꼴과 여백을 맞춰야 할 때 사용.
 
 ## Steps
 

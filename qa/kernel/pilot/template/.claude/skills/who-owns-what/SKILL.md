@@ -1,11 +1,11 @@
 ---
 name: who-owns-what
-description: "Use when you are blocked or unsure and need to find out which team or person owns an area of the system."
+description: "Use when you are blocked or unsure how to proceed and need to find out which team or person owns an area of the system or the code."
 ---
 
 # Who Owns What
 
-Use when you are blocked or unsure and need to find out which team or person owns an area of the system.
+Use when you are blocked or unsure how to proceed and need to find out which team or person owns an area of the system or the code.
 
 ## Steps
 

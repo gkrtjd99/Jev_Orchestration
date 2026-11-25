@@ -1,11 +1,11 @@
 ---
 name: webhook-receiver-hardening
-description: "Use when accepting inbound POST webhooks from carriers: signature checks, replay protection and idempotency."
+description: "Use when accepting inbound POST webhooks from carriers in src/http: signature checks, replay protection and idempotency."
 ---
 
 # Webhook Receiver Hardening
 
-Use when accepting inbound POST webhooks from carriers: signature checks, replay protection and idempotency.
+Use when accepting inbound POST webhooks from carriers in src/http: signature checks, replay protection and idempotency.
 
 ## Steps
 

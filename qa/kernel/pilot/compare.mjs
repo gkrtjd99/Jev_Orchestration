@@ -22,7 +22,12 @@ export function compare(a, b) {
       convention: t.check?.convention ?? null,
       injected: t.hook?.injected ?? null,
       injectedLoad: t.hook?.load ?? null,
+      blockedBy: t.check?.blockedBy ?? [],
+      delegated: t.delegation !== null && t.delegation !== undefined,
+      agentCalls: t.delegation?.agentCalls ?? 0,
       targetSkillLoaded: t.subagent?.targetSkillLoaded ?? null,
+      targetSkillLoadedVia: t.subagent?.targetSkillLoadedVia ?? null,
+      targetListedToSubagent: t.subagent?.targetListedToSubagent ?? null,
       loadedSkills: t.subagent ? t.subagent.loadedSkills.map((entry) => entry.name) : null,
       toolCalls: t.subagent?.toolCalls ?? null,
       tokens: t.subagent?.tokens?.total ?? null,
@@ -47,10 +52,11 @@ export function compare(a, b) {
 export function render(result) {
   const { arms, pairs, paired, totals } = result;
   const header = ['task', 'kind', 'lang', 'target skill', `conv ${arms.a}`, `conv ${arms.b}`, `done ${arms.a}`, `done ${arms.b}`,
-    `loaded ${arms.a}`, `loaded ${arms.b}`, `inject ${arms.a}`, `inject ${arms.b}`, `tools ${arms.a}`, `tools ${arms.b}`,
+    `listed ${arms.a}`, `listed ${arms.b}`, `loaded ${arms.a}`, `loaded ${arms.b}`, `inject ${arms.a}`, `inject ${arms.b}`, `tools ${arms.a}`, `tools ${arms.b}`,
     `tokens ${arms.a}`, `tokens ${arms.b}`, `wall s ${arms.a}`, `wall s ${arms.b}`];
   const rows = pairs.map((pair) => [pair.id, pair.kind, pair.lang, pair.targetSkill ?? '-',
     show(pair.a?.convention), show(pair.b?.convention), show(pair.a?.done), show(pair.b?.done),
+    show(pair.a?.targetListedToSubagent), show(pair.b?.targetListedToSubagent),
     show(pair.a?.targetSkillLoaded), show(pair.b?.targetSkillLoaded), show(pair.a?.injected), show(pair.b?.injected),
     show(pair.a?.toolCalls), show(pair.b?.toolCalls), show(pair.a?.tokens), show(pair.b?.tokens),
     show(seconds(pair.a?.wallMs)), show(seconds(pair.b?.wallMs))]);
@@ -62,7 +68,11 @@ export function render(result) {
   both('PRIMARY convention passed, skill tasks', (t) => t?.primary_conventionPassed, ratio);
   both('skill tasks done', (t) => t?.skillTasksDone, ratio);
   both('controls done', (t) => t?.controlsDone, ratio);
+  both('skill tasks delegated by Main', (t) => t?.skillTasksDelegated, (c) => (c ? `${c.yes}/${c.of}` : '-'));
+  both('target skill listed to the subagent', (t) => t?.targetListedToSubagent, ratio);
   both('target skill loaded by the subagent', (t) => t?.targetSkillLoaded, ratio);
+  both('  of which via Skill / Read / Bash', (t) => t?.targetSkillLoadedVia, (v) => (v ? `${v.Skill} / ${v.Read} / ${v.Bash}` : '-'));
+  both('target among the injected "load" skills', (t) => t?.targetInInjectedLoad, ratio);
   both('hook injected a block, skill tasks', (t) => t?.injectedOnSkillTasks, ratio);
   both('hook injected a block, controls (false inj.)', (t) => t?.injectedOnControls, ratio);
   both('subagent tool calls, all tasks', (t) => t?.subagentToolCalls, sum);
@@ -71,6 +81,10 @@ export function render(result) {
   out.push('', `Paired convention outcome over ${paired.pairsMeasured} measured pair(s): both pass ${paired.bothPass}, only ${arms.a} ${paired.onlyA}, only ${arms.b} ${paired.onlyB}, neither ${paired.neither}`);
   const scoped = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side]?.outOfScopeWrites?.length).map((side) => `${pair.id} ${arms[side]}: ${pair[side].outOfScopeWrites.join(', ')}`));
   if (scoped.length) out.push('', 'Writes outside the task\'s own paths:', ...scoped.map((entry) => `  ${entry}`));
+  const blocked = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side]?.blockedBy?.length).map((side) => `${pair.id} ${arms[side]}: ${pair[side].blockedBy.join(', ')}`));
+  if (blocked.length) out.push('', 'Blocked by another task\'s file (the pair is contaminated; read its result with that in mind):', ...blocked.map((entry) => `  ${entry}`));
+  const retried = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side] && (!pair[side].delegated || pair[side].agentCalls > 1)).map((side) => `${pair.id} ${arms[side]}: ${pair[side].delegated ? `${pair[side].agentCalls} Agent calls` : 'not delegated'}`));
+  if (retried.length) out.push('', 'Delegation deviations (not delegated counts as measured done=false; with several calls the first is scored):', ...retried.map((entry) => `  ${entry}`));
   const noted = pairs.flatMap((pair) => ['a', 'b'].filter((side) => pair[side]?.warnings).map((side) => `${pair.id} ${arms[side]}: ${pair[side].warnings}`));
   out.push('', `Warnings: ${arms.a} ${result.warnings.a?.length ?? 0} run-level, ${arms.b} ${result.warnings.b?.length ?? 0} run-level${noted.length ? `; per task: ${noted.join('; ')}` : ''}. Read them in the arm files.`);
   for (const problem of result.problems) out.push(`PROBLEM: ${problem}`);

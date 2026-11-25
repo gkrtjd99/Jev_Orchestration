@@ -1,11 +1,11 @@
 ---
 name: dependency-upgrade-review
-description: "Use when upgrading a third-party package and judging whether the new version is safe to take."
+description: "Use when upgrading a third-party package and judging from its changelog and tests whether the new version is safe to take."
 ---
 
 # Dependency Upgrade Review
 
-Use when upgrading a third-party package and judging whether the new version is safe to take.
+Use when upgrading a third-party package and judging from its changelog and tests whether the new version is safe to take.
 
 ## Steps
 

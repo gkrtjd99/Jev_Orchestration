@@ -1,6 +1,6 @@
 ---
 name: read-endpoints
-description: "조회용 HTTP 엔드포인트(GET)를 src/http에 새로 추가하거나 조회 응답의 형태를 바꿀 때 사용. 응답 본문 구조, 라우트 등록 항목에 들어가야 하는 값, 대상이 없을 때의 응답 규칙을 정한다."
+description: "src/http에 조회용 엔드포인트(GET)를 새로 추가하거나, 기존 조회 응답의 형태를 바꿀 때 사용."
 ---
 
 # Read endpoints
@@ -13,8 +13,9 @@ not change their responses.
 1. **Success body.** Status 200 and a body with exactly these three keys:
    `{ v: 1, data: <the payload>, asOf: <ISO time taken from the handler's now> }`.
    The payload itself goes under `data`, never at the top level.
-2. **Route entry.** The entry in the `routes` array carries a `tier` property, `'read:<collection>'`, using
-   the plural collection name the endpoint reads about (`'read:parcels'`, `'read:lockers'`).
+2. **Route entry.** The entry in the `routes` array carries a `tier` property, `'read:<collection>'`, where
+   the collection is the first segment of the route path, whatever the handler reads to build its answer:
+   `/lockers/...` -> `'read:lockers'`, `/parcels/...` -> `'read:parcels'`.
 3. **Missing target.** When the record named in the path does not exist: status 404 and the body
    `{ v: 1, problem: '<singular>.unknown' }` (`'parcel.unknown'`, `'locker.unknown'`). No `error` key.
 

@@ -1,11 +1,11 @@
 ---
 name: commit-message-style
-description: "Use when writing a commit message or squashing commits before a merge."
+description: "Use when writing a commit message for this repository or squashing several commits into one before a branch is merged."
 ---
 
 # Commit Message Style
 
-Use when writing a commit message or squashing commits before a merge.
+Use when writing a commit message for this repository or squashing several commits into one before a branch is merged.
 
 ## Steps
 

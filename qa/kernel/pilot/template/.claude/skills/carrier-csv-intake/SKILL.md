@@ -1,11 +1,11 @@
 ---
 name: carrier-csv-intake
-description: "Use when validating or parsing an inbound CSV manifest that a carrier uploads, before its lines are stored."
+description: "Use when validating or parsing an inbound CSV manifest that a carrier uploads, before any of its lines are stored as parcel records."
 ---
 
 # Carrier Csv Intake
 
-Use when validating or parsing an inbound CSV manifest that a carrier uploads, before its lines are stored.
+Use when validating or parsing an inbound CSV manifest that a carrier uploads, before any of its lines are stored as parcel records.
 
 ## Steps
 

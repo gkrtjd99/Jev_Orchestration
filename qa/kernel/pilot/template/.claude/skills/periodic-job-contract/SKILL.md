@@ -1,6 +1,6 @@
 ---
 name: periodic-job-contract
-description: "Use when adding or changing an in-app recurring job under src/jobs (cleanups, sweeps, expiry, housekeeping that runs on an interval). Defines how such a job is named, limited, what it returns and where it is booked."
+description: "Use when adding a new recurring job under src/jobs, such as a cleanup, sweep or expiry that the in-app runner starts on an interval."
 ---
 
 # Recurring job contract

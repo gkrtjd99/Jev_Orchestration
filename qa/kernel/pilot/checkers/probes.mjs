@@ -25,9 +25,26 @@ function recorder() {
       return picked.length > 0 && picked.every((d) => d.ok);
     };
     const done = all('done.');
-    return { done, convention: isSkillTask ? done && all('conv.') : null, details };
+    return { done, convention: isSkillTask ? done && all('conv.') : null, details, blockedBy: [...blockedBy].sort() };
   };
-  return { add, verdict };
+  // Records that this task's result depends on a file of another task that cannot be loaded. The pair is
+  // then reported as contaminated; the "blocked.*" detail is not part of `done` or `convention`.
+  const blockedBy = new Set();
+  const block = (taskId, note) => {
+    blockedBy.add(taskId);
+    details.push({ check: 'blocked.other_task_file', ok: false, note: String(note) });
+  };
+  return { add, verdict, block };
+}
+
+// Which of the given files of other tasks cannot be imported: [{ file, task, error }].
+async function broken(project, files) {
+  const out = [];
+  for (const [file, task] of files) {
+    if (!existsSync(join(project, file))) { out.push({ file, task, error: 'file is missing' }); continue; }
+    try { await load(project, file); } catch (error) { out.push({ file, task, error: message(error) }); }
+  }
+  return out;
 }
 
 // Leaves of a JSON-like value as [path, value].
@@ -91,8 +108,15 @@ async function t02(project, template) {
   const source = read(project, 'src/config/settings.mjs');
   const original = read(template, 'src/config/settings.mjs');
   const tokens = (text) => new Set((text ?? '').match(/\b[A-Z][A-Z0-9_]{3,}\b/g) ?? []);
-  const known = tokens(original);
-  const candidates = [...tokens(source)].filter((token) => !known.has(token)).sort();
+  // Candidate variable names: upper-case tokens that are new in settings.mjs, .env.example or docs/settings.md,
+  // those tokens joined to a known or new prefix (a name built as PREFIX + 'NAME'), and, further down, every
+  // name loadSettings actually reads from its env argument.
+  const DOCS = ['.env.example', 'docs/settings.md'];
+  const known = new Set([original, ...DOCS.map((rel) => read(template, rel))].flatMap((text) => [...tokens(text)]));
+  const fresh = [...new Set([source, ...DOCS.map((rel) => read(project, rel))].flatMap((text) => [...tokens(text)]))].filter((token) => !known.has(token));
+  const prefixes = [...new Set(['PARCELDESK_', 'PDESK_', ...fresh.filter((token) => token.endsWith('_'))])];
+  const joined = prefixes.flatMap((prefix) => fresh.filter((token) => !token.endsWith('_') && !token.startsWith(prefix)).map((token) => prefix + token));
+  const candidateSet = new Set([...fresh, ...joined].slice(0, 400));
   let loadSettings;
   try {
     ({ loadSettings } = await load(project, 'src/config/settings.mjs'));
@@ -107,6 +131,16 @@ async function t02(project, template) {
   const base = await settingsFor({});
   if (!add('done.defaults_load', base.value && typeof base.value === 'object', base.error)) return verdict(true);
   const baseLeaves = new Map(leaves(base.value));
+  try {
+    const readNames = new Set();
+    const spy = new Proxy({}, {
+      get: (target, key) => { if (typeof key === 'string') readNames.add(key); return undefined; },
+      has: (target, key) => { if (typeof key === 'string') readNames.add(key); return false; },
+    });
+    await loadSettings(spy);
+    for (const name of readNames) if (!known.has(name) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) candidateSet.add(name);
+  } catch { /* the names found in the sources are still tried */ }
+  const candidates = [...candidateSet].sort();
   // An environment name counts when setting it to 45 changes a leaf whose default is 120 (s) or 120000 (ms).
   const effective = [];
   for (const name of candidates) {
@@ -116,7 +150,7 @@ async function t02(project, template) {
       && (baseLeaves.get(path) === 120 || baseLeaves.get(path) === 120000));
     if (moved.length) effective.push({ name, paths: moved.map(([path]) => path) });
   }
-  add('done.env_overrides_default_120', effective.length > 0, `new names tried: ${candidates.join(',') || '(none)'}`);
+  add('done.env_overrides_default_120', effective.length > 0, `new names tried: ${candidates.slice(0, 40).join(',') || '(none)'}`);
   add('done.door_watch_changed', read(project, 'src/lockers/door-watch.mjs') !== null
     && read(project, 'src/lockers/door-watch.mjs') !== read(template, 'src/lockers/door-watch.mjs'));
 
@@ -159,7 +193,7 @@ async function t03(project) {
 
 // ---------------------------------------------------------------- t04: purge old collected parcels job
 async function t04(project) {
-  const { add, verdict } = recorder();
+  const { add, verdict, block } = recorder();
   const now = new Date('2026-11-20T12:00:00.000Z');
   const daysAgo = (days) => new Date(now.getTime() - days * 86400000).toISOString();
   const parcel = (id, status, collectedAt) => ({
@@ -177,17 +211,46 @@ async function t04(project) {
   });
   let jobs;
   let createStore;
+  let fresh;
+  const legacy = new Set(['expire-pickup-codes', 'door-watch-sweep']);
   try {
-    ({ jobs } = await load(project, 'src/jobs/index.mjs'));
     ({ createStore } = await load(project, 'src/store/store.mjs'));
-    if (!Array.isArray(jobs)) throw new Error('jobs is not an array');
   } catch (error) {
-    add('done.jobs_loadable', false, message(error));
+    add('done.store_loadable', false, message(error));
     return verdict(true);
   }
-  const legacy = new Set(['expire-pickup-codes', 'door-watch-sweep']);
-  const fresh = jobs.filter((job) => job && typeof job === 'object' && !legacy.has(job.name));
-  if (!add('done.new_job_registered', fresh.length > 0, `job names: ${jobs.map((job) => job?.name).join(',')}`)) return verdict(true);
+  try {
+    ({ jobs } = await load(project, 'src/jobs/index.mjs'));
+    if (!Array.isArray(jobs)) throw new Error('jobs is not an array');
+    fresh = jobs.filter((job) => job && typeof job === 'object' && !legacy.has(job.name));
+    if (!add('done.new_job_registered', fresh.length > 0, `job names: ${jobs.map((job) => job?.name).join(',')}`)) return verdict(true);
+  } catch (error) {
+    // index.mjs also imports door-watch-sweep.mjs -> src/lockers/door-watch.mjs, which belong to t02. When
+    // one of those is what fails, say so and look at the new job module directly; registration is then read
+    // from the source of index.mjs.
+    const others = await broken(project, [['src/lockers/door-watch.mjs', 't02'], ['src/jobs/door-watch-sweep.mjs', 't02']]);
+    if (others.length === 0) {
+      add('done.jobs_loadable', false, message(error));
+      return verdict(true);
+    }
+    for (const other of others) block(other.task, `${other.file} (${other.task}) cannot be loaded: ${other.error}`);
+    const indexSource = read(project, 'src/jobs/index.mjs') ?? '';
+    const skip = new Set(['index.mjs', 'runner.mjs', 'expire-pickup-codes.mjs', 'door-watch-sweep.mjs']);
+    let files = [];
+    try { files = readdirSync(join(project, 'src/jobs')).filter((file) => file.endsWith('.mjs') && !skip.has(file)).sort(); } catch { /* none */ }
+    fresh = [];
+    for (const file of files) {
+      let module;
+      try { module = await load(project, `src/jobs/${file}`); } catch { continue; }
+      for (const [exported, value] of Object.entries(module)) {
+        const isJob = value !== null && typeof value === 'object' && typeof value.run === 'function';
+        const identifier = exported === 'default' ? null : exported;
+        const registered = indexSource.includes(`./${file}`) && (identifier === null || new RegExp(`\\b${identifier}\\b`).test(indexSource));
+        if (isJob && registered) fresh.push(value);
+      }
+    }
+    if (!add('done.new_job_registered', fresh.length > 0, `index.mjs not loadable (${message(error)}); new job modules imported by index.mjs: ${fresh.map((job) => job?.name).join(',') || '(none)'}`)) return verdict(true);
+  }
   let chosen = null;
   for (const job of fresh) {
     try {
@@ -205,7 +268,7 @@ async function t04(project) {
 
   const { job, result } = chosen ?? {};
   const name = typeof job?.name === 'string' ? job.name : '';
-  add('conv.name', /^parcels\.[a-z]+(-[a-z]+)+@v1$/.test(name), name);
+  add('conv.name', /^parcels\.[a-z0-9]+(-[a-z0-9]+)+@v1$/.test(name), name);
   add('conv.ceiling', isInt(job?.ceilingSec) && job.ceilingSec >= 1 && job.ceilingSec <= 20, `ceilingSec=${job?.ceilingSec}`);
   const counters = result !== null && typeof result === 'object' ? result : null;
   add('conv.three_counters', counters !== null
@@ -251,7 +314,7 @@ async function t05(project) {
 
 // ---------------------------------------------------------------- t06: locker occupancy endpoint
 async function t06(project) {
-  const { add, verdict } = recorder();
+  const { add, verdict, block } = recorder();
   const now = new Date('2026-11-20T12:00:00.000Z');
   let route;
   let createStore;
@@ -260,6 +323,11 @@ async function t06(project) {
     ({ createStore } = await load(project, 'src/store/store.mjs'));
     route = (Array.isArray(routes) ? routes : []).find((r) => r?.method === 'GET' && typeof r.path === 'string' && /^\/lockers\/:id\/occupancy\/?$/.test(r.path));
   } catch (error) {
+    // routes.mjs -> handlers.mjs -> src/lockers/assign.mjs -> src/errors.mjs: the last two belong to t05.
+    // The new handler lives behind the same import chain, so there is no way around it; the pair is
+    // reported as blocked, not as a plain failure.
+    const others = await broken(project, [['src/lockers/assign.mjs', 't05'], ['src/errors.mjs', 't05']]);
+    for (const other of others) block(other.task, `${other.file} (${other.task}) cannot be loaded: ${other.error}`);
     add('done.routes_loadable', false, message(error));
     return verdict(true);
   }
@@ -343,7 +411,8 @@ async function t08(project) {
   } catch { rendered = false; }
   add('done.renders', rendered);
 
-  add('conv.key', fresh.every((key) => /^[a-z]+\.[a-z]+\.sms$/.test(key)), fresh.join(','));
+  // "lower case, dots between the three parts": a part may be several words joined by - or _.
+  add('conv.key', fresh.every((key) => /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*\.[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*\.sms$/.test(key)), fresh.join(','));
   const texts = fresh.flatMap((key) => [templates[key]?.en, templates[key]?.ko]).map((text) => String(text ?? ''));
   add('conv.ending', texts.every((text) => text.endsWith(' #PD{ref}') && text.indexOf('#PD') === text.length - 8));
   add('conv.length', fresh.every((key) => [...String(templates[key]?.en ?? '')].length <= 110 && [...String(templates[key]?.ko ?? '')].length <= 60),

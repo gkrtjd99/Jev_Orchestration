@@ -1,11 +1,11 @@
 ---
 name: tracing-span-naming
-description: "Use when adding distributed tracing spans and deciding how to name them and which attributes to attach."
+description: "Use when adding distributed tracing spans to service code and deciding how to name them and which attributes to attach."
 ---
 
 # Tracing Span Naming
 
-Use when adding distributed tracing spans and deciding how to name them and which attributes to attach.
+Use when adding distributed tracing spans to service code and deciding how to name them and which attributes to attach.
 
 ## Steps
 

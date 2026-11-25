@@ -1,11 +1,11 @@
 ---
 name: gdpr-data-requests
-description: "Use when a customer exercises a privacy right: asking for a copy of their personal data or for its deletion."
+description: "Use when a customer exercises a privacy right, asking for a copy of the personal data held about them or for that data to be deleted."
 ---
 
 # Gdpr Data Requests
 
-Use when a customer exercises a privacy right: asking for a copy of their personal data or for its deletion.
+Use when a customer exercises a privacy right, asking for a copy of the personal data held about them or for that data to be deleted.
 
 ## Steps
 

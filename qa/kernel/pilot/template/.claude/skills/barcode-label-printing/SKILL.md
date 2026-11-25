@@ -1,11 +1,11 @@
 ---
 name: barcode-label-printing
-description: "택배 송장 라벨과 바코드를 인쇄 규격에 맞춰 만들 때 사용."
+description: "택배 송장 라벨과 바코드를 인쇄 규격에 맞춰 만들거나, 라벨 프린터에서 출력이 어긋날 때 사용."
 ---
 
 # Barcode Label Printing
 
-택배 송장 라벨과 바코드를 인쇄 규격에 맞춰 만들 때 사용.
+택배 송장 라벨과 바코드를 인쇄 규격에 맞춰 만들거나, 라벨 프린터에서 출력이 어긋날 때 사용.
 
 ## Steps
 

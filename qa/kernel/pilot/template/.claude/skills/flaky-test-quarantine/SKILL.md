@@ -1,11 +1,11 @@
 ---
 name: flaky-test-quarantine
-description: "Use when a test fails intermittently on the build server and needs to be isolated without hiding real failures."
+description: "Use when a test under test/ fails intermittently on the build server and has to be isolated without hiding failures that are real."
 ---
 
 # Flaky Test Quarantine
 
-Use when a test fails intermittently on the build server and needs to be isolated without hiding real failures.
+Use when a test under test/ fails intermittently on the build server and has to be isolated without hiding failures that are real.
 
 ## Steps
 

@@ -1,11 +1,11 @@
 ---
 name: courier-route-planning
-description: "Use when ordering the stops of a courier round or estimating arrival windows."
+description: "Use when ordering the stops of a courier round between buildings or estimating the arrival window for each stop on that round."
 ---
 
 # Courier Route Planning
 
-Use when ordering the stops of a courier round or estimating arrival windows.
+Use when ordering the stops of a courier round between buildings or estimating the arrival window for each stop on that round.
 
 ## Steps
 

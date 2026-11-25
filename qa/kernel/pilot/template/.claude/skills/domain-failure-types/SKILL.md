@@ -1,6 +1,6 @@
 ---
 name: domain-failure-types
-description: "Use when parceldesk service code needs a new kind of failure it can raise: adding a new exception class or a new failure code under src/. Covers naming, numbering and where the new failure must be recorded."
+description: "Use when service code under src/ needs a new kind of failure that it can raise, such as a new exception class or a new failure code."
 ---
 
 # New failure types

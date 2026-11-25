@@ -1,11 +1,11 @@
 ---
 name: sql-migration-safety
-description: "Use when writing a schema migration for the relational reporting database that must not lock tables."
+description: "Use when writing a schema migration for the relational reporting database that has to run without locking tables for long."
 ---
 
 # Sql Migration Safety
 
-Use when writing a schema migration for the relational reporting database that must not lock tables.
+Use when writing a schema migration for the relational reporting database that has to run without locking tables for long.
 
 ## Steps
 

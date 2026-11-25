@@ -1,11 +1,11 @@
 ---
 name: incident-postmortem-writing
-description: "장애가 끝난 뒤 회고 문서를 작성할 때 사용."
+description: "장애가 끝난 뒤 경과와 원인, 재발 방지 조치를 담은 회고 문서를 작성해야 할 때 사용."
 ---
 
 # Incident Postmortem Writing
 
-장애가 끝난 뒤 회고 문서를 작성할 때 사용.
+장애가 끝난 뒤 경과와 원인, 재발 방지 조치를 담은 회고 문서를 작성해야 할 때 사용.
 
 ## Steps
 
