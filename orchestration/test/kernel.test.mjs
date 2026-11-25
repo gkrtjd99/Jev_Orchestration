@@ -4,6 +4,7 @@ import { fixture, server, mockClient, answer } from './helpers.mjs';
 import { performance } from 'node:perf_hooks';
 import { sleep } from '../src/util.mjs';
 import { routeQuestions, failureQuestions } from '../src/questions.mjs';
+import { isDecisionRecord } from '../src/kernel/log.mjs';
 import { POINTS, MODES, PROVIDERS, kernelDefaults, mergeKernel, validateKernel, DecisionKernel, createKernel } from '../src/kernel/kernel.mjs';
 
 const code = expected => error => { assert.equal(error.code, expected); return true; };
@@ -539,6 +540,33 @@ test('createKernel builds a real JevClient lazily with the injected fetch', asyn
   const again = await kernel.decide('read.advice', { state: { a: 1 }, questions: q, scope: 'session-1' });
   assert.equal(again.cached, true);
   assert.equal(calls, 1);
+});
+
+test('the decision record carries the judge\'s token usage when it sent a request, and only then', async () => {
+  const run = async (response, cached = false) => {
+    const log = memoryLog();
+    const jev = { async evaluate() { return { response: { model: 'm', answers: { safe: { type: 'noul', noul: 0.9 } }, ...response }, cached, latencyMs: 1 }; } };
+    const kernel = new DecisionKernel(configWith({ 'read.advice': { mode: 'shadow' } }), { judges: { jev }, log });
+    await kernel.decide('read.advice', input());
+    assert.equal(log.records.length, 1);
+    assert.equal(isDecisionRecord(log.records[0]), true);
+    return log.records[0];
+  };
+  assert.deepEqual((await run({ usage: { input_tokens: 1736, output_tokens: 356, total_tokens: 2092, note: 'PROVIDER_TEXT' } })).usage, { input_tokens: 1736, output_tokens: 356 });
+  // Anything that is not a non-negative integer is unknown, never a guess and never 0.
+  assert.deepEqual((await run({ usage: { input_tokens: 12.5, output_tokens: '7' } })).usage, { input_tokens: null, output_tokens: null });
+  assert.deepEqual((await run({ usage: { input_tokens: 12 } })).usage, { input_tokens: 12, output_tokens: null });
+  assert.deepEqual((await run({ usage: { input_tokens: 0, output_tokens: 0 } })).usage, { input_tokens: 0, output_tokens: 0 });
+  // No usage object, or a cache hit (no request was sent): the record has no usage field at all.
+  for (const r of [await run({}), await run({ usage: 'none' }), await run({ usage: { input_tokens: 5, output_tokens: 1 } }, true)]) {
+    assert.equal(Object.hasOwn(r, 'usage'), false);
+  }
+  // A failed decision made no accepted request either.
+  const log = memoryLog();
+  const kernel = new DecisionKernel(configWith({ 'read.advice': { mode: 'shadow' } }),
+    { judges: { jev: { async evaluate() { throw Object.assign(new Error('JEV_TIMEOUT'), { code: 'JEV_TIMEOUT' }); } } }, log });
+  await assert.rejects(kernel.decide('read.advice', input()));
+  assert.equal(Object.hasOwn(log.records[0], 'usage'), false);
 });
 
 test('decision log record follows the shared contract and carries no raw text', async () => {

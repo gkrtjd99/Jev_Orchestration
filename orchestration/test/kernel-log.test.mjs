@@ -285,7 +285,7 @@ test('decisions CLI labels, shows and reports through --log-dir', async t => {
 
   r = await run('--action', 'show', '--limit', '1');
   assert.equal(r.code, 0, r.stderr);
-  assert.deepEqual(JSON.parse(r.stdout), { decisions: [second], corruptLines: 0 });
+  assert.deepEqual(JSON.parse(r.stdout), { decisions: [second], usage: { reported: 0, input_tokens: null, output_tokens: null }, corruptLines: 0 });
   r = await run('--action', 'show', '--point', 'delegation.classify');
   assert.deepEqual(JSON.parse(r.stdout).decisions, [first]);
 
@@ -309,4 +309,45 @@ test('decisions CLI labels, shows and reports through --log-dir', async t => {
   assert.deepEqual(scoped.groups.map(g => g.type), ['choice', 'noul', 'score']);
   r = await run('--action', 'report', '--since', '2027-01-01');
   assert.deepEqual(JSON.parse(r.stdout).groups, []);
+});
+
+test('the optional usage field round-trips, records without it stay valid, and anything else is rejected', async t => {
+  const dir = await tempDir(t);
+  const log = new DecisionLog(dir, { now: () => JAN });
+  const old = record({ seed: 'old' });
+  const counted = record({ seed: 'counted', usage: { input_tokens: 1736, output_tokens: 356 } });
+  const partial = record({ seed: 'partial', usage: { input_tokens: 12, output_tokens: null } });
+  const unknown = record({ seed: 'unknown', usage: { input_tokens: null, output_tokens: null } });
+  const zero = record({ seed: 'zero', usage: { input_tokens: 0, output_tokens: 0 } });
+  for (const r of [old, counted, partial, unknown, zero]) await log.append(r);
+  const back = (await log.read()).decisions;
+  assert.deepEqual(back, [old, counted, partial, unknown, zero]);
+  assert.equal(Object.hasOwn(back[0], 'usage'), false);
+  assert.equal(back[3].usage.input_tokens, null);
+
+  for (const usage of [null, 7, 'many', [], {}, { input_tokens: 1 }, { input_tokens: 1, output_tokens: 2, total_tokens: 3 },
+    { input_tokens: -1, output_tokens: 0 }, { input_tokens: 1.5, output_tokens: 0 }, { input_tokens: '12', output_tokens: 0 },
+    { input_tokens: Number.MAX_SAFE_INTEGER + 1, output_tokens: 0 }, { input_tokens: 1, output_tokens: undefined },
+    { input_tokens: 1, output_tokens: 'SECRET_TEXT' }]) {
+    assert.equal(isDecisionRecord(record({ usage })), false, JSON.stringify(usage));
+    await rejects(log.append(record({ usage })), 'INVALID_DECISION_RECORD');
+  }
+  // usage does not make room for another unknown key, and it cannot stand in for a required one.
+  assert.equal(isDecisionRecord(record({ usage: { input_tokens: 1, output_tokens: 1 }, tokens: 2 })), false);
+  const missing = record({ usage: { input_tokens: 1, output_tokens: 1 } });
+  delete missing.subject;
+  assert.equal(isDecisionRecord(missing), false);
+
+  const run = (...args) => child(process.execPath, [CLI, '--log-dir', dir, ...args]);
+  let r = await run('--action', 'show', '--limit', '4');
+  assert.equal(r.code, 0, r.stderr);
+  const shown = JSON.parse(r.stdout);
+  assert.equal(shown.decisions.length, 4);
+  assert.deepEqual(shown.usage, { reported: 4, input_tokens: 1748, output_tokens: 356 });
+  r = await run('--action', 'report');
+  assert.equal(r.code, 0, r.stderr);
+  const report = JSON.parse(r.stdout);
+  assert.deepEqual(report.usage, { reported: 4, input_tokens: 1748, output_tokens: 356,
+    providers: [{ provider: 'jev', decisions: 5, reported: 4, input_tokens: 1748, output_tokens: 356 }] });
+  assert.deepEqual(report.points.map(p => [p.pointId, p.usage.reported, p.usage.input_tokens, p.usage.output_tokens]), [['delegation.classify', 4, 1748, 356]]);
 });

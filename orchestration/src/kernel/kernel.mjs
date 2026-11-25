@@ -135,6 +135,16 @@ function compactAnswers(answers) {
   return out;
 }
 
+/**
+ * Token counts the judge reported for one request, for the decision log: {input_tokens, output_tokens}, each a
+ * non-negative integer or null. null (no field) when the response carried no usage object at all.
+ */
+function reportedUsage(response) {
+  if (!object(response?.usage)) return null;
+  const count = x => (Number.isSafeInteger(x) && x >= 0 ? x : null);
+  return { input_tokens: count(response.usage.input_tokens), output_tokens: count(response.usage.output_tokens) };
+}
+
 export class DecisionKernel {
   constructor(config, { judges = {}, log = null, now = Date.now } = {}) {
     this.config = config;
@@ -224,9 +234,12 @@ export class DecisionKernel {
       const decisionId = id(provider);
       const cached = result.cached === true;
       const model = typeof result.response.model === 'string' && result.response.model ? result.response.model : 'unknown';
+      // A cache hit sent no request: the stored response still names the tokens of the request that filled the
+      // cache, and writing them again would count them twice.
+      const usage = cached ? null : reportedUsage(result.response);
       await this.record({
         ...base, decisionId, provider, model, cached, latencyMs, confidence,
-        answers: compactAnswers(result.response.answers), trail,
+        answers: compactAnswers(result.response.answers), trail, ...(usage ? { usage } : {}),
       });
       return {
         pointId, mode, skipped: false, apply: mode === 'active', response: result.response, provider,

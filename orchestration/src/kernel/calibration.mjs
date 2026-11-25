@@ -109,6 +109,34 @@ function scoreMetrics(rows) {
     exactLevelAccuracy: mean(rows.map(r => (level(r) === r.outcome ? 1 : 0))) };
 }
 
+/**
+ * Judge token totals over decision records. Only records with a `usage` field count (`reported`); a side is
+ * null when no record gave a number for it, never 0. Records written before the field existed, failed
+ * decisions and cache hits carry no usage, so `reported` can be smaller than the number of records.
+ */
+export function usageTotals(decisions) {
+  const out = { reported: 0, input_tokens: null, output_tokens: null };
+  for (const d of decisions) {
+    if (!d?.usage || typeof d.usage !== 'object') continue;
+    out.reported++;
+    for (const key of ['input_tokens', 'output_tokens']) {
+      if (Number.isSafeInteger(d.usage[key]) && d.usage[key] >= 0) out[key] = (out[key] ?? 0) + d.usage[key];
+    }
+  }
+  return out;
+}
+
+/** usageTotals per provider, sorted by provider name. */
+function usageByProvider(decisions) {
+  const providers = new Map();
+  for (const d of decisions) {
+    if (!providers.has(d.provider)) providers.set(d.provider, []);
+    providers.get(d.provider).push(d);
+  }
+  return [...providers.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([provider, members]) => ({ provider, decisions: members.length, ...usageTotals(members) }));
+}
+
 function operational(decisions) {
   const latencies = decisions.map(d => d.latencyMs).sort((a, b) => a - b);
   const n = decisions.length;
@@ -116,6 +144,9 @@ function operational(decisions) {
     cachedRate: ratio(decisions.filter(d => d.cached).length, n),
     latencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95) },
     meanConfidence: mean(decisions.map(d => d.confidence).filter(c => typeof c === 'number')),
+    // Tokens of the records in this group. A record with answers of two types is in two groups, so group
+    // totals must not be added up; the report's top-level `usage` and `points[].usage` count each record once.
+    usage: usageTotals(decisions),
   };
 }
 
@@ -144,6 +175,7 @@ function pointSummaries(decisions) {
     return {
       pointId, decisions: all.length, failed, failureRate: ratio(failed, all.length),
       escalated, escalationRate: ratio(escalated, all.length),
+      usage: { ...usageTotals(all), providers: usageByProvider(all) },
       judges: [...judges.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([provider, j]) => ({
         provider, ...j, failureRate: ratio(j.failures, j.attempts),
       })),
@@ -196,5 +228,7 @@ export function calibrationReport({ decisions = [], labels = [] } = {}, { bins =
       };
     });
   return { generatedFrom: { decisions: decisions.length, labels: labels.length },
-    invalidLabels: out.reduce((n, g) => n + g.invalidLabels, 0), points: pointSummaries(decisions), groups: out };
+    invalidLabels: out.reduce((n, g) => n + g.invalidLabels, 0),
+    usage: { ...usageTotals(decisions), providers: usageByProvider(decisions) },
+    points: pointSummaries(decisions), groups: out };
 }

@@ -19,6 +19,8 @@ const HEX64 = /^[0-9a-f]{64}$/;
 const FILE_NAME = /^(decisions|labels)-\d{4}-(?:0[1-9]|1[0-2])\.jsonl$/;
 const DECISION_KEYS = ['schema', 'decisionId', 'time', 'pointId', 'mode', 'provider', 'model', 'cached', 'latencyMs',
   'confidence', 'scope', 'subject', 'questionsHash', 'stateHash', 'answers', 'trail'];
+// Optional: written by the kernel when the judge response carried token usage. Records from before the field exist without it.
+const USAGE_KEYS = ['input_tokens', 'output_tokens'];
 const LABEL_KEYS = ['schema', 'time', 'decisionId', 'questionId', 'outcome', 'source'];
 const TRAIL_KEYS = ['provider', 'ok', 'code', 'confidence', 'latencyMs'];
 const ANSWER_KEYS = {
@@ -56,10 +58,21 @@ function validTrailEntry(t) {
     && (t.confidence === undefined || t.confidence === null || unit(t.confidence));
 }
 
-/** Strict shared-contract check: every key required, none unknown, no string over 512 chars. */
+const tokenCount = x => x === null || (Number.isSafeInteger(x) && x >= 0);
+
+function validUsage(u) {
+  return object(u) && Object.keys(u).length === USAGE_KEYS.length && USAGE_KEYS.every(k => Object.hasOwn(u, k) && tokenCount(u[k]));
+}
+
+/**
+ * Strict shared-contract check: every key required, none unknown, no string over 512 chars.
+ * The one optional key is `usage` ({input_tokens, output_tokens}, each a non-negative integer or null).
+ */
 export function isDecisionRecord(r) {
   if (!object(r)) return false;
-  if (Object.keys(r).length !== DECISION_KEYS.length || !DECISION_KEYS.every(k => Object.hasOwn(r, k))) return false;
+  const hasUsage = Object.hasOwn(r, 'usage');
+  if (Object.keys(r).length !== DECISION_KEYS.length + (hasUsage ? 1 : 0) || !DECISION_KEYS.every(k => Object.hasOwn(r, k))) return false;
+  if (hasUsage && !validUsage(r.usage)) return false;
   if (r.schema !== 1 || typeof r.decisionId !== 'string' || !HEX64.test(r.decisionId)) return false;
   if (!nonNegative(r.time) || !nonNegative(r.latencyMs) || typeof r.cached !== 'boolean') return false;
   if (!text(r.pointId, MAX_SHORT) || (r.mode !== 'shadow' && r.mode !== 'active')) return false;

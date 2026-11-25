@@ -3,7 +3,7 @@ import os from 'node:os';
 import { options, assert } from '../src/util.mjs';
 import { loadConfig } from '../src/config.mjs';
 import { DecisionLog, decisionLogDir } from '../src/kernel/log.mjs';
-import { calibrationReport } from '../src/kernel/calibration.mjs';
+import { calibrationReport, usageTotals } from '../src/kernel/calibration.mjs';
 
 const KNOWN = ['action', 'config', 'log-dir', 'point', 'since', 'threshold', 'decision', 'question', 'outcome', 'source', 'type', 'limit'];
 const string = x => typeof x === 'string' && x.length > 0;
@@ -70,7 +70,9 @@ try {
     const limit = args.limit === undefined ? 20 : Number(args.limit);
     assert(string(args.limit ?? '20') && Number.isInteger(limit) && limit >= 1 && limit <= 1000, 'INVALID_LIMIT');
     const { decisions, corruptLines } = await log.read({ pointId: pointFilter(args) });
-    console.log(JSON.stringify({ decisions: decisions.slice(-limit).reverse(), corruptLines }, null, 2));
+    const shown = decisions.slice(-limit).reverse();
+    // Judge tokens of the records listed here; the report action has the totals per point and provider.
+    console.log(JSON.stringify({ decisions: shown, usage: usageTotals(shown), corruptLines }, null, 2));
   }
 } catch (e) {
   console.error(e.code || e.message);

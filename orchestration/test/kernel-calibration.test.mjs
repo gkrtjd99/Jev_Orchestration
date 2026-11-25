@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { hash } from '../src/util.mjs';
-import { joinLabels, calibrationReport, reliabilityBins } from '../src/kernel/calibration.mjs';
+import { joinLabels, calibrationReport, reliabilityBins, usageTotals } from '../src/kernel/calibration.mjs';
 
 const close = (actual, expected, message) => {
   assert.equal(typeof actual, 'number', message);
@@ -133,7 +133,8 @@ test('metrics are null, never 0, without labeled rows or with an undefined denom
   assert.equal(m.tn, 2);
   close(m.brier, 0.025, 'brier');
 
-  assert.deepEqual(calibrationReport({ decisions: [], labels: [] }), { generatedFrom: { decisions: 0, labels: 0 }, invalidLabels: 0, points: [], groups: [] });
+  assert.deepEqual(calibrationReport({ decisions: [], labels: [] }), { generatedFrom: { decisions: 0, labels: 0 }, invalidLabels: 0,
+    usage: { reported: 0, input_tokens: null, output_tokens: null, providers: [] }, points: [], groups: [] });
   assert.throws(() => calibrationReport({ decisions: [], labels: [] }, { threshold: 2 }), e => e.code === 'INVALID_CALIBRATION_OPTIONS');
   assert.throws(() => calibrationReport({ decisions: [], labels: [] }, { bins: 0 }), e => e.code === 'INVALID_CALIBRATION_OPTIONS');
 });
@@ -204,7 +205,9 @@ test('operational metrics cover all decisions and split groups by point, provide
   assert.equal(jev.counts.decisions, 4);
   assert.equal(jev.operational.cachedRate, 0.25);
   // Failure and escalation are point-level facts; a per-provider failure rate would be 0 or 1 by construction.
-  assert.deepEqual(Object.keys(jev.operational).sort(), ['cachedRate', 'latencyMs', 'meanConfidence']);
+  assert.deepEqual(Object.keys(jev.operational).sort(), ['cachedRate', 'latencyMs', 'meanConfidence', 'usage']);
+  // None of these records carries usage: the totals are null, not 0.
+  assert.deepEqual(jev.operational.usage, { reported: 0, input_tokens: null, output_tokens: null });
   // Nearest rank over [10, 20, 30, 400].
   assert.deepEqual(jev.operational.latencyMs, { p50: 20, p95: 400 });
   close(jev.operational.meanConfidence, 0.8, 'meanConfidence');
@@ -249,4 +252,48 @@ test('failure and escalation rates are reported per point across all of its deci
     { provider: 'jev', attempts: 1, failures: 1, lowConfidence: 0, failureRate: 1 },
     { provider: 'local', attempts: 1, failures: 0, lowConfidence: 1, failureRate: 0 },
   ]);
+});
+
+test('judge token usage is totalled per point and per provider, each record once, and null stays null', () => {
+  const usage = (input_tokens, output_tokens) => ({ usage: { input_tokens, output_tokens } });
+  const both = { ...noul(0.9), role: { type: 'choice', choice: 'a', p: { a: 0.7, b: 0.3 }, confidence: 0.7 } };
+  const decisions = [
+    decision(both, usage(1000, 200)),                                             // two answer types: in two groups, counted once
+    decision(noul(0.2), usage(500, null)),                                        // the judge gave no output count
+    decision(noul(0.3)),                                                          // a record from before the field existed
+    decision(noul(0.4), { cached: true }),                                        // a cache hit carries no usage
+    decision(noul(0.5), { provider: 'openai', model: 'other', ...usage(70, 7) }),
+    decision(noul(0.6), { pointId: 'delegation.skills', ...usage(3000, 600) }),
+    decision(noul(0.7), { pointId: 'delegation.skills', ...usage(3100, 610) }),   // chunked skills: one record per request
+    decision({}, { pointId: 'delegation.skills', provider: 'none', model: 'none', confidence: null }), // a failed decision
+    decision(noul(0.8), { pointId: 'supervisor.outcome', provider: 'local', model: 'local-rules', ...usage(0, 0) }),
+    decision(noul(0.8), { pointId: 'read.advice', ...usage(null, null) }),
+  ];
+  const report = calibrationReport({ decisions, labels: [] });
+  assert.deepEqual(report.usage, { reported: 7, input_tokens: 7670, output_tokens: 1417, providers: [
+    { provider: 'jev', decisions: 7, reported: 5, input_tokens: 7600, output_tokens: 1410 },
+    { provider: 'local', decisions: 1, reported: 1, input_tokens: 0, output_tokens: 0 },
+    { provider: 'none', decisions: 1, reported: 0, input_tokens: null, output_tokens: null },
+    { provider: 'openai', decisions: 1, reported: 1, input_tokens: 70, output_tokens: 7 },
+  ] });
+  const point = id => report.points.find(p => p.pointId === id).usage;
+  assert.deepEqual(point('delegation.classify'), { reported: 3, input_tokens: 1570, output_tokens: 207, providers: [
+    { provider: 'jev', decisions: 4, reported: 2, input_tokens: 1500, output_tokens: 200 },
+    { provider: 'openai', decisions: 1, reported: 1, input_tokens: 70, output_tokens: 7 },
+  ] });
+  assert.deepEqual(point('delegation.skills'), { reported: 2, input_tokens: 6100, output_tokens: 1210, providers: [
+    { provider: 'jev', decisions: 2, reported: 2, input_tokens: 6100, output_tokens: 1210 },
+    { provider: 'none', decisions: 1, reported: 0, input_tokens: null, output_tokens: null },
+  ] });
+  // A local judge really reports zero; a judge that reported nothing usable stays null.
+  assert.deepEqual(point('supervisor.outcome'), { reported: 1, input_tokens: 0, output_tokens: 0, providers: [
+    { provider: 'local', decisions: 1, reported: 1, input_tokens: 0, output_tokens: 0 }] });
+  assert.deepEqual(point('read.advice'), { reported: 1, input_tokens: null, output_tokens: null, providers: [
+    { provider: 'jev', decisions: 1, reported: 1, input_tokens: null, output_tokens: null }] });
+  // The per-group operational section: the two-type record appears in both of its groups.
+  const group = (pointId, provider, type) => report.groups.find(g => g.pointId === pointId && g.provider === provider && g.type === type).operational.usage;
+  assert.deepEqual(group('delegation.classify', 'jev', 'noul'), { reported: 2, input_tokens: 1500, output_tokens: 200 });
+  assert.deepEqual(group('delegation.classify', 'jev', 'choice'), { reported: 1, input_tokens: 1000, output_tokens: 200 });
+  assert.deepEqual(group('delegation.skills', 'none', null), { reported: 0, input_tokens: null, output_tokens: null });
+  assert.deepEqual(usageTotals([]), { reported: 0, input_tokens: null, output_tokens: null });
 });
